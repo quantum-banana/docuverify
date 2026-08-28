@@ -1,0 +1,1156 @@
+{
+  "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+  "demonstration_only": true,
+  "display_family": "Synthetic driving-licence-style document",
+  "document_family": "government.driving_licence",
+  "issuer": "Fictional Mobility Registry",
+  "licence_status_note": "Fictional DocuVerify demonstration library; retain the synthetic notice.",
+  "may_influence_tampering_risk": true,
+  "pages": [
+    {
+      "asset": {
+        "asset_id": "visual.reference-a.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "government.driving_licence",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-a",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/fingerprints/reference-a-page-01.json",
+          "sha256": "e2d5c054e034d8f82c9ae304df156b242f4295019f4e1984dd2c1e006a059d61"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Fictional Mobility Registry",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/549ba7ff563adfdce7654f6128e6c8741ffb14a93ae2473cc625b2a028a4f9aa.png",
+            "sha256": "549ba7ff563adfdce7654f6128e6c8741ffb14a93ae2473cc625b2a028a4f9aa",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/70b3e0c841946255b43405d9d28f015df70924da44a1bf11c0b01dc7006593cc.png",
+            "sha256": "70b3e0c841946255b43405d9d28f015df70924da44a1bf11c0b01dc7006593cc",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            12,
+            1641,
+            151,
+            23,
+            22,
+            37,
+            97,
+            8019,
+            11,
+            1607,
+            40,
+            32,
+            142,
+            38,
+            114,
+            8016,
+            1735,
+            29,
+            25,
+            17,
+            23,
+            29,
+            98,
+            8043
+          ],
+          "edge_phash": "be3933369de28ccc",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "c749634d4b635d63"
+          },
+          "layout_sha256": "916ebc6d008257c00d719e62a6f81d58e22bee1dc1f7568d0d198817cb05ed55",
+          "mask_sha256": "a4fe159f9113321339878b2b8031c9e8db6e9dff912a58278213c3d8ddbd7f7d",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "faebc86dd17de500dac026552111d878bb1b7415b7e1cca20f9ef879b670e281",
+          "source_sha256": "8539d1d5f6ebc68a8722754a318f5cfb68a2e674a22fbdebe3afd8f2eec93a27",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "ee6b6b6e6b629490",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.driving-licence.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-a/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.049881,
+                "width": 0.554622,
+                "x": 0.319328,
+                "y": 0.275534
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [
+            {
+              "box": {
+                "height": 0.168646,
+                "width": 0.164706,
+                "x": 0.110924,
+                "y": 0.211401
+              },
+              "label": "Synthetic photo region",
+              "page": 1,
+              "region_id": "p1.security-photo"
+            }
+          ],
+          "qr": [
+            {
+              "box": {
+                "height": 0.124703,
+                "width": 0.176471,
+                "x": 0.663866,
+                "y": 0.593824
+              },
+              "label": "Synthetic qr region",
+              "page": 1,
+              "region_id": "p1.security-qr"
+            }
+          ],
+          "seal": [
+            {
+              "box": {
+                "height": 0.089074,
+                "width": 0.12605,
+                "x": 0.457143,
+                "y": 0.74228
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.047506,
+                "width": 0.252101,
+                "x": 0.12605,
+                "y": 0.767221
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "8539d1d5f6ebc68a8722754a318f5cfb68a2e674a22fbdebe3afd8f2eec93a27",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-a/page-01.thumbnail.webp",
+          "sha256": "07cf0b9432fb889670172008c9f43746c7dcdb9e1f01cfd9f48c07b55ef5a42a",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.554622,
+              "x": 0.319328,
+              "y": 0.213777
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.554622,
+              "x": 0.319328,
+              "y": 0.275534
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.083135,
+              "width": 0.747899,
+              "x": 0.12605,
+              "y": 0.43943
+            },
+            "label": "Variable address field",
+            "page": 1,
+            "region_id": "p1.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.554622,
+              "x": 0.319328,
+              "y": 0.337292
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.035629,
+              "width": 0.420168,
+              "x": 0.147899,
+              "y": 0.660333
+            },
+            "label": "Variable serial field",
+            "page": 1,
+            "region_id": "p1.variable-serial"
+          },
+          {
+            "box": {
+              "height": 0.168646,
+              "width": 0.164706,
+              "x": 0.110924,
+              "y": 0.211401
+            },
+            "label": "Variable photo field",
+            "page": 1,
+            "region_id": "p1.variable-photo"
+          },
+          {
+            "box": {
+              "height": 0.124703,
+              "width": 0.176471,
+              "x": 0.663866,
+              "y": 0.593824
+            },
+            "label": "Variable qr field",
+            "page": 1,
+            "region_id": "p1.variable-qr"
+          },
+          {
+            "box": {
+              "height": 0.047506,
+              "width": 0.252101,
+              "x": 0.12605,
+              "y": 0.767221
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-a"
+    },
+    {
+      "asset": {
+        "asset_id": "visual.reference-a.p02",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "government.driving_licence",
+        "document_page_number": 2,
+        "enabled": true,
+        "exemplar_id": "reference-a",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/fingerprints/reference-a-page-02.json",
+          "sha256": "968ea3028c493d61cf1bc0f4c8eb6f3452a3879473df4eaa1732dd84647760ab"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 2,
+            "region_id": "p2.fixed-layout"
+          }
+        ],
+        "issuer": "Fictional Mobility Registry",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/d240984ffe1df28611bdd401c96cf255398db8b14b0c109c18ade93d09f54f41.png",
+            "sha256": "d240984ffe1df28611bdd401c96cf255398db8b14b0c109c18ade93d09f54f41",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/e2103ee587bcf90cc891d93c6252698cfde77e87e51eeca928879c4c3a84a59d.png",
+            "sha256": "e2103ee587bcf90cc891d93c6252698cfde77e87e51eeca928879c4c3a84a59d",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            11,
+            1620,
+            157,
+            29,
+            25,
+            46,
+            79,
+            8033,
+            0,
+            1580,
+            38,
+            57,
+            147,
+            44,
+            102,
+            8030,
+            1711,
+            35,
+            26,
+            24,
+            27,
+            43,
+            80,
+            8055
+          ],
+          "edge_phash": "bf39333f1de2c8c4",
+          "fixed_region_hashes": {
+            "p2.fixed-layout": "c749674d4f425d66"
+          },
+          "layout_sha256": "4484b7ea08137446952cbab028c2d7a385ffa09ef0bbde548a4f092cdb274c93",
+          "mask_sha256": "04975ebb7821f95b49cdcd74faa0cf5d5e353ab3cd20299717d479a65cca2987",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "1cd9673eb2451e12b94bc3634ff0e2e1b3b3c33e1373cc7e4c7aa6ed326ee87a",
+          "source_sha256": "7bac95bd690a322ab4d1ad806f8b5d310fca886a4b0833baa5b85315988c7d43",
+          "stable_anchor_geometry_sha256": "5b534674ce5676854d2cead2b9bff7e3a91ad24c84c3bf94f4eed2d4fbcc1f8a",
+          "value": "ee6b6b6e6b629094",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.driving-licence.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-a/page-02.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.049881,
+                "width": 0.756303,
+                "x": 0.117647,
+                "y": 0.28266
+              },
+              "label": "Synthetic document number",
+              "page": 2,
+              "region_id": "p2.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 2,
+              "region_id": "p2.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [
+            {
+              "box": {
+                "height": 0.118765,
+                "width": 0.168067,
+                "x": 0.680672,
+                "y": 0.564133
+              },
+              "label": "Synthetic qr region",
+              "page": 2,
+              "region_id": "p2.security-qr"
+            }
+          ],
+          "seal": [
+            {
+              "box": {
+                "height": 0.089074,
+                "width": 0.12605,
+                "x": 0.462185,
+                "y": 0.74228
+              },
+              "label": "Synthetic seal region",
+              "page": 2,
+              "region_id": "p2.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.047506,
+                "width": 0.252101,
+                "x": 0.131092,
+                "y": 0.767221
+              },
+              "label": "Synthetic signature region",
+              "page": 2,
+              "region_id": "p2.security-signature"
+            }
+          ]
+        },
+        "sha256": "7bac95bd690a322ab4d1ad806f8b5d310fca886a4b0833baa5b85315988c7d43",
+        "side": "back",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-a/page-02.thumbnail.webp",
+          "sha256": "a776cfa9672d9c7b947e886b0aa395ea66b17a4f152b42a7a48153b24643415d",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.220903
+            },
+            "label": "Variable name field",
+            "page": 2,
+            "region_id": "p2.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.28266
+            },
+            "label": "Variable identifier field",
+            "page": 2,
+            "region_id": "p2.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.089074,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.344418
+            },
+            "label": "Variable address field",
+            "page": 2,
+            "region_id": "p2.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.445368
+            },
+            "label": "Variable date field",
+            "page": 2,
+            "region_id": "p2.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.118765,
+              "width": 0.168067,
+              "x": 0.680672,
+              "y": 0.564133
+            },
+            "label": "Variable qr field",
+            "page": 2,
+            "region_id": "p2.variable-qr"
+          },
+          {
+            "box": {
+              "height": 0.047506,
+              "width": 0.252101,
+              "x": 0.131092,
+              "y": 0.767221
+            },
+            "label": "Variable signature field",
+            "page": 2,
+            "region_id": "p2.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 2,
+      "exemplar_id": "reference-a"
+    },
+    {
+      "asset": {
+        "asset_id": "visual.reference-b.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "government.driving_licence",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-b",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/fingerprints/reference-b-page-01.json",
+          "sha256": "d6c02b0ff79db1d89abe1c179962e195f1a4c0baa4cddb53cc18928ce94ef486"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Fictional Mobility Registry",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/549ba7ff563adfdce7654f6128e6c8741ffb14a93ae2473cc625b2a028a4f9aa.png",
+            "sha256": "549ba7ff563adfdce7654f6128e6c8741ffb14a93ae2473cc625b2a028a4f9aa",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/70b3e0c841946255b43405d9d28f015df70924da44a1bf11c0b01dc7006593cc.png",
+            "sha256": "70b3e0c841946255b43405d9d28f015df70924da44a1bf11c0b01dc7006593cc",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            12,
+            1641,
+            151,
+            23,
+            22,
+            37,
+            97,
+            8019,
+            11,
+            1607,
+            40,
+            32,
+            142,
+            38,
+            114,
+            8016,
+            1735,
+            29,
+            25,
+            17,
+            23,
+            29,
+            98,
+            8043
+          ],
+          "edge_phash": "be3933369de28ccc",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "c749634d4b635d63"
+          },
+          "layout_sha256": "916ebc6d008257c00d719e62a6f81d58e22bee1dc1f7568d0d198817cb05ed55",
+          "mask_sha256": "a4fe159f9113321339878b2b8031c9e8db6e9dff912a58278213c3d8ddbd7f7d",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "faebc86dd17de500dac026552111d878bb1b7415b7e1cca20f9ef879b670e281",
+          "source_sha256": "1074c5094da9ea1046517cd507afb7939459e2488f98488fa0924ff1698c6c10",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "ee6b6b6e6b629490",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.driving-licence.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-b/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.049881,
+                "width": 0.554622,
+                "x": 0.319328,
+                "y": 0.275534
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [
+            {
+              "box": {
+                "height": 0.168646,
+                "width": 0.164706,
+                "x": 0.110924,
+                "y": 0.211401
+              },
+              "label": "Synthetic photo region",
+              "page": 1,
+              "region_id": "p1.security-photo"
+            }
+          ],
+          "qr": [
+            {
+              "box": {
+                "height": 0.124703,
+                "width": 0.176471,
+                "x": 0.663866,
+                "y": 0.593824
+              },
+              "label": "Synthetic qr region",
+              "page": 1,
+              "region_id": "p1.security-qr"
+            }
+          ],
+          "seal": [
+            {
+              "box": {
+                "height": 0.089074,
+                "width": 0.12605,
+                "x": 0.457143,
+                "y": 0.74228
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.047506,
+                "width": 0.252101,
+                "x": 0.12605,
+                "y": 0.767221
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "1074c5094da9ea1046517cd507afb7939459e2488f98488fa0924ff1698c6c10",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-b/page-01.thumbnail.webp",
+          "sha256": "77a485a0e590b9f284c80498693e34d882122081284f143d7d288879e5f08077",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.554622,
+              "x": 0.319328,
+              "y": 0.213777
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.554622,
+              "x": 0.319328,
+              "y": 0.275534
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.083135,
+              "width": 0.747899,
+              "x": 0.12605,
+              "y": 0.43943
+            },
+            "label": "Variable address field",
+            "page": 1,
+            "region_id": "p1.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.554622,
+              "x": 0.319328,
+              "y": 0.337292
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.035629,
+              "width": 0.420168,
+              "x": 0.147899,
+              "y": 0.660333
+            },
+            "label": "Variable serial field",
+            "page": 1,
+            "region_id": "p1.variable-serial"
+          },
+          {
+            "box": {
+              "height": 0.168646,
+              "width": 0.164706,
+              "x": 0.110924,
+              "y": 0.211401
+            },
+            "label": "Variable photo field",
+            "page": 1,
+            "region_id": "p1.variable-photo"
+          },
+          {
+            "box": {
+              "height": 0.124703,
+              "width": 0.176471,
+              "x": 0.663866,
+              "y": 0.593824
+            },
+            "label": "Variable qr field",
+            "page": 1,
+            "region_id": "p1.variable-qr"
+          },
+          {
+            "box": {
+              "height": 0.047506,
+              "width": 0.252101,
+              "x": 0.12605,
+              "y": 0.767221
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-b"
+    },
+    {
+      "asset": {
+        "asset_id": "visual.reference-b.p02",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "government.driving_licence",
+        "document_page_number": 2,
+        "enabled": true,
+        "exemplar_id": "reference-b",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/fingerprints/reference-b-page-02.json",
+          "sha256": "f9f854757cd78c923bd7788d1a49a3f6acde65df3ff3827e50964d93d9577279"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 2,
+            "region_id": "p2.fixed-layout"
+          }
+        ],
+        "issuer": "Fictional Mobility Registry",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/d240984ffe1df28611bdd401c96cf255398db8b14b0c109c18ade93d09f54f41.png",
+            "sha256": "d240984ffe1df28611bdd401c96cf255398db8b14b0c109c18ade93d09f54f41",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/e2103ee587bcf90cc891d93c6252698cfde77e87e51eeca928879c4c3a84a59d.png",
+            "sha256": "e2103ee587bcf90cc891d93c6252698cfde77e87e51eeca928879c4c3a84a59d",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            11,
+            1620,
+            157,
+            29,
+            25,
+            46,
+            79,
+            8033,
+            0,
+            1580,
+            38,
+            57,
+            147,
+            44,
+            102,
+            8030,
+            1711,
+            35,
+            26,
+            24,
+            27,
+            43,
+            80,
+            8055
+          ],
+          "edge_phash": "bf39333f1de2c8c4",
+          "fixed_region_hashes": {
+            "p2.fixed-layout": "c749674d4f425d66"
+          },
+          "layout_sha256": "4484b7ea08137446952cbab028c2d7a385ffa09ef0bbde548a4f092cdb274c93",
+          "mask_sha256": "04975ebb7821f95b49cdcd74faa0cf5d5e353ab3cd20299717d479a65cca2987",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "1cd9673eb2451e12b94bc3634ff0e2e1b3b3c33e1373cc7e4c7aa6ed326ee87a",
+          "source_sha256": "e7034dffec1cdd7cae3824259b0a36ab74664c2fa6244d9c5c983a9904720690",
+          "stable_anchor_geometry_sha256": "5b534674ce5676854d2cead2b9bff7e3a91ad24c84c3bf94f4eed2d4fbcc1f8a",
+          "value": "ee6b6b6e6b629094",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.driving-licence.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-b/page-02.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.049881,
+                "width": 0.756303,
+                "x": 0.117647,
+                "y": 0.28266
+              },
+              "label": "Synthetic document number",
+              "page": 2,
+              "region_id": "p2.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 2,
+              "region_id": "p2.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [
+            {
+              "box": {
+                "height": 0.118765,
+                "width": 0.168067,
+                "x": 0.680672,
+                "y": 0.564133
+              },
+              "label": "Synthetic qr region",
+              "page": 2,
+              "region_id": "p2.security-qr"
+            }
+          ],
+          "seal": [
+            {
+              "box": {
+                "height": 0.089074,
+                "width": 0.12605,
+                "x": 0.462185,
+                "y": 0.74228
+              },
+              "label": "Synthetic seal region",
+              "page": 2,
+              "region_id": "p2.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.047506,
+                "width": 0.252101,
+                "x": 0.131092,
+                "y": 0.767221
+              },
+              "label": "Synthetic signature region",
+              "page": 2,
+              "region_id": "p2.security-signature"
+            }
+          ]
+        },
+        "sha256": "e7034dffec1cdd7cae3824259b0a36ab74664c2fa6244d9c5c983a9904720690",
+        "side": "back",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/driving-licence/reference-b/page-02.thumbnail.webp",
+          "sha256": "38998bb568ab2d29ec1270c84b5618290e4eea1f6260bf44ab8739df1d21f227",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.220903
+            },
+            "label": "Variable name field",
+            "page": 2,
+            "region_id": "p2.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.28266
+            },
+            "label": "Variable identifier field",
+            "page": 2,
+            "region_id": "p2.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.089074,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.344418
+            },
+            "label": "Variable address field",
+            "page": 2,
+            "region_id": "p2.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.049881,
+              "width": 0.756303,
+              "x": 0.117647,
+              "y": 0.445368
+            },
+            "label": "Variable date field",
+            "page": 2,
+            "region_id": "p2.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.118765,
+              "width": 0.168067,
+              "x": 0.680672,
+              "y": 0.564133
+            },
+            "label": "Variable qr field",
+            "page": 2,
+            "region_id": "p2.variable-qr"
+          },
+          {
+            "box": {
+              "height": 0.047506,
+              "width": 0.252101,
+              "x": 0.131092,
+              "y": 0.767221
+            },
+            "label": "Variable signature field",
+            "page": 2,
+            "region_id": "p2.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 2,
+      "exemplar_id": "reference-b"
+    }
+  ],
+  "profile_id": "synthetic.docuverify.driving-licence.v1",
+  "profile_version": "1.0.0",
+  "redistribution_status": "permitted",
+  "retrieval_date": "2026-08-29",
+  "schema_version": "1.0.0",
+  "source_class": "synthetic_demo",
+  "source_profile_id": "in.morth.driving-licence.generic.v1",
+  "source_url": null,
+  "trust_level": "P0"
+}

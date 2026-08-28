@@ -11,21 +11,25 @@ from pathlib import Path
 from threading import RLock
 from typing import Any, Iterable
 
+import cv2
+import numpy as np
 from jsonschema import Draft202012Validator, FormatChecker
 
 from backend.app.docuvault.safe_paths import UnsafeProfilePath, safe_path
 from backend.app.docuvault.visual_assets import (
     FINGERPRINT_ALGORITHM,
-    fixed_region_fingerprint,
     mask_fingerprint,
+    region_mask_image,
     render_visual_page,
     verify_visual_media,
+    visual_fingerprint_matches,
     visual_dimensions,
 )
 
 
 MAX_MANIFEST_BYTES = 2 * 1024 * 1024
 MAX_REFERENCE_BYTES = 64 * 1024 * 1024
+MAX_BUNDLED_REFERENCE_BYTES = 5 * 1024 * 1024
 PROFILE_SUFFIX = ".profile.json"
 CAPABILITY_TIERS = frozenset(
     {"metadata_only", "structural", "visual_reference", "cryptographic"}
@@ -44,6 +48,34 @@ def _sha256_path(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_normalized_region(region: dict[str, Any]) -> None:
+    box = region["box"]
+    x = float(box["x"])
+    y = float(box["y"])
+    width = float(box["width"])
+    height = float(box["height"])
+    if x + width > 1.000001 or y + height > 1.000001:
+        raise ValueError("visual-reference normalized region extends beyond its page")
+
+
+def _normalize_legacy_profile(value: Any) -> Any:
+    """Conservatively retain pre-visual-library v1 metadata profiles.
+
+    Legacy manifests never gain pixel capability from a path-like field. They
+    remain metadata-only until an authorized importer creates complete,
+    hash-bound reference-asset records.
+    """
+
+    if not isinstance(value, dict) or value.get("schema_version") != "1.0.0":
+        return value
+    if "capability_tier" in value and "reference_assets" in value:
+        return value
+    normalized = json.loads(json.dumps(value))
+    normalized.setdefault("capability_tier", "metadata_only")
+    normalized.setdefault("reference_assets", [])
+    return normalized
+
+
 @dataclass(frozen=True, slots=True)
 class ProfileDiagnostic:
     source: str
@@ -55,7 +87,9 @@ class ProfileDiagnostic:
 class ReferenceAsset:
     asset_id: str
     profile_id: str
-    page_number: int
+    exemplar_id: str
+    document_page_number: int
+    asset_page_number: int
     side: str
     path: Path
     relative_path: str
@@ -66,10 +100,28 @@ class ReferenceAsset:
     retrieval_date: str
     redistribution_status: str
     trust_level: str
+    source_class: str
+    issuer: str
+    document_family: str
+    profile_version: str
+    languages: tuple[str, ...]
+    creation_method: str
+    licence_status_note: str
+    may_influence_tampering_risk: bool
+    demonstration_only: bool
+    thumbnail: dict[str, Any]
+    pixel_masks: dict[str, dict[str, Any]]
+    fingerprint_file: dict[str, Any]
     fixed_region_masks: tuple[dict[str, Any], ...]
     variable_region_masks: tuple[dict[str, Any], ...]
     security_element_regions: dict[str, tuple[dict[str, Any], ...]]
-    precomputed_fingerprint: dict[str, str]
+    precomputed_fingerprint: dict[str, Any]
+
+    @property
+    def page_number(self) -> int:
+        """Compatibility alias for the candidate-document page mapping."""
+
+        return self.document_page_number
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,10 +146,28 @@ class DocumentProfile:
     def capability_tier(self) -> str:
         return str(self.manifest.get("capability_tier", "metadata_only"))
 
-    def reference_asset(self, page_number: int = 1) -> ReferenceAsset | None:
+    def reference_asset(
+        self, page_number: int = 1, *, exemplar_id: str | None = None
+    ) -> ReferenceAsset | None:
         return next(
-            (asset for asset in self.reference_assets if asset.page_number == page_number),
+            (
+                asset
+                for asset in self.reference_assets
+                if asset.document_page_number == page_number
+                and (exemplar_id is None or asset.exemplar_id == exemplar_id)
+            ),
             None,
+        )
+
+    def reference_exemplars(self) -> tuple[str, ...]:
+        return tuple(sorted({asset.exemplar_id for asset in self.reference_assets}))
+
+    def assets_for_exemplar(self, exemplar_id: str) -> tuple[ReferenceAsset, ...]:
+        return tuple(
+            sorted(
+                (asset for asset in self.reference_assets if asset.exemplar_id == exemplar_id),
+                key=lambda asset: (asset.document_page_number, asset.side, asset.asset_id),
+            )
         )
 
 
@@ -224,6 +294,7 @@ class ProfileRepository:
         semantic_fingerprints: dict[str, str],
         origin: str,
     ) -> DocumentProfile:
+        value = _normalize_legacy_profile(value)
         errors = sorted(
             validator.iter_errors(value), key=lambda error: list(error.absolute_path)
         )
@@ -282,7 +353,7 @@ class ProfileRepository:
     ) -> tuple[ReferenceAsset, ...]:
         resolved: list[ReferenceAsset] = []
         seen_ids: set[str] = set()
-        seen_pages: set[tuple[int, str]] = set()
+        seen_slots: set[tuple[str, int]] = set()
         for raw in value.get("reference_assets", []):
             asset_id = str(raw["asset_id"])
             if asset_id in seen_ids:
@@ -290,29 +361,18 @@ class ProfileRepository:
             seen_ids.add(asset_id)
             if str(raw["profile_id"]) != str(value["profile_id"]):
                 raise ValueError("visual-reference profile_id does not match its parent profile")
-            page_and_side = (int(raw["page_number"]), str(raw["side"]))
-            if page_and_side in seen_pages:
-                raise ValueError("duplicate visual-reference page and side")
-            seen_pages.add(page_and_side)
+            exemplar_id = str(raw["exemplar_id"])
+            document_page = int(raw["document_page_number"])
+            asset_page = int(raw["asset_page_number"])
+            slot = (exemplar_id, document_page)
+            if slot in seen_slots:
+                raise ValueError("an exemplar can map only one asset to each document page")
+            seen_slots.add(slot)
+            if document_page > int(value["expected_pages"]["maximum"]):
+                raise ValueError("visual-reference document page exceeds the profile page range")
             relative = str(raw["relative_path"])
-            if origin == "bundled":
-                path = safe_path(
-                    self.project_root,
-                    relative,
-                    allowed_prefixes=("samples/synthetic", "backend/docuvault/references"),
-                    must_exist=True,
-                )
-            else:
-                if self.external_root is None:  # pragma: no cover - origin guarantees it
-                    raise ValueError("external visual-reference root is unavailable")
-                path = safe_path(
-                    self.external_root,
-                    relative,
-                    allowed_prefixes=("references",),
-                    must_exist=True,
-                )
-            if path.stat().st_size > MAX_REFERENCE_BYTES:
-                raise ValueError("visual reference exceeds the 64 MiB safety limit")
+            path = self._resolve_artifact_path(relative, origin=origin)
+            self._enforce_artifact_size(path, origin=origin)
             mime_type = str(raw["mime_type"])
             verify_visual_media(path, mime_type)
             digest = _sha256_path(path)
@@ -324,7 +384,15 @@ class ProfileRepository:
                 raise ValueError("visual-reference trust exceeds its parent profile provenance")
             if origin == "bundled" and str(raw["redistribution_status"]) != "permitted":
                 raise ValueError("bundled visual references must be redistributable")
-            actual_dimensions = visual_dimensions(path, mime_type, int(raw["page_number"]))
+            source_class = str(raw["source_class"])
+            if source_class == "synthetic_demo":
+                if asset_trust != "P0" or not bool(raw["demonstration_only"]):
+                    raise ValueError("synthetic visual references must be P0 demonstration-only assets")
+                if str(value["provenance"]["kind"]) != "synthetic_showcase":
+                    raise ValueError("synthetic visual references require a separate synthetic profile")
+            if str(raw["document_family"]) != str(value["document_family"]):
+                raise ValueError("visual-reference document family does not match its profile")
+            actual_dimensions = visual_dimensions(path, mime_type, asset_page)
             declared_dimensions = raw["dimensions"]
             if str(declared_dimensions["unit"]) != actual_dimensions.unit or not (
                 abs(float(declared_dimensions["width"]) - actual_dimensions.width) <= 0.5
@@ -333,52 +401,206 @@ class ProfileRepository:
                 raise ValueError("visual-reference dimensions do not match its manifest")
             fixed_masks = tuple(raw["fixed_region_masks"])
             variable_masks = tuple(raw["variable_region_masks"])
-            fingerprint = raw["precomputed_fingerprint"]
-            if str(fingerprint["algorithm"]) != FINGERPRINT_ALGORITHM:
-                raise ValueError("unsupported visual-reference fingerprint algorithm")
-            expected_mask_hash = mask_fingerprint(fixed_masks, variable_masks)
-            if str(fingerprint["mask_sha256"]) != expected_mask_hash:
-                raise ValueError("visual-reference fingerprint mask binding does not match")
-            rendered = render_visual_page(path, mime_type, int(raw["page_number"]))
-            actual_fingerprint = fixed_region_fingerprint(
-                rendered,
-                fixed_regions=fixed_masks,
-                variable_regions=variable_masks,
-                page_number=int(raw["page_number"]),
-            )
-            if str(fingerprint["value"]).lower() != actual_fingerprint:
-                raise ValueError("visual-reference fingerprint does not match the trusted asset")
+            for region in (*fixed_masks, *variable_masks):
+                _validate_normalized_region(region)
+                if int(region["page"]) != document_page:
+                    raise ValueError("visual-reference normalized mask uses the wrong document page")
             security = {
                 key: tuple(regions)
                 for key, regions in raw["security_element_regions"].items()
             }
-            resolved.append(
-                ReferenceAsset(
-                    asset_id=asset_id,
-                    profile_id=str(raw["profile_id"]),
-                    page_number=int(raw["page_number"]),
-                    side=str(raw["side"]),
-                    path=path,
-                    relative_path=relative,
-                    mime_type=mime_type,
-                    sha256=str(raw["sha256"]),
-                    dimensions=dict(declared_dimensions),
-                    source_url=str(raw["source_url"]) if raw["source_url"] else None,
-                    retrieval_date=str(raw["retrieval_date"]),
-                    redistribution_status=str(raw["redistribution_status"]),
-                    trust_level=str(raw["trust_level"]),
-                    fixed_region_masks=fixed_masks,
-                    variable_region_masks=variable_masks,
-                    security_element_regions=security,
-                    precomputed_fingerprint={
-                        "algorithm": str(fingerprint["algorithm"]),
-                        "value": str(fingerprint["value"]).lower(),
-                        "mask_sha256": str(fingerprint["mask_sha256"]),
-                    },
-                )
+            for regions in security.values():
+                for region in regions:
+                    _validate_normalized_region(region)
+                if any(int(region["page"]) != document_page for region in regions):
+                    raise ValueError("visual-reference security mask uses the wrong document page")
+            fingerprint = raw["precomputed_fingerprint"]
+            if str(fingerprint["algorithm"]) != FINGERPRINT_ALGORITHM:
+                raise ValueError("unsupported visual-reference fingerprint algorithm")
+            expected_mask_hash = mask_fingerprint(fixed_masks, variable_masks, security)
+            if str(fingerprint["mask_sha256"]) != expected_mask_hash:
+                raise ValueError("visual-reference fingerprint mask binding does not match")
+            if str(fingerprint["source_sha256"]).lower() != digest:
+                raise ValueError("visual-reference fingerprint is stale for its source asset")
+            rendered = render_visual_page(path, mime_type, asset_page)
+            if not visual_fingerprint_matches(
+                fingerprint,
+                rendered,
+                fixed_regions=fixed_masks,
+                variable_regions=variable_masks,
+                security_regions=security,
+                page_number=document_page,
+                source_sha256=digest,
+            ):
+                raise ValueError("visual-reference fingerprint does not match the trusted asset")
+            thumbnail = self._validate_binary_descriptor(raw["thumbnail"], origin=origin)
+            if thumbnail["mime_type"] != "image/webp":
+                raise ValueError("visual-reference thumbnail must be WebP")
+            pixel_masks = {
+                name: self._validate_binary_descriptor(descriptor, origin=origin)
+                for name, descriptor in raw["pixel_masks"].items()
+            }
+            if any(item["mime_type"] != "image/png" for item in pixel_masks.values()):
+                raise ValueError("visual-reference pixel masks must be PNG")
+            expected_masks = {
+                "fixed": region_mask_image(rendered.shape, fixed_masks, document_page),
+                "variable": region_mask_image(rendered.shape, variable_masks, document_page),
+                "security": region_mask_image(
+                    rendered.shape,
+                    tuple(region for regions in security.values() for region in regions),
+                    document_page,
+                ),
+            }
+            for name, expected in expected_masks.items():
+                descriptor = pixel_masks[name]
+                actual = cv2.imread(str(descriptor["path"]), cv2.IMREAD_GRAYSCALE)
+                if actual is None or actual.shape != expected.shape:
+                    raise ValueError(f"visual-reference {name} pixel mask dimensions do not match")
+                if not set(int(item) for item in np.unique(actual)).issubset({0, 255}):
+                    raise ValueError(f"visual-reference {name} pixel mask is not binary")
+                if not np.array_equal(actual, expected):
+                    raise ValueError(f"visual-reference {name} pixel mask is stale")
+            fingerprint_file = self._validate_fingerprint_descriptor(
+                raw["fingerprint_file"], origin=origin
             )
-        resolved.sort(key=lambda item: (item.page_number, item.side, item.asset_id))
+            if fingerprint_file["value"] != fingerprint:
+                raise ValueError("visual-reference fingerprint file does not match its manifest")
+            if bool(raw["enabled"]):
+                resolved.append(
+                    ReferenceAsset(
+                        asset_id=asset_id,
+                        profile_id=str(raw["profile_id"]),
+                        exemplar_id=exemplar_id,
+                        document_page_number=document_page,
+                        asset_page_number=asset_page,
+                        side=str(raw["side"]),
+                        path=path,
+                        relative_path=relative,
+                        mime_type=mime_type,
+                        sha256=str(raw["sha256"]),
+                        dimensions=dict(declared_dimensions),
+                        source_url=str(raw["source_url"]) if raw["source_url"] else None,
+                        retrieval_date=str(raw["retrieval_date"]),
+                        redistribution_status=str(raw["redistribution_status"]),
+                        trust_level=asset_trust,
+                        source_class=source_class,
+                        issuer=str(raw["issuer"]),
+                        document_family=str(raw["document_family"]),
+                        profile_version=str(raw["profile_version"]),
+                        languages=tuple(str(item) for item in raw["languages"]),
+                        creation_method=str(raw["creation_method"]),
+                        licence_status_note=str(raw["licence_status_note"]),
+                        may_influence_tampering_risk=bool(raw["may_influence_tampering_risk"]),
+                        demonstration_only=bool(raw["demonstration_only"]),
+                        thumbnail=thumbnail,
+                        pixel_masks=pixel_masks,
+                        fingerprint_file=fingerprint_file,
+                        fixed_region_masks=fixed_masks,
+                        variable_region_masks=variable_masks,
+                        security_element_regions=security,
+                        precomputed_fingerprint=json.loads(json.dumps(fingerprint)),
+                    )
+                )
+        resolved.sort(
+            key=lambda item: (
+                item.exemplar_id,
+                item.document_page_number,
+                item.side,
+                item.asset_id,
+            )
+        )
         return tuple(resolved)
+
+    def _resolve_artifact_path(self, relative: str, *, origin: str) -> Path:
+        if origin == "bundled":
+            return safe_path(
+                self.project_root,
+                relative,
+                allowed_prefixes=(
+                    "samples/synthetic",
+                    "backend/docuvault/references",
+                    "backend/docuvault/assets/synthetic",
+                ),
+                must_exist=True,
+            )
+        if self.external_root is None:  # pragma: no cover - origin guarantees it
+            raise ValueError("external visual-reference root is unavailable")
+        return safe_path(
+            self.external_root,
+            relative,
+            allowed_prefixes=("references", "thumbnails", "masks", "fingerprints"),
+            must_exist=True,
+        )
+
+    @staticmethod
+    def _enforce_artifact_size(path: Path, *, origin: str) -> None:
+        limit = MAX_BUNDLED_REFERENCE_BYTES if origin == "bundled" else MAX_REFERENCE_BYTES
+        if path.stat().st_size > limit:
+            label = "5 MiB tracked" if origin == "bundled" else "64 MiB external"
+            raise ValueError(f"visual-reference artifact exceeds the {label} safety limit")
+
+    def _validate_binary_descriptor(
+        self, raw: dict[str, Any], *, origin: str
+    ) -> dict[str, Any]:
+        path = self._resolve_artifact_path(str(raw["relative_path"]), origin=origin)
+        self._enforce_artifact_size(path, origin=origin)
+        if _sha256_path(path) != str(raw["sha256"]).lower():
+            raise ValueError("visual-reference related artifact SHA-256 does not match")
+        mime_type = str(raw["mime_type"])
+        suffixes = {
+            "image/png": {".png"},
+            "image/jpeg": {".jpg", ".jpeg"},
+            "image/webp": {".webp"},
+        }.get(mime_type)
+        if suffixes is None or path.suffix.casefold() not in suffixes:
+            raise ValueError("visual-reference related artifact suffix/MIME mismatch")
+        header = path.read_bytes()[:16]
+        magic_matches = (
+            mime_type == "image/png" and header.startswith(b"\x89PNG\r\n\x1a\n")
+        ) or (
+            mime_type == "image/jpeg" and header.startswith(b"\xff\xd8\xff")
+        ) or (
+            mime_type == "image/webp"
+            and header.startswith(b"RIFF")
+            and header[8:12] == b"WEBP"
+        )
+        if not magic_matches:
+            raise ValueError("visual-reference related artifact magic/MIME mismatch")
+        image = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        if image is None:
+            raise ValueError("visual-reference related image could not be decoded")
+        height, width = image.shape[:2]
+        if width != int(raw["width"]) or height != int(raw["height"]):
+            raise ValueError("visual-reference related image dimensions do not match")
+        return {
+            "path": path,
+            "relative_path": str(raw["relative_path"]),
+            "mime_type": mime_type,
+            "sha256": str(raw["sha256"]).lower(),
+            "width": width,
+            "height": height,
+        }
+
+    def _validate_fingerprint_descriptor(
+        self, raw: dict[str, Any], *, origin: str
+    ) -> dict[str, Any]:
+        path = self._resolve_artifact_path(str(raw["relative_path"]), origin=origin)
+        self._enforce_artifact_size(path, origin=origin)
+        if str(raw["mime_type"]) != "application/json" or path.suffix.casefold() != ".json":
+            raise ValueError("visual-reference fingerprint file suffix/MIME mismatch")
+        if _sha256_path(path) != str(raw["sha256"]).lower():
+            raise ValueError("visual-reference fingerprint-file SHA-256 does not match")
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("visual-reference fingerprint file is invalid") from exc
+        return {
+            "path": path,
+            "relative_path": str(raw["relative_path"]),
+            "mime_type": str(raw["mime_type"]),
+            "sha256": str(raw["sha256"]).lower(),
+            "value": value,
+        }
 
     @property
     def diagnostics(self) -> tuple[ProfileDiagnostic, ...]:

@@ -9,16 +9,17 @@ retrieval score.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 import cv2
 import fitz
 import numpy as np
 
 
-FINGERPRINT_ALGORITHM = "phash-64-fixed-v1"
+FINGERPRINT_ALGORITHM = "docuverify-visual-fingerprint-v2"
 FINGERPRINT_HEX_LENGTH = 16
 MAX_RENDER_EDGE = 1200
 
@@ -134,6 +135,136 @@ def fixed_region_fingerprint(
     return np.packbits(bits).tobytes().hex()
 
 
+def compute_visual_fingerprint(
+    image: np.ndarray,
+    *,
+    fixed_regions: Sequence[dict[str, Any]],
+    variable_regions: Sequence[dict[str, Any]],
+    security_regions: Mapping[str, Sequence[dict[str, Any]]],
+    page_number: int,
+    source_sha256: str,
+) -> dict[str, Any]:
+    """Return a compact, deterministic fingerprint bound to image bytes and masks.
+
+    The fingerprint deliberately stores summaries rather than raw descriptors. It
+    is retrieval evidence only; callers must never interpret it as an
+    authenticity probability.
+    """
+
+    if len(source_sha256) != 64:
+        raise ValueError("visual-reference source SHA-256 must contain 64 hex characters")
+    try:
+        bytes.fromhex(source_sha256)
+    except ValueError as exc:
+        raise ValueError("visual-reference source SHA-256 is not hexadecimal") from exc
+    bounded = _bound_image(image)
+    gray = cv2.cvtColor(bounded, cv2.COLOR_BGR2GRAY) if bounded.ndim == 3 else bounded
+    fixed_mask = _region_mask(gray.shape, fixed_regions, page_number)
+    variable_mask = _region_mask(gray.shape, variable_regions, page_number)
+    fixed_mask[variable_mask > 0] = 0
+    if not np.any(fixed_mask):
+        raise ValueError("visual reference has no fixed pixels after variable masking")
+
+    normalized = np.full(gray.shape, 255, dtype=np.uint8)
+    normalized[fixed_mask > 0] = gray[fixed_mask > 0]
+    edges = cv2.Canny(normalized, 60, 160)
+    edge_normalized = np.full(gray.shape, 255, dtype=np.uint8)
+    edge_normalized[fixed_mask > 0] = 255 - edges[fixed_mask > 0]
+    layout_sample = cv2.resize(normalized, (64, 64), interpolation=cv2.INTER_AREA)
+    border_width = max(2, round(min(gray.shape) * 0.025))
+    border = np.concatenate(
+        (
+            gray[:border_width, :].reshape(-1),
+            gray[-border_width:, :].reshape(-1),
+            gray[:, :border_width].reshape(-1),
+            gray[:, -border_width:].reshape(-1),
+        )
+    )
+
+    if bounded.ndim == 2:
+        colour = cv2.cvtColor(bounded, cv2.COLOR_GRAY2BGR)
+    else:
+        colour = bounded
+    histogram: list[int] = []
+    for channel in range(3):
+        values = cv2.calcHist([colour], [channel], fixed_mask, [8], [0, 256]).reshape(-1)
+        total = float(values.sum()) or 1.0
+        histogram.extend(int(round(float(value) / total * 10000)) for value in values)
+
+    region_hashes: dict[str, str] = {}
+    height, width = gray.shape
+    for index, region in enumerate(fixed_regions, start=1):
+        if int(region.get("page", page_number)) != page_number:
+            continue
+        box = region["box"]
+        x0 = max(0, min(width - 1, round(float(box["x"]) * width)))
+        y0 = max(0, min(height - 1, round(float(box["y"]) * height)))
+        x1 = max(x0 + 1, min(width, round((float(box["x"]) + float(box["width"])) * width)))
+        y1 = max(y0 + 1, min(height, round((float(box["y"]) + float(box["height"])) * height)))
+        crop = gray[y0:y1, x0:x1]
+        crop_mask = fixed_mask[y0:y1, x0:x1]
+        if not np.any(crop_mask):
+            continue
+        fixed_crop = np.full(crop.shape, 255, dtype=np.uint8)
+        fixed_crop[crop_mask > 0] = crop[crop_mask > 0]
+        region_id = str(region.get("region_id") or f"fixed-{index:02d}")
+        region_hashes[region_id] = _phash(fixed_crop)
+
+    geometry = {
+        key: [
+            {
+                "page": int(region.get("page", page_number)),
+                "box": region["box"],
+                "region_id": region.get("region_id"),
+            }
+            for region in values
+        ]
+        for key, values in sorted(security_regions.items())
+    }
+    mask_sha = mask_fingerprint(fixed_regions, variable_regions, security_regions)
+    return {
+        "algorithm": FINGERPRINT_ALGORITHM,
+        "version": "2.0.0",
+        "render_max_edge": MAX_RENDER_EDGE,
+        "source_sha256": source_sha256.lower(),
+        "mask_sha256": mask_sha,
+        "value": _phash(normalized),
+        "edge_phash": _phash(edge_normalized),
+        "layout_sha256": hashlib.sha256(layout_sample.tobytes()).hexdigest(),
+        "border_sha256": hashlib.sha256(border.tobytes()).hexdigest(),
+        "security_geometry_sha256": hashlib.sha256(_canonical_json_bytes(geometry)).hexdigest(),
+        "stable_anchor_geometry_sha256": hashlib.sha256(
+            _canonical_json_bytes(list(fixed_regions))
+        ).hexdigest(),
+        "aspect_ratio": round(float(width) / max(float(height), 1.0), 6),
+        "colour_histogram": histogram,
+        "fixed_region_hashes": dict(sorted(region_hashes.items())),
+    }
+
+
+def visual_fingerprint_matches(
+    expected: Mapping[str, Any],
+    image: np.ndarray,
+    *,
+    fixed_regions: Sequence[dict[str, Any]],
+    variable_regions: Sequence[dict[str, Any]],
+    security_regions: Mapping[str, Sequence[dict[str, Any]]],
+    page_number: int,
+    source_sha256: str,
+) -> bool:
+    """Recompute and compare the complete deterministic fingerprint."""
+
+    actual = compute_visual_fingerprint(
+        image,
+        fixed_regions=fixed_regions,
+        variable_regions=variable_regions,
+        security_regions=security_regions,
+        page_number=page_number,
+        source_sha256=source_sha256,
+    )
+    return json.loads(json.dumps(expected, sort_keys=True)) == actual
+
+
 def fingerprint_similarity(expected: str, actual: str) -> float:
     if len(expected) != FINGERPRINT_HEX_LENGTH or len(actual) != FINGERPRINT_HEX_LENGTH:
         raise ValueError("invalid fixed-region fingerprint length")
@@ -146,15 +277,46 @@ def fingerprint_similarity(expected: str, actual: str) -> float:
 
 
 def mask_fingerprint(
-    fixed_regions: Sequence[dict[str, Any]], variable_regions: Sequence[dict[str, Any]]
+    fixed_regions: Sequence[dict[str, Any]],
+    variable_regions: Sequence[dict[str, Any]],
+    security_regions: Mapping[str, Sequence[dict[str, Any]]] | None = None,
 ) -> str:
     """Bind precomputed fingerprints to the normalized mask definitions."""
 
-    import json
+    value = {
+        "fixed": list(fixed_regions),
+        "variable": list(variable_regions),
+        "security": {
+            key: list(values) for key, values in sorted((security_regions or {}).items())
+        },
+    }
+    return hashlib.sha256(_canonical_json_bytes(value)).hexdigest()
 
-    value = {"fixed": list(fixed_regions), "variable": list(variable_regions)}
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+
+def region_mask_image(
+    shape: tuple[int, int] | tuple[int, int, int],
+    regions: Sequence[dict[str, Any]],
+    page_number: int,
+) -> np.ndarray:
+    """Build a production-safe binary mask from normalized profile regions."""
+
+    return _region_mask((int(shape[0]), int(shape[1])), regions, page_number)
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _phash(gray: np.ndarray) -> str:
+    if gray.size == 0:
+        raise ValueError("cannot perceptually hash an empty image")
+    if gray.ndim == 3:
+        gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+    resized = cv2.resize(gray, (32, 32), interpolation=cv2.INTER_AREA).astype(np.float32)
+    low_frequency = cv2.dct(resized)[:8, :8]
+    median = float(np.median(low_frequency[1:]))
+    bits = (low_frequency > median).reshape(-1).astype(np.uint8)
+    return np.packbits(bits).tobytes().hex()
 
 
 def _bound_image(image: np.ndarray) -> np.ndarray:

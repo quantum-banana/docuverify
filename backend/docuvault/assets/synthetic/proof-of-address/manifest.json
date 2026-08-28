@@ -1,0 +1,530 @@
+{
+  "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+  "demonstration_only": true,
+  "display_family": "Synthetic proof-of-address document",
+  "document_family": "civil.proof_of_address",
+  "issuer": "Harbor Utilities Demonstration Service",
+  "licence_status_note": "Fictional DocuVerify demonstration library; retain the synthetic notice.",
+  "may_influence_tampering_risk": true,
+  "pages": [
+    {
+      "asset": {
+        "asset_id": "visual.reference-a.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "civil.proof_of_address",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-a",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/proof-of-address/fingerprints/reference-a-page-01.json",
+          "sha256": "7f99258845a081b1ffc61e686e5731d85c71db649f8973e5374cfac68f6e67eb"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Harbor Utilities Demonstration Service",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c.png",
+            "sha256": "cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2.png",
+            "sha256": "606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            12,
+            1668,
+            177,
+            36,
+            31,
+            44,
+            94,
+            7937,
+            0,
+            1633,
+            49,
+            64,
+            158,
+            45,
+            111,
+            7940,
+            1764,
+            42,
+            34,
+            28,
+            31,
+            40,
+            90,
+            7971
+          ],
+          "edge_phash": "bb35393fb4caa6c0",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "cb554a5f544a175b"
+          },
+          "layout_sha256": "531eced3b6fa007f92220df7da9bdcd9015f7dd763c57aa5c5f43ce8781acc60",
+          "mask_sha256": "57b0ba96375b5ad3531eaeab3238e28e13f37126c573f4d4a9662f6b87e502e0",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "574a4fecb273f482b6bf6015c3fbdb9ddcf0c1126e4c6272584898987cfce44a",
+          "source_sha256": "bca788b2c228839e09ff3144a00cea7220f6f5cfa55114aa529a0f393ba5bd79",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "eb3e6a6a7e4a9491",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.proof-of-address.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/proof-of-address/reference-a/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.764706,
+                "x": 0.117647,
+                "y": 0.305226
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [],
+          "seal": [
+            {
+              "box": {
+                "height": 0.110451,
+                "width": 0.156303,
+                "x": 0.695798,
+                "y": 0.736342
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.27395,
+                "x": 0.137815,
+                "y": 0.771971
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "bca788b2c228839e09ff3144a00cea7220f6f5cfa55114aa529a0f393ba5bd79",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/proof-of-address/reference-a/page-01.thumbnail.webp",
+          "sha256": "afb262d89961b68ec94137e296660d01bc117c1c5d46d8b3cf6479e64414bbc9",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.239905
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.305226
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.083135,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.435867
+            },
+            "label": "Variable address field",
+            "page": 1,
+            "region_id": "p1.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.370546
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.542755
+            },
+            "label": "Variable grade field",
+            "page": 1,
+            "region_id": "p1.variable-grade"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.27395,
+              "x": 0.137815,
+              "y": 0.771971
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-a"
+    },
+    {
+      "asset": {
+        "asset_id": "visual.reference-b.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "civil.proof_of_address",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-b",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/proof-of-address/fingerprints/reference-b-page-01.json",
+          "sha256": "36ae323b3974264db22e86d6d0727c55a782994c41e122309596eb458d227346"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Harbor Utilities Demonstration Service",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c.png",
+            "sha256": "cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2.png",
+            "sha256": "606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            12,
+            1668,
+            177,
+            36,
+            31,
+            44,
+            94,
+            7937,
+            0,
+            1633,
+            49,
+            64,
+            158,
+            45,
+            111,
+            7940,
+            1764,
+            42,
+            34,
+            28,
+            31,
+            40,
+            90,
+            7971
+          ],
+          "edge_phash": "bb35393fb4caa6c0",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "cb554a5f544a175b"
+          },
+          "layout_sha256": "531eced3b6fa007f92220df7da9bdcd9015f7dd763c57aa5c5f43ce8781acc60",
+          "mask_sha256": "57b0ba96375b5ad3531eaeab3238e28e13f37126c573f4d4a9662f6b87e502e0",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "574a4fecb273f482b6bf6015c3fbdb9ddcf0c1126e4c6272584898987cfce44a",
+          "source_sha256": "52fa861624a415272ce218ef71c6b3f4c9c307102832318b5c45cef3d9c7ca0f",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "eb3e6a6a7e4a9491",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.proof-of-address.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/proof-of-address/reference-b/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.764706,
+                "x": 0.117647,
+                "y": 0.305226
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [],
+          "seal": [
+            {
+              "box": {
+                "height": 0.110451,
+                "width": 0.156303,
+                "x": 0.695798,
+                "y": 0.736342
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.27395,
+                "x": 0.137815,
+                "y": 0.771971
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "52fa861624a415272ce218ef71c6b3f4c9c307102832318b5c45cef3d9c7ca0f",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/proof-of-address/reference-b/page-01.thumbnail.webp",
+          "sha256": "b1a92c19c03347782c20864713fe1769d83f7e2c94356b1bdcd0a2959dac3467",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.239905
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.305226
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.083135,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.435867
+            },
+            "label": "Variable address field",
+            "page": 1,
+            "region_id": "p1.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.370546
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.542755
+            },
+            "label": "Variable grade field",
+            "page": 1,
+            "region_id": "p1.variable-grade"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.27395,
+              "x": 0.137815,
+              "y": 0.771971
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-b"
+    }
+  ],
+  "profile_id": "synthetic.docuverify.proof-of-address.v1",
+  "profile_version": "1.0.0",
+  "redistribution_status": "permitted",
+  "retrieval_date": "2026-08-29",
+  "schema_version": "1.0.0",
+  "source_class": "synthetic_demo",
+  "source_profile_id": "generic.civil.proof-of-address.v1",
+  "source_url": null,
+  "trust_level": "P0"
+}

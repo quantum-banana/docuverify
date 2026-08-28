@@ -1,0 +1,43 @@
+{
+  "algorithm": "docuverify-visual-fingerprint-v2",
+  "aspect_ratio": 0.706667,
+  "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+  "colour_histogram": [
+    21,
+    1506,
+    152,
+    30,
+    41,
+    42,
+    60,
+    8148,
+    0,
+    1488,
+    47,
+    51,
+    142,
+    40,
+    82,
+    8150,
+    1597,
+    34,
+    26,
+    28,
+    28,
+    36,
+    56,
+    8195
+  ],
+  "edge_phash": "bb373b1bb46ae4c0",
+  "fixed_region_hashes": {
+    "p1.fixed-layout": "cb554b454f4b554b"
+  },
+  "layout_sha256": "cf999b9248cfa08bd5e610fa7c878aa5448141c205935b4d2814bec1c39ed912",
+  "mask_sha256": "f36cc30a489ca8748261b56947ff92f66a4a74dafc8612292c5317e2659ad8c8",
+  "render_max_edge": 1200,
+  "security_geometry_sha256": "7c4eec0f2345942875d00f820138bc62a2004fb2c01e492fd0332706264011cf",
+  "source_sha256": "c8208973d82b9b84497bc3075a66d31cb34aa7d2abf276b52bdfc34a3e6d82b2",
+  "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+  "value": "eb6e6b6a2e6b9490",
+  "version": "2.0.0"
+}

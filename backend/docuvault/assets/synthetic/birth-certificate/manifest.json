@@ -1,0 +1,530 @@
+{
+  "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+  "demonstration_only": true,
+  "display_family": "Synthetic birth certificate",
+  "document_family": "civil.birth_certificate",
+  "issuer": "Fictional Civil Records Office",
+  "licence_status_note": "Fictional DocuVerify demonstration library; retain the synthetic notice.",
+  "may_influence_tampering_risk": true,
+  "pages": [
+    {
+      "asset": {
+        "asset_id": "visual.reference-a.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "civil.birth_certificate",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-a",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/birth-certificate/fingerprints/reference-a-page-01.json",
+          "sha256": "6b27ea7e6d4d30179568fb3cf5076c0bcbb02739edb3453f78f3b404dd3c9437"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Fictional Civil Records Office",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c.png",
+            "sha256": "cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2.png",
+            "sha256": "606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            12,
+            1691,
+            172,
+            34,
+            29,
+            40,
+            92,
+            7929,
+            0,
+            1653,
+            49,
+            59,
+            155,
+            44,
+            108,
+            7932,
+            1782,
+            39,
+            33,
+            28,
+            28,
+            36,
+            88,
+            7965
+          ],
+          "edge_phash": "bb37313fb4c3a6c0",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "cb454b4f414b755b"
+          },
+          "layout_sha256": "eebe439209ffa4c09212dc50bab5583270f82818730af58ba1ed864c63f3d19e",
+          "mask_sha256": "57b0ba96375b5ad3531eaeab3238e28e13f37126c573f4d4a9662f6b87e502e0",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "574a4fecb273f482b6bf6015c3fbdb9ddcf0c1126e4c6272584898987cfce44a",
+          "source_sha256": "5611fe3523ef67aef2f18e4969846a569f8f8702bdcf4d5884e51364b9fd1ab0",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "eb6e6a6b6e4b9490",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.birth-certificate.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/birth-certificate/reference-a/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.764706,
+                "x": 0.117647,
+                "y": 0.305226
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [],
+          "seal": [
+            {
+              "box": {
+                "height": 0.110451,
+                "width": 0.156303,
+                "x": 0.695798,
+                "y": 0.736342
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.27395,
+                "x": 0.137815,
+                "y": 0.771971
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "5611fe3523ef67aef2f18e4969846a569f8f8702bdcf4d5884e51364b9fd1ab0",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/birth-certificate/reference-a/page-01.thumbnail.webp",
+          "sha256": "1207ede36df00804520710fb53b299933969c9328a4bf20134f4fd854e4a95ee",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.239905
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.305226
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.083135,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.435867
+            },
+            "label": "Variable address field",
+            "page": 1,
+            "region_id": "p1.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.370546
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.542755
+            },
+            "label": "Variable grade field",
+            "page": 1,
+            "region_id": "p1.variable-grade"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.27395,
+              "x": 0.137815,
+              "y": 0.771971
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-a"
+    },
+    {
+      "asset": {
+        "asset_id": "visual.reference-b.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "civil.birth_certificate",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-b",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/birth-certificate/fingerprints/reference-b-page-01.json",
+          "sha256": "02d5ba564317f4ec1a4c48e24eb8317a50c3aba598b51d698fcf4d8453ed33db"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Fictional Civil Records Office",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c.png",
+            "sha256": "cbe92a27f135389431de98f41d746e6839125c003c2cacf6ec1bd8a18fac5b3c",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2.png",
+            "sha256": "606fa6fdb0b4ee6e50301424928d71f29db9b55ac0971e6b09e7c0efe3d79ab2",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            12,
+            1691,
+            172,
+            34,
+            29,
+            40,
+            92,
+            7929,
+            0,
+            1653,
+            49,
+            59,
+            155,
+            44,
+            108,
+            7932,
+            1782,
+            39,
+            33,
+            28,
+            28,
+            36,
+            88,
+            7965
+          ],
+          "edge_phash": "bb37313fb4c3a6c0",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "cb454b4f414b755b"
+          },
+          "layout_sha256": "eebe439209ffa4c09212dc50bab5583270f82818730af58ba1ed864c63f3d19e",
+          "mask_sha256": "57b0ba96375b5ad3531eaeab3238e28e13f37126c573f4d4a9662f6b87e502e0",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "574a4fecb273f482b6bf6015c3fbdb9ddcf0c1126e4c6272584898987cfce44a",
+          "source_sha256": "00811d14306429f15baa7c7bf6928e0cd2f10c0fd539e348a428319a196ff9b1",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "eb6e6a6b6e4b9490",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.birth-certificate.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/birth-certificate/reference-b/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.764706,
+                "x": 0.117647,
+                "y": 0.305226
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [],
+          "seal": [
+            {
+              "box": {
+                "height": 0.110451,
+                "width": 0.156303,
+                "x": 0.695798,
+                "y": 0.736342
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.053444,
+                "width": 0.27395,
+                "x": 0.137815,
+                "y": 0.771971
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "00811d14306429f15baa7c7bf6928e0cd2f10c0fd539e348a428319a196ff9b1",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/birth-certificate/reference-b/page-01.thumbnail.webp",
+          "sha256": "08ddcc994d2ef5074b8da7c90dcfa3825fda753b50c18dbfe8c46bd06dc0a632",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.239905
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.305226
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.083135,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.435867
+            },
+            "label": "Variable address field",
+            "page": 1,
+            "region_id": "p1.variable-address"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.370546
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.764706,
+              "x": 0.117647,
+              "y": 0.542755
+            },
+            "label": "Variable grade field",
+            "page": 1,
+            "region_id": "p1.variable-grade"
+          },
+          {
+            "box": {
+              "height": 0.053444,
+              "width": 0.27395,
+              "x": 0.137815,
+              "y": 0.771971
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-b"
+    }
+  ],
+  "profile_id": "synthetic.docuverify.birth-certificate.v1",
+  "profile_version": "1.0.0",
+  "redistribution_status": "permitted",
+  "retrieval_date": "2026-08-29",
+  "schema_version": "1.0.0",
+  "source_class": "synthetic_demo",
+  "source_profile_id": "in.civil.birth-certificate.generic.v1",
+  "source_url": null,
+  "trust_level": "P0"
+}

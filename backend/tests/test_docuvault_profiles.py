@@ -35,14 +35,14 @@ def _repository(tmp_path: Path, external: Path | None = None) -> ProfileReposito
 def test_profile_catalog_is_strict_complete_and_deterministic(tmp_path: Path) -> None:
     repository = _repository(tmp_path)
     assert repository.stats() == {
-        "profiles": 20,
-        "enabled": 20,
+        "profiles": 39,
+        "enabled": 39,
         "invalid": 0,
         "families": 19,
-        "with_visual_reference": 1,
+        "with_visual_reference": 20,
         "metadata_only": 19,
         "structural": 0,
-        "visual_reference": 1,
+        "visual_reference": 20,
         "cryptographic": 0,
     }
     first = repository.fingerprints()
@@ -52,12 +52,18 @@ def test_profile_catalog_is_strict_complete_and_deterministic(tmp_path: Path) ->
     assert len(set(first.values())) == len(first)
     aadhaar = repository.get("in.uidai.aadhaar-style.v1")
     lumen = repository.get("synthetic.lumen-grove.achievement-record.v1")
+    synthetic_aadhaar = repository.get("synthetic.docuverify.aadhaar-style.v1")
     assert aadhaar is not None and aadhaar.capability_tier == "metadata_only"
     assert aadhaar.reference_assets == ()
     assert lumen is not None and lumen.capability_tier == "visual_reference"
-    assert len(lumen.reference_assets) == 1
+    assert len(lumen.reference_assets) == 2
+    assert lumen.reference_exemplars() == ("reference-a", "reference-b")
     assert lumen.reference_assets[0].profile_id == lumen.profile_id
-    assert lumen.reference_assets[0].precomputed_fingerprint["algorithm"] == "phash-64-fixed-v1"
+    assert lumen.reference_assets[0].precomputed_fingerprint["algorithm"] == "docuverify-visual-fingerprint-v2"
+    assert synthetic_aadhaar is not None
+    assert synthetic_aadhaar.profile_id != aadhaar.profile_id
+    assert synthetic_aadhaar.capability_tier == "visual_reference"
+    assert len(synthetic_aadhaar.reference_assets) == 4
 
 
 def test_profile_state_and_search_are_persisted_without_changing_manifests(
@@ -106,7 +112,14 @@ def test_matching_uses_document_evidence_not_filename_and_returns_top_three(
     tmp_path: Path,
 ) -> None:
     repository = _repository(tmp_path)
-    fixture = PROJECT_ROOT / "samples" / "synthetic" / "template_legitimate_candidate.pdf"
+    fixture = (
+        PROJECT_ROOT
+        / "samples"
+        / "docuvault-visual-evaluation"
+        / "cgpa-certificate"
+        / "truth"
+        / "reference-b.pdf"
+    )
     data = fixture.read_bytes()
     upload = validate_upload(
         field="candidate",
@@ -133,6 +146,8 @@ def test_matching_uses_document_evidence_not_filename_and_returns_top_three(
     assert result.selected.score >= 85
     assert len(result.matches) == 3
     assert result.matches[0].component_scores["fixed_visual"] >= 90
+    assert result.selected.selected_exemplar_id == "reference-b"
+    assert result.selected.visual_risk_allowed is True
     assert result.closest_fallback_used is True
     assert "Strongest signals" in result.selected.explanation
 

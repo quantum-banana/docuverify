@@ -1,0 +1,598 @@
+{
+  "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+  "demonstration_only": true,
+  "display_family": "Synthetic university marksheet",
+  "document_family": "academic.grade_or_cgpa_certificate",
+  "issuer": "Northstar Institute of Learning",
+  "licence_status_note": "Fictional DocuVerify demonstration library; retain the synthetic notice.",
+  "may_influence_tampering_risk": true,
+  "pages": [
+    {
+      "asset": {
+        "asset_id": "visual.reference-a.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "academic.grade_or_cgpa_certificate",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-a",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/university-marksheet/fingerprints/reference-a-page-01.json",
+          "sha256": "773ac245afadb0e57920480aba3d436a23b5cb24b00fb4feaf09abfadb697770"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Northstar Institute of Learning",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/433750a8af131359a59ed8b12948b10582008d6681d3d79688f57f7263c33ca4.png",
+            "sha256": "433750a8af131359a59ed8b12948b10582008d6681d3d79688f57f7263c33ca4",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/9660f83374406f0f74993dda9fe6bc348715f7f787f131c07704934aa21f7bd5.png",
+            "sha256": "9660f83374406f0f74993dda9fe6bc348715f7f787f131c07704934aa21f7bd5",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            10,
+            1868,
+            161,
+            33,
+            32,
+            34,
+            38,
+            7825,
+            2,
+            1864,
+            59,
+            34,
+            135,
+            31,
+            51,
+            7825,
+            1956,
+            57,
+            20,
+            21,
+            32,
+            30,
+            37,
+            7846
+          ],
+          "edge_phash": "bf38303f170fe0cf",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "ef6a41416f7b7a85"
+          },
+          "layout_sha256": "25ecd38bf62d2bae48f9fd45463cbd96328e236322ca49d753f060602e6f633f",
+          "mask_sha256": "610585e204a275971abf20b0e8f30ba264b71084908b214ce27cc714626833e1",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "6db547d778ec21092af765bb153379cc3cc992cccdb919c9f66150be984fcd2e",
+          "source_sha256": "644456efdffcbc89de594380c15a4fe083f9e915bd61d03f3d78de2dfde64b28",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "ef6a6a6a2e3be095",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.university-marksheet.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/university-marksheet/reference-a/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.048694,
+                "width": 0.563025,
+                "x": 0.092437,
+                "y": 0.243468
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [
+            {
+              "box": {
+                "height": 0.10095,
+                "width": 0.142857,
+                "x": 0.714286,
+                "y": 0.199525
+              },
+              "label": "Synthetic qr region",
+              "page": 1,
+              "region_id": "p1.security-qr"
+            }
+          ],
+          "seal": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.121008,
+                "y": 0.783848
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.047506,
+                "width": 0.252101,
+                "x": 0.596639,
+                "y": 0.80285
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "644456efdffcbc89de594380c15a4fe083f9e915bd61d03f3d78de2dfde64b28",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/university-marksheet/reference-a/page-01.thumbnail.webp",
+          "sha256": "79309a4082a50de2f62e195c4d683f85613301713711ec22301a6312fad74197",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.187648
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.243468
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.299287
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.65677
+            },
+            "label": "Variable grade field",
+            "page": 1,
+            "region_id": "p1.variable-grade"
+          },
+          {
+            "box": {
+              "height": 0.046318,
+              "width": 0.097479,
+              "x": 0.668908,
+              "y": 0.458432
+            },
+            "label": "Variable mark field",
+            "page": 1,
+            "region_id": "p1.variable-mark"
+          },
+          {
+            "box": {
+              "height": 0.046318,
+              "width": 0.104202,
+              "x": 0.789916,
+              "y": 0.458432
+            },
+            "label": "Variable table_grade field",
+            "page": 1,
+            "region_id": "p1.variable-table_grade"
+          },
+          {
+            "box": {
+              "height": 0.10095,
+              "width": 0.142857,
+              "x": 0.714286,
+              "y": 0.199525
+            },
+            "label": "Variable qr field",
+            "page": 1,
+            "region_id": "p1.variable-qr"
+          },
+          {
+            "box": {
+              "height": 0.047506,
+              "width": 0.252101,
+              "x": 0.596639,
+              "y": 0.80285
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-a"
+    },
+    {
+      "asset": {
+        "asset_id": "visual.reference-b.p01",
+        "asset_page_number": 1,
+        "creation_method": "Deterministic PyMuPDF vector generation and bounded PNG rendering.",
+        "demonstration_only": true,
+        "dimensions": {
+          "height": 1200,
+          "unit": "pixels",
+          "width": 848
+        },
+        "document_family": "academic.grade_or_cgpa_certificate",
+        "document_page_number": 1,
+        "enabled": true,
+        "exemplar_id": "reference-b",
+        "fingerprint_file": {
+          "mime_type": "application/json",
+          "relative_path": "backend/docuvault/assets/synthetic/university-marksheet/fingerprints/reference-b-page-01.json",
+          "sha256": "0d61bd203328452eadfa4304f22724b61ecbe9d37c6bc234037dd663a6deeb46"
+        },
+        "fixed_region_masks": [
+          {
+            "box": {
+              "height": 0.874109,
+              "width": 0.89916,
+              "x": 0.05042,
+              "y": 0.035629
+            },
+            "label": "Stable synthetic template structure",
+            "page": 1,
+            "region_id": "p1.fixed-layout"
+          }
+        ],
+        "issuer": "Northstar Institute of Learning",
+        "languages": [
+          "en"
+        ],
+        "licence_status_note": "Fictional DocuVerify demonstration asset; synthetic notice must remain visible.",
+        "may_influence_tampering_risk": true,
+        "mime_type": "image/png",
+        "pixel_masks": {
+          "fixed": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c.png",
+            "sha256": "7275814793b95de5e39aea8996e33542eaf5506ba29bba668bc9d590555f0d0c",
+            "width": 848
+          },
+          "security": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/433750a8af131359a59ed8b12948b10582008d6681d3d79688f57f7263c33ca4.png",
+            "sha256": "433750a8af131359a59ed8b12948b10582008d6681d3d79688f57f7263c33ca4",
+            "width": 848
+          },
+          "variable": {
+            "height": 1200,
+            "mime_type": "image/png",
+            "relative_path": "backend/docuvault/assets/synthetic/_shared/masks/9660f83374406f0f74993dda9fe6bc348715f7f787f131c07704934aa21f7bd5.png",
+            "sha256": "9660f83374406f0f74993dda9fe6bc348715f7f787f131c07704934aa21f7bd5",
+            "width": 848
+          }
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "docuverify-visual-fingerprint-v2",
+          "aspect_ratio": 0.706667,
+          "border_sha256": "58f4429a1fd97db0bf52bb78849dd96191dc0474ab8d5823aa881d69dec73a70",
+          "colour_histogram": [
+            10,
+            1868,
+            161,
+            33,
+            32,
+            34,
+            38,
+            7825,
+            2,
+            1864,
+            59,
+            34,
+            135,
+            31,
+            51,
+            7825,
+            1956,
+            57,
+            20,
+            21,
+            32,
+            30,
+            37,
+            7846
+          ],
+          "edge_phash": "bf38303f170fe0cf",
+          "fixed_region_hashes": {
+            "p1.fixed-layout": "ef6a41416f7b7a85"
+          },
+          "layout_sha256": "25ecd38bf62d2bae48f9fd45463cbd96328e236322ca49d753f060602e6f633f",
+          "mask_sha256": "610585e204a275971abf20b0e8f30ba264b71084908b214ce27cc714626833e1",
+          "render_max_edge": 1200,
+          "security_geometry_sha256": "6db547d778ec21092af765bb153379cc3cc992cccdb919c9f66150be984fcd2e",
+          "source_sha256": "9957142a0ef0d4f24d3b8a6714a7d34a171a813b9fe45688f6d9aad1abbe6bdb",
+          "stable_anchor_geometry_sha256": "fab0d17ef2d39c2c75791a5bb9b72a656e7e12566b8d8a07541db4d7e0fafe08",
+          "value": "ef6a6a6a2e3be095",
+          "version": "2.0.0"
+        },
+        "profile_id": "synthetic.docuverify.university-marksheet.v1",
+        "profile_version": "synthetic-visual-1.0.0",
+        "redistribution_status": "permitted",
+        "relative_path": "backend/docuvault/assets/synthetic/university-marksheet/reference-b/page-01.png",
+        "retrieval_date": "2026-08-29",
+        "security_element_regions": {
+          "barcode": [],
+          "document_number": [
+            {
+              "box": {
+                "height": 0.048694,
+                "width": 0.563025,
+                "x": 0.092437,
+                "y": 0.243468
+              },
+              "label": "Synthetic document number",
+              "page": 1,
+              "region_id": "p1.security-document-number"
+            }
+          ],
+          "handwriting": [],
+          "hologram": [],
+          "logo": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.077311,
+                "y": 0.057007
+              },
+              "label": "Synthetic emblem region",
+              "page": 1,
+              "region_id": "p1.security-logo"
+            }
+          ],
+          "mrz": [],
+          "photo": [],
+          "qr": [
+            {
+              "box": {
+                "height": 0.10095,
+                "width": 0.142857,
+                "x": 0.714286,
+                "y": 0.199525
+              },
+              "label": "Synthetic qr region",
+              "page": 1,
+              "region_id": "p1.security-qr"
+            }
+          ],
+          "seal": [
+            {
+              "box": {
+                "height": 0.071259,
+                "width": 0.10084,
+                "x": 0.121008,
+                "y": 0.783848
+              },
+              "label": "Synthetic seal region",
+              "page": 1,
+              "region_id": "p1.security-seal"
+            }
+          ],
+          "signature": [
+            {
+              "box": {
+                "height": 0.047506,
+                "width": 0.252101,
+                "x": 0.596639,
+                "y": 0.80285
+              },
+              "label": "Synthetic signature region",
+              "page": 1,
+              "region_id": "p1.security-signature"
+            }
+          ]
+        },
+        "sha256": "9957142a0ef0d4f24d3b8a6714a7d34a171a813b9fe45688f6d9aad1abbe6bdb",
+        "side": "front",
+        "source_class": "synthetic_demo",
+        "source_url": null,
+        "thumbnail": {
+          "height": 280,
+          "mime_type": "image/webp",
+          "relative_path": "backend/docuvault/assets/synthetic/university-marksheet/reference-b/page-01.thumbnail.webp",
+          "sha256": "e27bb58999fd4cb31c47fd6d32979fd4a020457d72bb42d52603502e6988294d",
+          "width": 198
+        },
+        "trust_level": "P0",
+        "variable_region_masks": [
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.187648
+            },
+            "label": "Variable name field",
+            "page": 1,
+            "region_id": "p1.variable-name"
+          },
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.243468
+            },
+            "label": "Variable identifier field",
+            "page": 1,
+            "region_id": "p1.variable-identifier"
+          },
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.299287
+            },
+            "label": "Variable date field",
+            "page": 1,
+            "region_id": "p1.variable-date"
+          },
+          {
+            "box": {
+              "height": 0.048694,
+              "width": 0.563025,
+              "x": 0.092437,
+              "y": 0.65677
+            },
+            "label": "Variable grade field",
+            "page": 1,
+            "region_id": "p1.variable-grade"
+          },
+          {
+            "box": {
+              "height": 0.046318,
+              "width": 0.097479,
+              "x": 0.668908,
+              "y": 0.458432
+            },
+            "label": "Variable mark field",
+            "page": 1,
+            "region_id": "p1.variable-mark"
+          },
+          {
+            "box": {
+              "height": 0.046318,
+              "width": 0.104202,
+              "x": 0.789916,
+              "y": 0.458432
+            },
+            "label": "Variable table_grade field",
+            "page": 1,
+            "region_id": "p1.variable-table_grade"
+          },
+          {
+            "box": {
+              "height": 0.10095,
+              "width": 0.142857,
+              "x": 0.714286,
+              "y": 0.199525
+            },
+            "label": "Variable qr field",
+            "page": 1,
+            "region_id": "p1.variable-qr"
+          },
+          {
+            "box": {
+              "height": 0.047506,
+              "width": 0.252101,
+              "x": 0.596639,
+              "y": 0.80285
+            },
+            "label": "Variable signature field",
+            "page": 1,
+            "region_id": "p1.variable-signature"
+          }
+        ]
+      },
+      "document_page_number": 1,
+      "exemplar_id": "reference-b"
+    }
+  ],
+  "profile_id": "synthetic.docuverify.university-marksheet.v1",
+  "profile_version": "1.0.0",
+  "redistribution_status": "permitted",
+  "retrieval_date": "2026-08-29",
+  "schema_version": "1.0.0",
+  "source_class": "synthetic_demo",
+  "source_profile_id": "generic.university.grade-cgpa.v1",
+  "source_url": null,
+  "trust_level": "P0"
+}

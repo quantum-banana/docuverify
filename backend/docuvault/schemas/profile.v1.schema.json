@@ -25,6 +25,7 @@
   "properties": {
     "schema_version": { "const": "1.0.0" },
     "profile_id": { "$ref": "#/$defs/id" },
+    "display_name": { "$ref": "#/$defs/text" },
     "issuer": {
       "type": "object", "additionalProperties": false, "required": ["id", "name", "aliases"],
       "properties": {
@@ -271,26 +272,68 @@
         "signature": { "$ref": "#/$defs/regions" },
         "handwriting": { "$ref": "#/$defs/regions" },
         "qr": { "$ref": "#/$defs/regions" },
-        "barcode": { "$ref": "#/$defs/regions" }
+        "barcode": { "$ref": "#/$defs/regions" },
+        "mrz": { "$ref": "#/$defs/regions" },
+        "document_number": { "$ref": "#/$defs/regions" },
+        "hologram": { "$ref": "#/$defs/regions" }
+      }
+    },
+    "assetPath": {
+      "type": "string",
+      "pattern": "^(backend/docuvault/assets/synthetic|backend/docuvault/references|samples/synthetic|references|thumbnails|masks|fingerprints)/[A-Za-z0-9._/-]+$"
+    },
+    "binaryAssetDescriptor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["relative_path", "mime_type", "sha256", "width", "height"],
+      "properties": {
+        "relative_path": { "$ref": "#/$defs/assetPath" },
+        "mime_type": { "enum": ["image/png", "image/webp", "image/jpeg"] },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 20000 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 20000 }
+      }
+    },
+    "fingerprintFileDescriptor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["relative_path", "mime_type", "sha256"],
+      "properties": {
+        "relative_path": { "$ref": "#/$defs/assetPath" },
+        "mime_type": { "const": "application/json" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
       }
     },
     "referenceAsset": {
       "type": "object", "additionalProperties": false,
       "required": [
-        "asset_id", "profile_id", "page_number", "side", "relative_path", "mime_type",
-        "sha256", "dimensions", "source_url", "retrieval_date", "redistribution_status",
-        "trust_level", "fixed_region_masks", "variable_region_masks",
-        "security_element_regions", "precomputed_fingerprint"
+        "asset_id", "profile_id", "exemplar_id", "document_page_number",
+        "asset_page_number", "side", "relative_path", "mime_type", "sha256",
+        "dimensions", "source_class", "trust_level", "issuer", "document_family",
+        "profile_version", "languages", "creation_method", "source_url",
+        "retrieval_date", "redistribution_status", "licence_status_note",
+        "may_influence_tampering_risk", "demonstration_only", "enabled",
+        "thumbnail", "pixel_masks", "fingerprint_file", "fixed_region_masks",
+        "variable_region_masks", "security_element_regions", "precomputed_fingerprint"
+      ],
+      "allOf": [
+        {
+          "if": { "properties": { "source_class": { "const": "synthetic_demo" } } },
+          "then": {
+            "properties": {
+              "trust_level": { "const": "P0" },
+              "demonstration_only": { "const": true },
+              "source_url": { "type": "null" }
+            }
+          }
+        }
       ],
       "properties": {
         "asset_id": { "$ref": "#/$defs/id" },
         "profile_id": { "$ref": "#/$defs/id" },
-        "page_number": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "exemplar_id": { "$ref": "#/$defs/id" },
+        "document_page_number": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "asset_page_number": { "type": "integer", "minimum": 1, "maximum": 10 },
         "side": { "enum": ["front", "back", "interior", "unspecified"] },
-        "relative_path": {
-          "type": "string",
-          "pattern": "^(samples/synthetic|backend/docuvault/references|references)/[A-Za-z0-9._/-]+$"
-        },
+        "relative_path": { "$ref": "#/$defs/assetPath" },
         "mime_type": { "enum": ["application/pdf", "image/png", "image/jpeg"] },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "dimensions": {
@@ -302,22 +345,72 @@
             "unit": { "enum": ["points", "pixels"] }
           }
         },
+        "source_class": {
+          "enum": [
+            "synthetic_demo", "authorized_official_specimen",
+            "authorized_organization_template", "user_registered_trusted_reference",
+            "derived_from_multiple_trusted_exemplars"
+          ]
+        },
+        "issuer": { "$ref": "#/$defs/text" },
+        "document_family": { "$ref": "#/$defs/id" },
+        "profile_version": { "$ref": "#/$defs/text" },
+        "languages": { "$ref": "#/$defs/textArrayNonEmpty" },
+        "creation_method": { "$ref": "#/$defs/text" },
         "source_url": { "type": ["string", "null"], "format": "uri", "maxLength": 4000 },
         "retrieval_date": { "type": "string", "format": "date" },
         "redistribution_status": {
           "enum": ["permitted", "not_permitted", "unclear", "not_applicable"]
         },
         "trust_level": { "enum": ["P0", "P1", "P2", "P3", "P4"] },
+        "licence_status_note": { "$ref": "#/$defs/text" },
+        "may_influence_tampering_risk": { "type": "boolean" },
+        "demonstration_only": { "type": "boolean" },
+        "enabled": { "type": "boolean" },
+        "thumbnail": { "$ref": "#/$defs/binaryAssetDescriptor" },
+        "pixel_masks": {
+          "type": "object", "additionalProperties": false,
+          "required": ["fixed", "variable", "security"],
+          "properties": {
+            "fixed": { "$ref": "#/$defs/binaryAssetDescriptor" },
+            "variable": { "$ref": "#/$defs/binaryAssetDescriptor" },
+            "security": { "$ref": "#/$defs/binaryAssetDescriptor" }
+          }
+        },
+        "fingerprint_file": { "$ref": "#/$defs/fingerprintFileDescriptor" },
         "fixed_region_masks": { "$ref": "#/$defs/regionsNonEmpty" },
         "variable_region_masks": { "$ref": "#/$defs/regions" },
         "security_element_regions": { "$ref": "#/$defs/securityElementRegions" },
         "precomputed_fingerprint": {
           "type": "object", "additionalProperties": false,
-          "required": ["algorithm", "value", "mask_sha256"],
+          "required": [
+            "algorithm", "version", "render_max_edge", "source_sha256",
+            "mask_sha256", "value", "edge_phash", "layout_sha256",
+            "border_sha256", "security_geometry_sha256",
+            "stable_anchor_geometry_sha256", "aspect_ratio",
+            "colour_histogram", "fixed_region_hashes"
+          ],
           "properties": {
-            "algorithm": { "const": "phash-64-fixed-v1" },
+            "algorithm": { "const": "docuverify-visual-fingerprint-v2" },
+            "version": { "const": "2.0.0" },
+            "render_max_edge": { "type": "integer", "minimum": 256, "maximum": 4096 },
+            "source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
             "value": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
-            "mask_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            "edge_phash": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+            "mask_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "layout_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "border_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "security_geometry_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "stable_anchor_geometry_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "aspect_ratio": { "type": "number", "exclusiveMinimum": 0, "maximum": 20 },
+            "colour_histogram": {
+              "type": "array", "minItems": 24, "maxItems": 24,
+              "items": { "type": "integer", "minimum": 0, "maximum": 10000 }
+            },
+            "fixed_region_hashes": {
+              "type": "object", "minProperties": 1, "maxProperties": 80,
+              "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{16}$" }
+            }
           }
         }
       }
