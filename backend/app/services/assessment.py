@@ -117,6 +117,21 @@ def build_investigative_assessment(
             )
         )
         contradictions += int(similarity.status is CheckStatus.FAILED)
+        if name == "signature_similarity":
+            geometry_indicator = max(
+                (
+                    max(
+                        float(evidence.measurements.get("position_anomaly", 0.0)),
+                        float(evidence.measurements.get("scale_anomaly", 0.0)),
+                    )
+                    for evidence in similarity.region_evidence
+                ),
+                default=0.0,
+            )
+            contradictions += int(
+                (similarity.compositing_score or 0.0) >= 65.0
+                or geometry_indicator >= 65.0
+            )
         limitations += int(similarity.status in {CheckStatus.SKIPPED, CheckStatus.NOT_APPLICABLE})
 
     if contradictions >= 2 or (

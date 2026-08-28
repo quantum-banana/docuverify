@@ -55,6 +55,7 @@ from backend.app.models.contracts import (
     MetadataAssessment,
     RegionRole,
     RegionSuggestion,
+    SimilarityAssessment,
     StageId,
     TextExtractionSummary,
 )
@@ -62,6 +63,10 @@ from backend.app.services import documents
 from backend.app.services.documents import RenderedDocument, TextExtraction, ValidatedUpload
 from backend.app.services.metadata import MetadataChange, compare_document_metadata
 from backend.app.services.assessment import build_investigative_assessment
+from backend.app.services.biometric_similarity import (
+    RegionSelection,
+    compare_biometric_regions,
+)
 from backend.app.services.digital_signatures import inspect_pdf_signatures
 from backend.app.services.logical_rules import evaluate_logical_rules, extract_profile_fields
 from backend.app.services.metadata_forensics import inspect_metadata
@@ -126,6 +131,8 @@ class AnalysisOptions:
     profile_override: str | None = None
     handwriting_exemplars: tuple[ValidatedUpload, ...] = ()
     signature_exemplars: tuple[ValidatedUpload, ...] = ()
+    handwriting_regions: tuple[RegionSelection, ...] = ()
+    signature_regions: tuple[RegionSelection, ...] = ()
 
 
 class AnalysisManager:
@@ -776,6 +783,40 @@ class AnalysisManager:
             fields=profile_fields,
             qr_fields=qr_fields,
         )
+        self._stage(
+            job_id,
+            StageId.COMPARING_HANDWRITING,
+            "Comparing questioned handwriting with the trusted exemplar ensemble",
+            98,
+            page_number=min(total_pages, max(1, len(pages))),
+            total_pages=total_pages,
+            finding_count=cumulative_findings,
+        )
+        handwriting = compare_biometric_regions(
+            kind="handwriting",
+            candidate_pages=candidate_pages,
+            exemplars=options.handwriting_exemplars,
+            profile=selected_profile,
+            user_regions=options.handwriting_regions,
+            max_render_dimension=self.settings.max_render_dimension,
+        )
+        self._stage(
+            job_id,
+            StageId.COMPARING_SIGNATURES,
+            "Comparing questioned signatures and inspecting compositing evidence",
+            98,
+            page_number=min(total_pages, max(1, len(pages))),
+            total_pages=total_pages,
+            finding_count=cumulative_findings,
+        )
+        signature_similarity = compare_biometric_regions(
+            kind="signature",
+            candidate_pages=candidate_pages,
+            exemplars=options.signature_exemplars,
+            profile=selected_profile,
+            user_regions=options.signature_regions,
+            max_render_dimension=self.settings.max_render_dimension,
+        )
         extension_findings = self._build_extension_findings(
             job_id=job_id,
             assets_dir=assets_dir,
@@ -786,13 +827,25 @@ class AnalysisManager:
             codes=code_assessment,
             metadata=metadata_assessment,
             logical=logical_consistency,
+            handwriting=handwriting,
+            signature=signature_similarity,
         )
         if pages and extension_findings:
-            pages[0].findings.extend(extension_findings)
-            pages[0].findings.sort(
-                key=lambda finding: (-finding.risk_score, finding.finding_id)
-            )
-            pages[0].finding_count = len(pages[0].findings)
+            for finding in extension_findings:
+                target = next(
+                    (
+                        page
+                        for page in pages
+                        if page.candidate_page_number == finding.page_number
+                    ),
+                    pages[0],
+                )
+                target.findings.append(finding)
+            for page in pages:
+                page.findings.sort(
+                    key=lambda finding: (-finding.risk_score, finding.finding_id)
+                )
+                page.finding_count = len(page.findings)
             cumulative_findings += len(extension_findings)
 
         self._stage(
@@ -825,6 +878,8 @@ class AnalysisManager:
             code_assessment=code_assessment,
             metadata_assessment=metadata_assessment,
             logical_consistency=logical_consistency,
+            handwriting=handwriting,
+            signature_similarity=signature_similarity,
         )
         (job_dir / "analysis-metadata.json").write_text(
             json.dumps(
@@ -928,11 +983,23 @@ class AnalysisManager:
         codes: CodeAssessment,
         metadata: MetadataAssessment,
         logical: LogicalConsistencyAssessment,
+        handwriting: SimilarityAssessment,
+        signature: SimilarityAssessment,
     ) -> list[Finding]:
         if not pages or not candidate_pages:
             return []
         specs: list[
-            tuple[str, str, str, BoundingBox, float, float, list[str], dict[str, Any]]
+            tuple[
+                str,
+                str,
+                str,
+                int,
+                BoundingBox,
+                float,
+                float,
+                list[str],
+                dict[str, Any],
+            ]
         ] = []
         whole_page = BoundingBox(x=0.0, y=0.0, width=1.0, height=1.0)
         if profile_search is not None and profile_search.selected is not None:
@@ -943,6 +1010,7 @@ class AnalysisManager:
                         "profile_mismatch",
                         "Weak trusted-profile match",
                         "Issuer, headings, layout and profile descriptors did not provide a moderate match. The closest profile is shown only as context.",
+                        1,
                         whole_page,
                         42.0,
                         78.0,
@@ -956,6 +1024,7 @@ class AnalysisManager:
                         "limited_trusted_reference_strength",
                         "Limited trusted-reference strength",
                         selected.strength.rationale,
+                        1,
                         whole_page,
                         0.0,
                         95.0,
@@ -985,6 +1054,7 @@ class AnalysisManager:
                     category,
                     title,
                     check.explanation,
+                    1,
                     whole_page,
                     98.0 if check.status is PdfSignatureStatus.MODIFIED else 95.0,
                     96.0,
@@ -1004,6 +1074,7 @@ class AnalysisManager:
                     "qr_payload_mismatch",
                     "QR payload mismatch",
                     "The locally decoded payload disagrees with the selected profile structure or reliably extracted visible fields.",
+                    result.page_number,
                     result.bounding_box or whole_page,
                     86.0,
                     result.confidence_score,
@@ -1021,6 +1092,7 @@ class AnalysisManager:
                     "qr_expected_missing",
                     "Expected QR code missing",
                     codes.explanation,
+                    1,
                     whole_page,
                     62.0,
                     82.0,
@@ -1036,6 +1108,7 @@ class AnalysisManager:
                     "metadata_timeline_inconsistency",
                     "Metadata timeline inconsistency",
                     indicator.explanation,
+                    1,
                     whole_page,
                     65.0,
                     indicator.confidence_score,
@@ -1051,6 +1124,7 @@ class AnalysisManager:
                     "logical_field_inconsistency",
                     "Logical field inconsistency",
                     rule.explanation,
+                    1,
                     whole_page,
                     72.0,
                     rule.confidence_score,
@@ -1059,12 +1133,83 @@ class AnalysisManager:
                 )
             )
 
+        if handwriting.status is CheckStatus.FAILED:
+            for evidence in handwriting.region_evidence:
+                specs.append(
+                    (
+                        "handwriting_inconsistency",
+                        "Handwriting inconsistency",
+                        handwriting.explanation,
+                        evidence.page_number,
+                        evidence.bounding_box,
+                        min(88.0, max(55.0, 100.0 - evidence.similarity_score)),
+                        evidence.confidence_score,
+                        ["local_handwriting_feature_ensemble"],
+                        dict(evidence.measurements),
+                    )
+                )
+        if signature.status is CheckStatus.FAILED:
+            for evidence in signature.region_evidence:
+                specs.append(
+                    (
+                        "signature_appearance_mismatch",
+                        "Signature appearance mismatch",
+                        signature.explanation,
+                        evidence.page_number,
+                        evidence.bounding_box,
+                        min(90.0, max(58.0, 100.0 - evidence.similarity_score)),
+                        evidence.confidence_score,
+                        ["local_signature_feature_ensemble"],
+                        dict(evidence.measurements),
+                    )
+                )
+        for evidence in signature.region_evidence:
+            compositing = float(evidence.measurements.get("compositing_score", 0.0))
+            position = float(evidence.measurements.get("position_anomaly", 0.0))
+            scale = float(evidence.measurements.get("scale_anomaly", 0.0))
+            if compositing >= 65.0:
+                specs.append(
+                    (
+                        "signature_compositing",
+                        "Possible signature compositing",
+                        "Boundary, background or local-noise evidence differs around the questioned signature region.",
+                        evidence.page_number,
+                        evidence.bounding_box,
+                        min(92.0, compositing),
+                        evidence.confidence_score,
+                        ["signature_compositing_analysis"],
+                        dict(evidence.measurements),
+                    )
+                )
+            if max(position, scale) >= 65.0:
+                specs.append(
+                    (
+                        "signature_position_scale_anomaly",
+                        "Signature position or scale anomaly",
+                        "The questioned signature's occupied position or scale is atypical for the profile-defined region.",
+                        evidence.page_number,
+                        evidence.bounding_box,
+                        min(82.0, max(position, scale)),
+                        evidence.confidence_score,
+                        ["profile_signature_geometry"],
+                        dict(evidence.measurements),
+                    )
+                )
+
         return [
             self._write_extension_finding(
                 job_id=job_id,
                 assets_dir=assets_dir,
-                candidate_page=candidate_pages[0],
+                candidate_page=next(
+                    (
+                        page
+                        for page in candidate_pages
+                        if page.page_number == page_number
+                    ),
+                    candidate_pages[0],
+                ),
                 index=index,
+                page_number=page_number,
                 category=category,
                 title=title,
                 explanation=explanation,
@@ -1078,6 +1223,7 @@ class AnalysisManager:
                 category,
                 title,
                 explanation,
+                page_number,
                 bounding_box,
                 risk,
                 confidence,
@@ -1093,6 +1239,7 @@ class AnalysisManager:
         assets_dir: Path,
         candidate_page: _PreparedPage,
         index: int,
+        page_number: int,
         category: str,
         title: str,
         explanation: str,
@@ -1146,7 +1293,7 @@ class AnalysisManager:
             self.store.register_asset(job_id, asset_id, path)
         return Finding(
             finding_id=finding_id,
-            page_number=1,
+            page_number=page_number,
             category=category,
             title=title,
             explanation=explanation,
@@ -1635,6 +1782,8 @@ class AnalysisManager:
         code_assessment: CodeAssessment | None = None,
         metadata_assessment: MetadataAssessment | None = None,
         logical_consistency: LogicalConsistencyAssessment | None = None,
+        handwriting: SimilarityAssessment | None = None,
+        signature_similarity: SimilarityAssessment | None = None,
     ) -> DocumentResult:
         reference_first, candidate_first = reference_pages[0], candidate_pages[0]
         reference_descriptor = DocumentDescriptor(
@@ -1675,6 +1824,8 @@ class AnalysisManager:
             codes=code_assessment,
             metadata=metadata_assessment,
             logical=logical_consistency,
+            handwriting=handwriting,
+            signature=signature_similarity,
         )
         return DocumentResult(
             job_id=job_id,
@@ -1731,6 +1882,8 @@ class AnalysisManager:
             codes=code_assessment,
             metadata_assessment=metadata_assessment,
             logical_consistency=logical_consistency,
+            handwriting=handwriting,
+            signature_similarity=signature_similarity,
             investigative_assessment=investigative_assessment,
             generated_at=datetime.now(UTC),
         )

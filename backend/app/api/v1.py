@@ -15,6 +15,7 @@ from backend.app import __version__
 from backend.app.core.storage import utc_now
 from backend.app.models.contracts import (
     AnalysisJob,
+    BoundingBox,
     CapabilityStatus,
     ComparisonMode,
     CreateAnalysisResponse,
@@ -29,6 +30,7 @@ from backend.app.models.contracts import (
 from backend.app.docuvault.repository import DocumentProfile
 from backend.app.services.documents import DocumentValidationError, ValidatedUpload, validate_upload
 from backend.app.services.ocr import raster_ocr_capability
+from backend.app.services.biometric_similarity import RegionSelection
 from backend.app.services.pipeline import AnalysisOptions
 
 
@@ -185,6 +187,8 @@ async def create_reference_analysis(
     comparison_mode: Annotated[str, Form()] = "exact",
     handwriting_exemplars: Annotated[list[UploadFile] | None, File()] = None,
     signature_exemplars: Annotated[list[UploadFile] | None, File()] = None,
+    handwriting_regions: Annotated[str | None, Form(max_length=12000)] = None,
+    signature_regions: Annotated[str | None, Form(max_length=12000)] = None,
 ) -> CreateAnalysisResponse:
     try:
         mode = ComparisonMode(comparison_mode)
@@ -246,6 +250,12 @@ async def create_reference_analysis(
             minimum=2,
             maximum=5,
         )
+        selected_handwriting_regions = _parse_region_selections(
+            handwriting_regions, field="handwriting_regions"
+        )
+        selected_signature_regions = _parse_region_selections(
+            signature_regions, field="signature_regions"
+        )
     except DocumentValidationError as exc:
         status = 413 if exc.code == "file_too_large" else 422
         raise APIProblem(
@@ -269,6 +279,8 @@ async def create_reference_analysis(
         options=AnalysisOptions(
             handwriting_exemplars=validated_handwriting,
             signature_exemplars=validated_signatures,
+            handwriting_regions=selected_handwriting_regions,
+            signature_regions=selected_signature_regions,
         ),
     )
 
@@ -286,6 +298,8 @@ async def create_automatic_analysis(
     profile_override: Annotated[str | None, Form(max_length=160)] = None,
     handwriting_exemplars: Annotated[list[UploadFile] | None, File()] = None,
     signature_exemplars: Annotated[list[UploadFile] | None, File()] = None,
+    handwriting_regions: Annotated[str | None, Form(max_length=12000)] = None,
+    signature_regions: Annotated[str | None, Form(max_length=12000)] = None,
 ) -> CreateAnalysisResponse:
     settings = request.app.state.settings
     try:
@@ -327,6 +341,12 @@ async def create_automatic_analysis(
             minimum=2,
             maximum=5,
         )
+        selected_handwriting_regions = _parse_region_selections(
+            handwriting_regions, field="handwriting_regions"
+        )
+        selected_signature_regions = _parse_region_selections(
+            signature_regions, field="signature_regions"
+        )
     except DocumentValidationError as exc:
         status = 413 if exc.code == "file_too_large" else 422
         raise APIProblem(
@@ -343,6 +363,8 @@ async def create_automatic_analysis(
             profile_override=profile_override,
             handwriting_exemplars=validated_handwriting,
             signature_exemplars=validated_signatures,
+            handwriting_regions=selected_handwriting_regions,
+            signature_regions=selected_signature_regions,
         ),
     )
 
@@ -430,6 +452,46 @@ async def _validate_exemplars(
             )
         validated.append(exemplar)
     return tuple(validated)
+
+
+def _parse_region_selections(
+    raw: str | None,
+    *,
+    field: str,
+) -> tuple[RegionSelection, ...]:
+    if raw is None or not raw.strip():
+        return ()
+    try:
+        payload = json.loads(raw)
+        if not isinstance(payload, list) or not 1 <= len(payload) <= 10:
+            raise ValueError("region selections must be a list containing 1 to 10 entries")
+        selections: list[RegionSelection] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                raise ValueError("each region selection must be an object")
+            page_number = int(item.get("page_number", item.get("page", 0)))
+            box_value = item.get("bounding_box", item.get("box"))
+            if box_value is None:
+                box_value = {
+                    name: item.get(name) for name in ("x", "y", "width", "height")
+                }
+            if not 1 <= page_number <= 10:
+                raise ValueError("page_number must be between 1 and 10")
+            selections.append(
+                RegionSelection(
+                    page_number=page_number,
+                    bounding_box=BoundingBox.model_validate(box_value),
+                )
+            )
+        return tuple(selections)
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise DocumentValidationError(
+            "invalid_region_selection",
+            (
+                f"{field} must be JSON containing 1 to 10 normalized page regions."
+            ),
+            field=field,
+        ) from exc
 
 
 @router.get(
