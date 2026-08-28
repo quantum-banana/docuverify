@@ -14,14 +14,34 @@ from typing import Any, Iterable
 from jsonschema import Draft202012Validator, FormatChecker
 
 from backend.app.docuvault.safe_paths import UnsafeProfilePath, safe_path
+from backend.app.docuvault.visual_assets import (
+    FINGERPRINT_ALGORITHM,
+    fixed_region_fingerprint,
+    mask_fingerprint,
+    render_visual_page,
+    verify_visual_media,
+    visual_dimensions,
+)
 
 
 MAX_MANIFEST_BYTES = 2 * 1024 * 1024
+MAX_REFERENCE_BYTES = 64 * 1024 * 1024
 PROFILE_SUFFIX = ".profile.json"
+CAPABILITY_TIERS = frozenset(
+    {"metadata_only", "structural", "visual_reference", "cryptographic"}
+)
 
 
 def _canonical_bytes(value: Any) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +52,27 @@ class ProfileDiagnostic:
 
 
 @dataclass(frozen=True, slots=True)
+class ReferenceAsset:
+    asset_id: str
+    profile_id: str
+    page_number: int
+    side: str
+    path: Path
+    relative_path: str
+    mime_type: str
+    sha256: str
+    dimensions: dict[str, Any]
+    source_url: str | None
+    retrieval_date: str
+    redistribution_status: str
+    trust_level: str
+    fixed_region_masks: tuple[dict[str, Any], ...]
+    variable_region_masks: tuple[dict[str, Any], ...]
+    security_element_regions: dict[str, tuple[dict[str, Any], ...]]
+    precomputed_fingerprint: dict[str, str]
+
+
+@dataclass(frozen=True, slots=True)
 class DocumentProfile:
     profile_id: str
     manifest: dict[str, Any]
@@ -39,6 +80,7 @@ class DocumentProfile:
     enabled: bool
     source_name: str
     visual_reference_path: Path | None = None
+    reference_assets: tuple[ReferenceAsset, ...] = ()
 
     @property
     def issuer(self) -> str:
@@ -47,6 +89,16 @@ class DocumentProfile:
     @property
     def family(self) -> str:
         return str(self.manifest["document_family"])
+
+    @property
+    def capability_tier(self) -> str:
+        return str(self.manifest.get("capability_tier", "metadata_only"))
+
+    def reference_asset(self, page_number: int = 1) -> ReferenceAsset | None:
+        return next(
+            (asset for asset in self.reference_assets if asset.page_number == page_number),
+            None,
+        )
 
 
 class ProfileRepository:
@@ -144,6 +196,7 @@ class ProfileRepository:
                                         state=state,
                                         seen_ids=seen_ids,
                                         semantic_fingerprints=semantic_fingerprints,
+                                        origin=origin,
                                     )
                                 )
                             except (OSError, ValueError, UnsafeProfilePath) as exc:
@@ -169,6 +222,7 @@ class ProfileRepository:
         state: dict[str, bool],
         seen_ids: set[str],
         semantic_fingerprints: dict[str, str],
+        origin: str,
     ) -> DocumentProfile:
         errors = sorted(
             validator.iter_errors(value), key=lambda error: list(error.absolute_path)
@@ -188,7 +242,15 @@ class ProfileRepository:
         if previous:
             raise ValueError(f"duplicate semantic profile of {previous}")
         semantic_fingerprints[semantic_fingerprint] = profile_id
-        visual_path = self._resolve_visual_reference(value)
+        capability_tier = str(value["capability_tier"])
+        if capability_tier not in CAPABILITY_TIERS:  # schema normally catches this
+            raise ValueError(f"unsupported profile capability tier: {capability_tier}")
+        reference_assets = self._resolve_reference_assets(value, origin=origin)
+        if capability_tier in {"metadata_only", "structural"} and reference_assets:
+            raise ValueError(f"{capability_tier} profiles cannot contain visual reference assets")
+        if capability_tier == "visual_reference" and not reference_assets:
+            raise ValueError("visual_reference profiles require at least one reference asset")
+        visual_path = reference_assets[0].path if reference_assets else None
         enabled = state.get(profile_id, bool(value.get("enabled", True)))
         connection.execute(
             "INSERT OR IGNORE INTO profile_state(profile_id, enabled) VALUES (?, ?)",
@@ -206,24 +268,117 @@ class ProfileRepository:
             (profile_id, fingerprint, source_name, _canonical_bytes(value).decode("utf-8")),
         )
         return DocumentProfile(
-            profile_id, value, fingerprint, enabled, source_name, visual_path
+            profile_id,
+            value,
+            fingerprint,
+            enabled,
+            source_name,
+            visual_path,
+            reference_assets,
         )
 
-    def _resolve_visual_reference(self, value: dict[str, Any]) -> Path | None:
-        visual = value.get("visual_reference")
-        if not isinstance(visual, dict):
-            return None
-        relative = str(visual["relative_path"])
-        path = safe_path(
-            self.project_root,
-            relative,
-            allowed_prefixes=("samples/synthetic", "backend/docuvault/references"),
-            must_exist=True,
-        )
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        if digest != str(visual["sha256"]).lower():
-            raise ValueError("visual reference SHA-256 does not match its manifest")
-        return path
+    def _resolve_reference_assets(
+        self, value: dict[str, Any], *, origin: str
+    ) -> tuple[ReferenceAsset, ...]:
+        resolved: list[ReferenceAsset] = []
+        seen_ids: set[str] = set()
+        seen_pages: set[tuple[int, str]] = set()
+        for raw in value.get("reference_assets", []):
+            asset_id = str(raw["asset_id"])
+            if asset_id in seen_ids:
+                raise ValueError(f"duplicate visual-reference asset_id: {asset_id}")
+            seen_ids.add(asset_id)
+            if str(raw["profile_id"]) != str(value["profile_id"]):
+                raise ValueError("visual-reference profile_id does not match its parent profile")
+            page_and_side = (int(raw["page_number"]), str(raw["side"]))
+            if page_and_side in seen_pages:
+                raise ValueError("duplicate visual-reference page and side")
+            seen_pages.add(page_and_side)
+            relative = str(raw["relative_path"])
+            if origin == "bundled":
+                path = safe_path(
+                    self.project_root,
+                    relative,
+                    allowed_prefixes=("samples/synthetic", "backend/docuvault/references"),
+                    must_exist=True,
+                )
+            else:
+                if self.external_root is None:  # pragma: no cover - origin guarantees it
+                    raise ValueError("external visual-reference root is unavailable")
+                path = safe_path(
+                    self.external_root,
+                    relative,
+                    allowed_prefixes=("references",),
+                    must_exist=True,
+                )
+            if path.stat().st_size > MAX_REFERENCE_BYTES:
+                raise ValueError("visual reference exceeds the 64 MiB safety limit")
+            mime_type = str(raw["mime_type"])
+            verify_visual_media(path, mime_type)
+            digest = _sha256_path(path)
+            if digest != str(raw["sha256"]).lower():
+                raise ValueError("visual-reference SHA-256 does not match its manifest")
+            profile_trust = str(value["provenance"]["assurance"])
+            asset_trust = str(raw["trust_level"])
+            if int(asset_trust[1]) > int(profile_trust[1]):
+                raise ValueError("visual-reference trust exceeds its parent profile provenance")
+            if origin == "bundled" and str(raw["redistribution_status"]) != "permitted":
+                raise ValueError("bundled visual references must be redistributable")
+            actual_dimensions = visual_dimensions(path, mime_type, int(raw["page_number"]))
+            declared_dimensions = raw["dimensions"]
+            if str(declared_dimensions["unit"]) != actual_dimensions.unit or not (
+                abs(float(declared_dimensions["width"]) - actual_dimensions.width) <= 0.5
+                and abs(float(declared_dimensions["height"]) - actual_dimensions.height) <= 0.5
+            ):
+                raise ValueError("visual-reference dimensions do not match its manifest")
+            fixed_masks = tuple(raw["fixed_region_masks"])
+            variable_masks = tuple(raw["variable_region_masks"])
+            fingerprint = raw["precomputed_fingerprint"]
+            if str(fingerprint["algorithm"]) != FINGERPRINT_ALGORITHM:
+                raise ValueError("unsupported visual-reference fingerprint algorithm")
+            expected_mask_hash = mask_fingerprint(fixed_masks, variable_masks)
+            if str(fingerprint["mask_sha256"]) != expected_mask_hash:
+                raise ValueError("visual-reference fingerprint mask binding does not match")
+            rendered = render_visual_page(path, mime_type, int(raw["page_number"]))
+            actual_fingerprint = fixed_region_fingerprint(
+                rendered,
+                fixed_regions=fixed_masks,
+                variable_regions=variable_masks,
+                page_number=int(raw["page_number"]),
+            )
+            if str(fingerprint["value"]).lower() != actual_fingerprint:
+                raise ValueError("visual-reference fingerprint does not match the trusted asset")
+            security = {
+                key: tuple(regions)
+                for key, regions in raw["security_element_regions"].items()
+            }
+            resolved.append(
+                ReferenceAsset(
+                    asset_id=asset_id,
+                    profile_id=str(raw["profile_id"]),
+                    page_number=int(raw["page_number"]),
+                    side=str(raw["side"]),
+                    path=path,
+                    relative_path=relative,
+                    mime_type=mime_type,
+                    sha256=str(raw["sha256"]),
+                    dimensions=dict(declared_dimensions),
+                    source_url=str(raw["source_url"]) if raw["source_url"] else None,
+                    retrieval_date=str(raw["retrieval_date"]),
+                    redistribution_status=str(raw["redistribution_status"]),
+                    trust_level=str(raw["trust_level"]),
+                    fixed_region_masks=fixed_masks,
+                    variable_region_masks=variable_masks,
+                    security_element_regions=security,
+                    precomputed_fingerprint={
+                        "algorithm": str(fingerprint["algorithm"]),
+                        "value": str(fingerprint["value"]).lower(),
+                        "mask_sha256": str(fingerprint["mask_sha256"]),
+                    },
+                )
+            )
+        resolved.sort(key=lambda item: (item.page_number, item.side, item.asset_id))
+        return tuple(resolved)
 
     @property
     def diagnostics(self) -> tuple[ProfileDiagnostic, ...]:
@@ -300,6 +455,7 @@ class ProfileRepository:
                     enabled if profile.profile_id == profile_id else profile.enabled,
                     profile.source_name,
                     profile.visual_reference_path,
+                    profile.reference_assets,
                 )
                 for profile in self._profiles
             )
@@ -319,6 +475,18 @@ class ProfileRepository:
             "families": len({profile.family for profile in self._profiles}),
             "with_visual_reference": sum(
                 1 for profile in self._profiles if profile.visual_reference_path is not None
+            ),
+            "metadata_only": sum(
+                profile.capability_tier == "metadata_only" for profile in self._profiles
+            ),
+            "structural": sum(
+                profile.capability_tier == "structural" for profile in self._profiles
+            ),
+            "visual_reference": sum(
+                profile.capability_tier == "visual_reference" for profile in self._profiles
+            ),
+            "cryptographic": sum(
+                profile.capability_tier == "cryptographic" for profile in self._profiles
             ),
         }
 

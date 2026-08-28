@@ -40,12 +40,24 @@ def test_profile_catalog_is_strict_complete_and_deterministic(tmp_path: Path) ->
         "invalid": 0,
         "families": 19,
         "with_visual_reference": 1,
+        "metadata_only": 19,
+        "structural": 0,
+        "visual_reference": 1,
+        "cryptographic": 0,
     }
     first = repository.fingerprints()
     repository.reload()
     assert repository.fingerprints() == first
     assert list(first) == sorted(first)
     assert len(set(first.values())) == len(first)
+    aadhaar = repository.get("in.uidai.aadhaar-style.v1")
+    lumen = repository.get("synthetic.lumen-grove.achievement-record.v1")
+    assert aadhaar is not None and aadhaar.capability_tier == "metadata_only"
+    assert aadhaar.reference_assets == ()
+    assert lumen is not None and lumen.capability_tier == "visual_reference"
+    assert len(lumen.reference_assets) == 1
+    assert lumen.reference_assets[0].profile_id == lumen.profile_id
+    assert lumen.reference_assets[0].precomputed_fingerprint["algorithm"] == "phash-64-fixed-v1"
 
 
 def test_profile_state_and_search_are_persisted_without_changing_manifests(
@@ -123,3 +135,40 @@ def test_matching_uses_document_evidence_not_filename_and_returns_top_three(
     assert result.matches[0].component_scores["fixed_visual"] >= 90
     assert result.closest_fallback_used is True
     assert "Strongest signals" in result.selected.explanation
+
+
+def test_metadata_only_match_does_not_invent_visual_or_structural_scores(
+    tmp_path: Path,
+) -> None:
+    repository = _repository(tmp_path)
+    fixture = PROJECT_ROOT / "samples" / "synthetic" / "template_legitimate_candidate.pdf"
+    data = fixture.read_bytes()
+    upload = validate_upload(
+        field="candidate",
+        filename="metadata-only.pdf",
+        content_type="application/pdf",
+        data=data,
+        max_bytes=len(data),
+    )
+    rendered = render_document_page(upload, 0, 900)
+    extraction = extract_page_text(upload, rendered, 0)
+    image_path = tmp_path / "candidate-metadata.png"
+    assert cv2.imwrite(str(image_path), rendered.image)
+    page = SimpleNamespace(
+        text=extraction,
+        width=rendered.image.shape[1],
+        height=rendered.image.shape[0],
+        image_path=image_path,
+    )
+
+    result = ProfileMatcher(repository).match(
+        [page], profile_override="in.uidai.aadhaar-style.v1"
+    )
+
+    assert result.selected is not None
+    assert result.selected.profile.capability_tier == "metadata_only"
+    assert "fixed_visual" not in result.selected.component_scores
+    assert "security_regions" not in result.selected.component_scores
+    assert "layout_anchors" not in result.selected.component_scores
+    assert "page_geometry" not in result.selected.component_scores
+    assert "used no page-geometry" in result.selected.explanation

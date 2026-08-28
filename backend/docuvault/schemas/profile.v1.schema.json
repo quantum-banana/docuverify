@@ -10,7 +10,17 @@
     "expected_pages", "stable_headings", "stable_labels", "keywords", "regions",
     "fields", "security_regions", "layout_anchors", "typography", "logical_rules",
     "digital_signature", "codes", "source", "provenance", "profile_confidence",
-    "completeness", "known_limitations", "visual_reference", "enabled"
+    "completeness", "known_limitations", "capability_tier", "reference_assets", "enabled"
+  ],
+  "allOf": [
+    {
+      "if": { "properties": { "capability_tier": { "const": "visual_reference" } } },
+      "then": { "properties": { "reference_assets": { "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "capability_tier": { "enum": ["metadata_only", "structural"] } } },
+      "then": { "properties": { "reference_assets": { "maxItems": 0 } } }
+    }
   ],
   "properties": {
     "schema_version": { "const": "1.0.0" },
@@ -197,7 +207,15 @@
     "profile_confidence": { "type": "number", "minimum": 0, "maximum": 100 },
     "completeness": { "type": "number", "minimum": 0, "maximum": 100 },
     "known_limitations": { "$ref": "#/$defs/textArrayNonEmpty" },
+    "capability_tier": {
+      "enum": ["metadata_only", "structural", "visual_reference", "cryptographic"]
+    },
+    "reference_assets": {
+      "type": "array", "maxItems": 20,
+      "items": { "$ref": "#/$defs/referenceAsset" }
+    },
     "visual_reference": {
+      "description": "Deprecated compatibility metadata; reference_assets is authoritative.",
       "oneOf": [
         { "type": "null" },
         {
@@ -238,6 +256,71 @@
         "label": { "$ref": "#/$defs/text" }
       }
     },
-    "regions": { "type": "array", "maxItems": 80, "items": { "$ref": "#/$defs/region" } }
+    "regions": { "type": "array", "maxItems": 80, "items": { "$ref": "#/$defs/region" } },
+    "regionsNonEmpty": {
+      "type": "array", "minItems": 1, "maxItems": 80,
+      "items": { "$ref": "#/$defs/region" }
+    },
+    "securityElementRegions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["logo", "seal", "photo", "signature", "handwriting", "qr", "barcode"],
+      "properties": {
+        "logo": { "$ref": "#/$defs/regions" },
+        "seal": { "$ref": "#/$defs/regions" },
+        "photo": { "$ref": "#/$defs/regions" },
+        "signature": { "$ref": "#/$defs/regions" },
+        "handwriting": { "$ref": "#/$defs/regions" },
+        "qr": { "$ref": "#/$defs/regions" },
+        "barcode": { "$ref": "#/$defs/regions" }
+      }
+    },
+    "referenceAsset": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "asset_id", "profile_id", "page_number", "side", "relative_path", "mime_type",
+        "sha256", "dimensions", "source_url", "retrieval_date", "redistribution_status",
+        "trust_level", "fixed_region_masks", "variable_region_masks",
+        "security_element_regions", "precomputed_fingerprint"
+      ],
+      "properties": {
+        "asset_id": { "$ref": "#/$defs/id" },
+        "profile_id": { "$ref": "#/$defs/id" },
+        "page_number": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "side": { "enum": ["front", "back", "interior", "unspecified"] },
+        "relative_path": {
+          "type": "string",
+          "pattern": "^(samples/synthetic|backend/docuvault/references|references)/[A-Za-z0-9._/-]+$"
+        },
+        "mime_type": { "enum": ["application/pdf", "image/png", "image/jpeg"] },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "dimensions": {
+          "type": "object", "additionalProperties": false,
+          "required": ["width", "height", "unit"],
+          "properties": {
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "height": { "type": "number", "exclusiveMinimum": 0 },
+            "unit": { "enum": ["points", "pixels"] }
+          }
+        },
+        "source_url": { "type": ["string", "null"], "format": "uri", "maxLength": 4000 },
+        "retrieval_date": { "type": "string", "format": "date" },
+        "redistribution_status": {
+          "enum": ["permitted", "not_permitted", "unclear", "not_applicable"]
+        },
+        "trust_level": { "enum": ["P0", "P1", "P2", "P3", "P4"] },
+        "fixed_region_masks": { "$ref": "#/$defs/regionsNonEmpty" },
+        "variable_region_masks": { "$ref": "#/$defs/regions" },
+        "security_element_regions": { "$ref": "#/$defs/securityElementRegions" },
+        "precomputed_fingerprint": {
+          "type": "object", "additionalProperties": false,
+          "required": ["algorithm", "value", "mask_sha256"],
+          "properties": {
+            "algorithm": { "const": "phash-64-fixed-v1" },
+            "value": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+            "mask_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        }
+      }
+    }
   }
 }

@@ -190,6 +190,13 @@
     "CodeAssessment": {
       "additionalProperties": false,
       "properties": {
+        "coverage_score": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Coverage Score",
+          "type": "number"
+        },
         "decoded_count": {
           "default": 0,
           "minimum": 0,
@@ -217,6 +224,13 @@
             "$ref": "#/$defs/CodeCheckResult"
           },
           "title": "Results",
+          "type": "array"
+        },
+        "states": {
+          "items": {
+            "$ref": "#/$defs/QREvidenceState"
+          },
+          "title": "States",
           "type": "array"
         },
         "status": {
@@ -307,6 +321,10 @@
           ],
           "default": null,
           "title": "Payload Summary"
+        },
+        "state": {
+          "$ref": "#/$defs/QREvidenceState",
+          "default": "DETECTED_BUT_UNREADABLE"
         },
         "structural_tampering_indicators": {
           "items": {
@@ -1683,6 +1701,16 @@
       "title": "PdfSignatureStatus",
       "type": "string"
     },
+    "ProfileCapabilityTier": {
+      "enum": [
+        "metadata_only",
+        "structural",
+        "visual_reference",
+        "cryptographic"
+      ],
+      "title": "ProfileCapabilityTier",
+      "type": "string"
+    },
     "ProfileMatchSummary": {
       "additionalProperties": false,
       "properties": {
@@ -1698,6 +1726,10 @@
           "default": null,
           "title": "Authoritative Source Url"
         },
+        "capability_tier": {
+          "$ref": "#/$defs/ProfileCapabilityTier",
+          "default": "metadata_only"
+        },
         "completeness": {
           "maximum": 100.0,
           "minimum": 0.0,
@@ -1712,6 +1744,16 @@
           },
           "title": "Component Scores",
           "type": "object"
+        },
+        "display_name": {
+          "default": "Document profile",
+          "title": "Display Name",
+          "type": "string"
+        },
+        "document_category": {
+          "default": "Document",
+          "title": "Document Category",
+          "type": "string"
         },
         "document_family": {
           "title": "Document Family",
@@ -1732,6 +1774,24 @@
           "title": "Limitations",
           "type": "array"
         },
+        "match_level": {
+          "default": "Weak",
+          "enum": [
+            "Strong",
+            "Moderate",
+            "Weak"
+          ],
+          "title": "Match Level",
+          "type": "string"
+        },
+        "match_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Match Reasons",
+          "type": "array"
+        },
         "profile_id": {
           "title": "Profile Id",
           "type": "string"
@@ -1742,6 +1802,22 @@
         },
         "provenance_kind": {
           "title": "Provenance Kind",
+          "type": "string"
+        },
+        "reference_asset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProfileReferenceAssetSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reference_capability": {
+          "default": "Metadata only",
+          "title": "Reference Capability",
           "type": "string"
         },
         "reference_strength": {
@@ -1762,6 +1838,18 @@
         "subtype": {
           "title": "Subtype",
           "type": "string"
+        },
+        "version_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Label"
         },
         "visual_reference_available": {
           "default": false,
@@ -1785,9 +1873,106 @@
       "title": "ProfileMatchSummary",
       "type": "object"
     },
+    "ProfileReferenceAssetSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "dimensions": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Dimensions",
+          "type": "object"
+        },
+        "mime_type": {
+          "title": "Mime Type",
+          "type": "string"
+        },
+        "page_number": {
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Page Number",
+          "type": "integer"
+        },
+        "redistribution_status": {
+          "title": "Redistribution Status",
+          "type": "string"
+        },
+        "retrieval_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieval Date"
+        },
+        "side": {
+          "title": "Side",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "trust_level": {
+          "title": "Trust Level",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_number",
+        "side",
+        "mime_type",
+        "redistribution_status",
+        "trust_level"
+      ],
+      "title": "ProfileReferenceAssetSummary",
+      "type": "object"
+    },
+    "QREvidenceState": {
+      "enum": [
+        "DETECTED_AND_DECODED",
+        "DETECTED_BUT_UNREADABLE",
+        "EXPECTED_REGION_OCCUPIED_UNVERIFIED",
+        "CONFIRMED_MISSING",
+        "NOT_EXPECTED",
+        "DECODER_UNSUPPORTED",
+        "CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE"
+      ],
+      "title": "QREvidenceState",
+      "type": "string"
+    },
     "ReferenceProfileAssessment": {
       "additionalProperties": false,
       "properties": {
+        "checked_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Checked Items",
+          "type": "array"
+        },
         "closest_fallback_used": {
           "default": false,
           "title": "Closest Fallback Used",
@@ -1822,9 +2007,25 @@
           "default": null,
           "title": "Inferred Issuer"
         },
+        "reference_asset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProfileReferenceAssetSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "reference_strength": {
           "default": "User-supplied unverified reference",
           "title": "Reference Strength",
+          "type": "string"
+        },
+        "result_summary": {
+          "default": "The available evidence is summarized below.",
+          "title": "Result Summary",
           "type": "string"
         },
         "selected_profile": {
@@ -1844,6 +2045,13 @@
           },
           "maxItems": 3,
           "title": "Top Matches",
+          "type": "array"
+        },
+        "unverified_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unverified Items",
           "type": "array"
         }
       },

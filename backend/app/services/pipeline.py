@@ -49,7 +49,10 @@ from backend.app.models.contracts import (
     PageResult,
     PageStatus,
     PdfSignatureStatus,
+    ProfileCapabilityTier,
     ProfileMatchSummary,
+    ProfileReferenceAssetSummary,
+    QREvidenceState,
     ReferenceProfileAssessment,
     LogicalConsistencyAssessment,
     MetadataAssessment,
@@ -629,6 +632,14 @@ class AnalysisManager:
                 forensic_mode,
                 single_page=(total_pages == 1),
                 reference_size=(reference_image.shape[1], reference_image.shape[0]),
+                profile=(
+                    profile_search.selected.profile
+                    if comparison_mode is ComparisonMode.DOCUVAULT
+                    and profile_search is not None
+                    and profile_search.selected is not None
+                    and profile_search.selected.profile.visual_reference_path is not None
+                    else None
+                ),
             )
             findings.extend(
                 self._build_match_anomaly_findings(
@@ -729,6 +740,17 @@ class AnalysisManager:
             if profile_search is not None and profile_search.selected is not None
             else None
         )
+        if (
+            comparison_mode is ComparisonMode.DOCUVAULT
+            and (
+                selected_profile is None
+                or selected_profile.visual_reference_path is None
+            )
+        ):
+            # Candidate-only automatic analysis uses a private lifecycle proxy
+            # internally. Never expose that proxy as a trusted reference image.
+            for page in pages:
+                page.reference_image_url = None
         profile_fields = (
             extract_profile_fields(selected_profile, candidate_pages)
             if selected_profile is not None
@@ -859,6 +881,13 @@ class AnalysisManager:
             candidate_page_url=(pages[-1].candidate_image_url if pages else None),
         )
         aggregate = aggregate_page_results(pages, anomalies)
+        if comparison_mode is ComparisonMode.DOCUVAULT:
+            aggregate.coverage_score = _docuvault_coverage(
+                aggregate.coverage_score,
+                selected_profile,
+                profile_search,
+                code_assessment,
+            )
         result = self._build_result(
             job_id=job_id,
             reference=reference,
@@ -1002,40 +1031,8 @@ class AnalysisManager:
             ]
         ] = []
         whole_page = BoundingBox(x=0.0, y=0.0, width=1.0, height=1.0)
-        if profile_search is not None and profile_search.selected is not None:
-            selected = profile_search.selected
-            if selected.score < 52.0:
-                specs.append(
-                    (
-                        "profile_mismatch",
-                        "Weak trusted-profile match",
-                        "Issuer, headings, layout and profile descriptors did not provide a moderate match. The closest profile is shown only as context.",
-                        1,
-                        whole_page,
-                        42.0,
-                        78.0,
-                        ["docuvault_profile_match"],
-                        {"profile_match_score": selected.score},
-                    )
-                )
-            if selected.strength.tier == "Closest available profile":
-                specs.append(
-                    (
-                        "limited_trusted_reference_strength",
-                        "Limited trusted-reference strength",
-                        selected.strength.rationale,
-                        1,
-                        whole_page,
-                        0.0,
-                        95.0,
-                        ["docuvault_trust_policy"],
-                        {
-                            "profile_match_score": selected.score,
-                            "provenance_assurance": selected.strength.provenance,
-                            "applicability": selected.strength.applicability,
-                        },
-                    )
-                )
+        # Match confidence and missing profile capabilities are context, not
+        # tampering evidence. They are reported by ReferenceProfileAssessment.
         for check in digital.checks:
             if check.status not in {PdfSignatureStatus.INVALID, PdfSignatureStatus.MODIFIED}:
                 continue
@@ -1068,6 +1065,43 @@ class AnalysisManager:
             )
         for result in codes.results:
             if result.structure_valid is not False and result.visible_fields_consistent is not False:
+                if (
+                    result.state is QREvidenceState.CONFIRMED_MISSING
+                    and result.bounding_box is not None
+                ):
+                    specs.append(
+                        (
+                            "qr_confirmed_missing",
+                            "QR code appears absent",
+                            result.explanation,
+                            result.page_number,
+                            result.bounding_box,
+                            62.0,
+                            result.confidence_score,
+                            [result.decoder, "profile_expected_region_occupancy"],
+                            {"expected": codes.expected, "state": result.state.value},
+                        )
+                    )
+                elif result.structural_tampering_indicators and result.bounding_box is not None:
+                    specs.append(
+                        (
+                            "qr_geometry_or_compositing_anomaly",
+                            "QR region requires review",
+                            result.explanation,
+                            result.page_number,
+                            result.bounding_box,
+                            68.0,
+                            result.confidence_score,
+                            [result.decoder, "qr_geometry_analysis"],
+                            {
+                                "state": result.state.value,
+                                "indicator_count": len(result.structural_tampering_indicators),
+                            },
+                        )
+                    )
+                continue
+            if result.bounding_box is None:
+                # Region-specific evidence is never promoted to a page-wide marker.
                 continue
             specs.append(
                 (
@@ -1075,7 +1109,7 @@ class AnalysisManager:
                     "QR payload mismatch",
                     "The locally decoded payload disagrees with the selected profile structure or reliably extracted visible fields.",
                     result.page_number,
-                    result.bounding_box or whole_page,
+                    result.bounding_box,
                     86.0,
                     result.confidence_score,
                     [result.decoder, "visible_field_consistency"],
@@ -1084,20 +1118,6 @@ class AnalysisManager:
                         "visible_fields_consistent": result.visible_fields_consistent,
                         "cryptographic_verification_available": result.cryptographic_verification_available,
                     },
-                )
-            )
-        if codes.status is CheckStatus.FAILED and not codes.results:
-            specs.append(
-                (
-                    "qr_expected_missing",
-                    "Expected QR code missing",
-                    codes.explanation,
-                    1,
-                    whole_page,
-                    62.0,
-                    82.0,
-                    ["opencv_qrcode_detector", "profile_expectation"],
-                    {"expected": codes.expected, "detected_count": 0},
                 )
             )
         for indicator in metadata.indicators:
@@ -1325,6 +1345,7 @@ class AnalysisManager:
         *,
         single_page: bool,
         reference_size: tuple[int, int] | None = None,
+        profile: Any | None = None,
     ) -> tuple[list[Finding], list[RegionSuggestion]]:
         height, width = candidate_image.shape[:2]
         reference_width, reference_height = reference_size or (
@@ -1352,6 +1373,9 @@ class AnalysisManager:
                 height,
             )
             bounding_box = _normalized_box(region, width, height)
+            declared_role = _profile_mask_role(profile, page_number, bounding_box)
+            if declared_role is not None:
+                role, role_confidence, reason, label = declared_role
             if comparison_mode is ComparisonMode.TEMPLATE and (
                 region.text_changes or role is RegionRole.VARIABLE
             ):
@@ -1807,7 +1831,10 @@ class AnalysisManager:
             transform=candidate_first.transform,
         )
         reference_assessment = _reference_profile_assessment(
-            comparison_mode, profile_search
+            comparison_mode,
+            profile_search,
+            codes=code_assessment,
+            suspicious_findings=aggregate.finding_count,
         )
         investigative_assessment: InvestigativeAssessment = build_investigative_assessment(
             visual_risk=aggregate.risk_score,
@@ -1953,6 +1980,8 @@ def _validated_profile_reference(path: Path, max_bytes: int) -> ValidatedUpload:
 
 def _profile_match_summary(match: Any) -> ProfileMatchSummary:
     manifest = match.profile.manifest
+    capability = _profile_capability(match.profile)
+    asset_summary = _profile_reference_asset_summary(match.profile)
     return ProfileMatchSummary(
         profile_id=match.profile.profile_id,
         issuer=match.profile.issuer,
@@ -1966,7 +1995,21 @@ def _profile_match_summary(match: Any) -> ProfileMatchSummary:
         explanation=match.explanation,
         completeness=float(manifest["completeness"]),
         authoritative_source_url=manifest["source"].get("authoritative_url"),
-        visual_reference_available=match.profile.visual_reference_path is not None,
+        visual_reference_available=(
+            capability in {
+                ProfileCapabilityTier.VISUAL_REFERENCE,
+                ProfileCapabilityTier.CRYPTOGRAPHIC,
+            }
+            and match.profile.visual_reference_path is not None
+        ),
+        display_name=_profile_display_name(manifest),
+        document_category=_humanize_profile_value(str(manifest["document_family"])),
+        version_label=str(manifest.get("version") or "") or None,
+        capability_tier=capability,
+        match_level=_profile_match_level(float(match.score)),
+        reference_capability=_reference_capability_label(capability),
+        match_reasons=_profile_match_reasons(match, capability),
+        reference_asset=asset_summary,
         selected_by_override=match.selected_by_override,
         limitations=[str(item) for item in manifest["known_limitations"]],
     )
@@ -1975,6 +2018,9 @@ def _profile_match_summary(match: Any) -> ProfileMatchSummary:
 def _reference_profile_assessment(
     comparison_mode: ComparisonMode,
     search: ProfileSearchResult | None,
+    *,
+    codes: CodeAssessment | None = None,
+    suspicious_findings: int = 0,
 ) -> ReferenceProfileAssessment:
     if comparison_mode is not ComparisonMode.DOCUVAULT:
         mode = "issued-original" if comparison_mode is ComparisonMode.EXACT else "template"
@@ -1993,6 +2039,56 @@ def _reference_profile_assessment(
         )
     summaries = [_profile_match_summary(match) for match in search.matches]
     selected = _profile_match_summary(search.selected)
+    checked = [
+        "Document type and issuer",
+        "Text format and configured fields",
+        "QR presence and local decoding",
+        "Document metadata",
+        "Logical field consistency",
+    ]
+    if selected.capability_tier in {
+        ProfileCapabilityTier.STRUCTURAL,
+        ProfileCapabilityTier.VISUAL_REFERENCE,
+        ProfileCapabilityTier.CRYPTOGRAPHIC,
+    }:
+        checked[1:1] = [
+            "Page structure and dimensions",
+            "Fixed labels and layout",
+        ]
+    if selected.visual_reference_available:
+        checked.append("Trusted visual specimen and fixed regions")
+
+    unverified: list[str] = []
+    if not selected.visual_reference_available:
+        unverified.append("No trusted visual specimen is available for this profile")
+    if codes is not None:
+        code_messages = {
+            QREvidenceState.DETECTED_BUT_UNREADABLE: "QR code detected but could not be decoded",
+            QREvidenceState.EXPECTED_REGION_OCCUPIED_UNVERIFIED: "Expected QR region could not be verified",
+            QREvidenceState.DECODER_UNSUPPORTED: "The expected QR format is not supported by the local decoder",
+            QREvidenceState.CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE: "Cryptographic QR verification is not available for this profile",
+        }
+        for state in codes.states:
+            message = code_messages.get(state)
+            if message and message not in unverified:
+                unverified.append(message)
+    if search.closest_fallback_used:
+        unverified.append(
+            "This is the closest available profile; a generic match cannot prove issuance"
+        )
+
+    if selected.visual_reference_available:
+        result_summary = (
+            "The document closely matches the trusted visual profile. "
+            "Localized evidence requiring review is listed below."
+            if suspicious_findings
+            else "The document closely matches the trusted visual profile in the checks that were available."
+        )
+    else:
+        result_summary = (
+            "Closest profile identified, but visual authenticity could not be fully checked "
+            "because this profile has no trusted reference image."
+        )
     return ReferenceProfileAssessment(
         selected_profile=selected,
         top_matches=summaries,
@@ -2001,7 +2097,150 @@ def _reference_profile_assessment(
         inferred_issuer=search.inferred_issuer,
         reference_strength=search.selected.strength.tier,
         explanation=search.selected.strength.rationale,
+        checked_items=checked,
+        unverified_items=unverified,
+        result_summary=result_summary,
+        reference_asset=selected.reference_asset,
     )
+
+
+def _profile_capability(profile: Any) -> ProfileCapabilityTier:
+    raw = getattr(profile, "capability_tier", None) or profile.manifest.get(
+        "capability_tier", ProfileCapabilityTier.METADATA_ONLY.value
+    )
+    try:
+        return ProfileCapabilityTier(str(raw))
+    except ValueError:
+        return ProfileCapabilityTier.METADATA_ONLY
+
+
+def _profile_display_name(manifest: dict[str, Any]) -> str:
+    explicit = str(manifest.get("display_name") or "").strip()
+    if explicit:
+        return explicit
+    subtype = str(manifest.get("subtype") or manifest.get("document_family") or "document")
+    if "aadhaar" in subtype.casefold() or "aadhaar" in str(manifest.get("profile_id", "")).casefold():
+        return "Aadhaar identity document"
+    return _humanize_profile_value(subtype)
+
+
+def _humanize_profile_value(value: str) -> str:
+    words = re.sub(r"[._-]+", " ", value).strip()
+    return words[:1].upper() + words[1:] if words else "Document"
+
+
+def _profile_match_level(score: float) -> str:
+    if score >= 78.0:
+        return "Strong"
+    if score >= 55.0:
+        return "Moderate"
+    return "Weak"
+
+
+def _reference_capability_label(capability: ProfileCapabilityTier) -> str:
+    return {
+        ProfileCapabilityTier.METADATA_ONLY: "Metadata only",
+        ProfileCapabilityTier.STRUCTURAL: "Structure and layout",
+        ProfileCapabilityTier.VISUAL_REFERENCE: "Trusted visual specimen",
+        ProfileCapabilityTier.CRYPTOGRAPHIC: "Cryptographically verifiable",
+    }[capability]
+
+
+def _profile_match_reasons(
+    match: Any, capability: ProfileCapabilityTier
+) -> list[str]:
+    components = dict(match.component_scores)
+    labels = {
+        "issuer_text": "Issuer wording matched",
+        "headings": "Stable document headings matched",
+        "layout_anchors": "Fixed labels and layout matched",
+        "page_geometry": "Document family and page structure matched",
+        "fixed_visual": "Trusted visual structure was similar",
+        "security_regions": "Security-element placement was similar",
+        "language_script": "Language and script matched",
+        "profile_completeness": "Configured profile fields were applicable",
+    }
+    ranked = sorted(components.items(), key=lambda item: (-float(item[1]), item[0]))
+    reasons: list[str] = []
+    for name, score in ranked:
+        if name == "fixed_visual" and capability not in {
+            ProfileCapabilityTier.VISUAL_REFERENCE,
+            ProfileCapabilityTier.CRYPTOGRAPHIC,
+        }:
+            continue
+        label = labels.get(name)
+        if label and float(score) >= 45.0 and label not in reasons:
+            reasons.append(label)
+        if len(reasons) == 4:
+            break
+    if len(reasons) < 3:
+        for fallback in (
+            "Document category descriptors matched",
+            "Expected document characteristics were found",
+            "The closest available profile ranked above alternatives",
+        ):
+            if fallback not in reasons:
+                reasons.append(fallback)
+            if len(reasons) == 3:
+                break
+    return reasons[:4]
+
+
+def _profile_reference_asset_summary(
+    profile: Any,
+) -> ProfileReferenceAssetSummary | None:
+    if _profile_capability(profile) not in {
+        ProfileCapabilityTier.VISUAL_REFERENCE,
+        ProfileCapabilityTier.CRYPTOGRAPHIC,
+    } or profile.visual_reference_path is None:
+        return None
+    raw_assets = profile.manifest.get("reference_assets") or []
+    if raw_assets:
+        asset = raw_assets[0]
+        source_url = asset.get("source_url")
+        return ProfileReferenceAssetSummary(
+            page_number=int(asset.get("page_number", 1)),
+            side=str(asset.get("side", "single")),
+            mime_type=str(asset.get("mime_type", "application/octet-stream")),
+            dimensions=dict(asset.get("dimensions") or {}),
+            source_url=str(source_url) if source_url else None,
+            retrieval_date=str(asset.get("retrieval_date") or asset.get("retrieved_at") or "") or None,
+            redistribution_status=str(asset.get("redistribution_status", "unclear")),
+            trust_level=str(asset.get("trust_level", "unknown")),
+        )
+    legacy = profile.manifest.get("visual_reference") or {}
+    return ProfileReferenceAssetSummary(
+        page_number=1,
+        side="single",
+        mime_type={
+            "pdf": "application/pdf",
+            "png": "image/png",
+            "jpeg": "image/jpeg",
+        }.get(str(legacy.get("format")), "application/octet-stream"),
+        redistribution_status=str(
+            profile.manifest.get("source", {}).get("redistribution_status", "unclear")
+        ),
+        trust_level=str(profile.manifest.get("provenance", {}).get("assurance", "unknown")),
+    )
+
+
+def _docuvault_coverage(
+    visual_coverage: float,
+    profile: Any,
+    search: ProfileSearchResult | None,
+    codes: CodeAssessment,
+) -> float:
+    capability = _profile_capability(profile) if profile is not None else ProfileCapabilityTier.METADATA_ONLY
+    cap = {
+        ProfileCapabilityTier.METADATA_ONLY: 58.0,
+        ProfileCapabilityTier.STRUCTURAL: 72.0,
+        ProfileCapabilityTier.VISUAL_REFERENCE: 92.0,
+        ProfileCapabilityTier.CRYPTOGRAPHIC: 96.0,
+    }[capability]
+    if search is None or search.selected is None or search.closest_fallback_used:
+        cap = min(cap, 48.0)
+    combined = 0.78 * float(visual_coverage) + 0.22 * float(codes.coverage_score)
+    return round(max(0.0, min(cap, combined)), 1)
 
 
 def _render_document_page(
@@ -3031,6 +3270,72 @@ def _describe_finding(
         ),
         base_risk,
     )
+
+
+def _profile_mask_role(
+    profile: Any | None,
+    page_number: int,
+    difference_box: BoundingBox,
+) -> tuple[RegionRole, float, str, str | None] | None:
+    if profile is None:
+        return None
+    candidates: list[tuple[float, RegionRole, str | None]] = []
+    for asset in profile.manifest.get("reference_assets") or ():
+        if int(asset.get("page_number", 1)) != page_number:
+            continue
+        for key, role in (
+            ("variable_region_masks", RegionRole.VARIABLE),
+            ("fixed_region_masks", RegionRole.FIXED),
+        ):
+            for mask in asset.get(key) or ():
+                if int(mask.get("page", page_number)) != page_number:
+                    continue
+                raw_box = mask.get("box", mask)
+                try:
+                    profile_box = BoundingBox.model_validate(raw_box)
+                except (TypeError, ValueError):
+                    continue
+                overlap = _normalized_overlap_fraction(difference_box, profile_box)
+                if overlap > 0.08:
+                    candidates.append(
+                        (
+                            overlap,
+                            role,
+                            str(mask.get("label") or mask.get("region_id") or "") or None,
+                        )
+                    )
+    if not candidates:
+        return None
+    # A declared variable mask wins a boundary overlap so legitimate values do
+    # not become fixed-content findings. Appearance checks still run there.
+    candidates.sort(
+        key=lambda item: (
+            item[1] is RegionRole.VARIABLE,
+            item[0],
+        ),
+        reverse=True,
+    )
+    overlap, role, label = candidates[0]
+    return (
+        role,
+        round(min(99.0, 88.0 + overlap * 10.0), 1),
+        (
+            "The trusted visual profile explicitly marks this as a variable region; "
+            "semantic value changes are allowed while forensic appearance is still checked."
+            if role is RegionRole.VARIABLE
+            else "The trusted visual profile explicitly marks this as a fixed region."
+        ),
+        label,
+    )
+
+
+def _normalized_overlap_fraction(first: BoundingBox, second: BoundingBox) -> float:
+    x0 = max(first.x, second.x)
+    y0 = max(first.y, second.y)
+    x1 = min(first.x + first.width, second.x + second.width)
+    y1 = min(first.y + first.height, second.y + second.height)
+    intersection = max(0.0, x1 - x0) * max(0.0, y1 - y0)
+    return intersection / max(first.width * first.height, 1e-9)
 
 
 def _region_role(

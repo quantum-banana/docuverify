@@ -114,6 +114,23 @@ class PdfSignatureStatus(StrEnum):
     UNSUPPORTED = "unsupported_signature_format"
 
 
+class ProfileCapabilityTier(StrEnum):
+    METADATA_ONLY = "metadata_only"
+    STRUCTURAL = "structural"
+    VISUAL_REFERENCE = "visual_reference"
+    CRYPTOGRAPHIC = "cryptographic"
+
+
+class QREvidenceState(StrEnum):
+    DETECTED_AND_DECODED = "DETECTED_AND_DECODED"
+    DETECTED_BUT_UNREADABLE = "DETECTED_BUT_UNREADABLE"
+    EXPECTED_REGION_OCCUPIED_UNVERIFIED = "EXPECTED_REGION_OCCUPIED_UNVERIFIED"
+    CONFIRMED_MISSING = "CONFIRMED_MISSING"
+    NOT_EXPECTED = "NOT_EXPECTED"
+    DECODER_UNSUPPORTED = "DECODER_UNSUPPORTED"
+    CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE = "CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE"
+
+
 class ErrorDetail(ContractModel):
     code: str
     message: str
@@ -288,6 +305,17 @@ class DocumentAggregate(ContractModel):
     reordered_page_count: Annotated[int, Field(ge=0)]
 
 
+class ProfileReferenceAssetSummary(ContractModel):
+    page_number: Annotated[int, Field(ge=1, le=10)]
+    side: str
+    mime_type: str
+    dimensions: dict[str, int | float | str] = Field(default_factory=dict)
+    source_url: str | None = None
+    retrieval_date: str | None = None
+    redistribution_status: str
+    trust_level: str
+
+
 class ProfileMatchSummary(ContractModel):
     profile_id: str
     issuer: str
@@ -302,6 +330,14 @@ class ProfileMatchSummary(ContractModel):
     completeness: Score
     authoritative_source_url: str | None = None
     visual_reference_available: bool = False
+    display_name: str = "Document profile"
+    document_category: str = "Document"
+    version_label: str | None = None
+    capability_tier: ProfileCapabilityTier = ProfileCapabilityTier.METADATA_ONLY
+    match_level: Literal["Strong", "Moderate", "Weak"] = "Weak"
+    reference_capability: str = "Metadata only"
+    match_reasons: list[str] = Field(default_factory=list, max_length=4)
+    reference_asset: ProfileReferenceAssetSummary | None = None
     selected_by_override: bool = False
     limitations: list[str] = Field(default_factory=list)
 
@@ -316,6 +352,10 @@ class ReferenceProfileAssessment(ContractModel):
     explanation: str = (
         "A user-supplied reference supports comparison but has no independent issuer proof."
     )
+    checked_items: list[str] = Field(default_factory=list)
+    unverified_items: list[str] = Field(default_factory=list)
+    result_summary: str = "The available evidence is summarized below."
+    reference_asset: ProfileReferenceAssetSummary | None = None
 
 
 class CertificateSummary(ContractModel):
@@ -365,6 +405,21 @@ class CodeCheckResult(ContractModel):
     cryptographic_verification_result: CheckStatus = CheckStatus.UNSUPPORTED
     structural_tampering_indicators: list[str] = Field(default_factory=list)
     explanation: str
+    state: QREvidenceState = QREvidenceState.DETECTED_BUT_UNREADABLE
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_qr_state(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or data.get("state") is not None:
+            return data
+        values = dict(data)
+        if values.get("decoded"):
+            values["state"] = QREvidenceState.DETECTED_AND_DECODED
+        elif values.get("detected"):
+            values["state"] = QREvidenceState.DETECTED_BUT_UNREADABLE
+        else:
+            values["state"] = QREvidenceState.EXPECTED_REGION_OCCUPIED_UNVERIFIED
+        return values
 
 
 class CodeAssessment(ContractModel):
@@ -374,6 +429,20 @@ class CodeAssessment(ContractModel):
     decoded_count: Annotated[int, Field(ge=0)] = 0
     results: list[CodeCheckResult] = Field(default_factory=list)
     explanation: str = "No QR or supported barcode expectation was available."
+    states: list[QREvidenceState] = Field(default_factory=list)
+    coverage_score: Score = 0.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_qr_states(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or data.get("states") is not None:
+            return data
+        values = dict(data)
+        values["states"] = [
+            _field_value(result, "state", QREvidenceState.DETECTED_BUT_UNREADABLE)
+            for result in values.get("results") or ()
+        ]
+        return values
 
 
 class MetadataIndicator(ContractModel):

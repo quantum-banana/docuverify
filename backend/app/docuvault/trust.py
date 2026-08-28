@@ -23,13 +23,25 @@ def reference_strength(
     provenance: str,
     match_score: float,
     has_visual_reference: bool,
+    capability_tier: str | None = None,
+    visual_reference_trust: str | None = None,
     direct_cryptographic_evidence: bool = False,
     exact_issued_reference: bool = False,
 ) -> ReferenceDecision:
     """Return a named evidence tier without implying document authenticity."""
 
     bounded = max(0.0, min(100.0, float(match_score)))
-    if direct_cryptographic_evidence:
+    declared_capability = capability_tier or (
+        "visual_reference" if has_visual_reference else "metadata_only"
+    )
+    visual_capable = declared_capability in {"visual_reference", "cryptographic"}
+    has_usable_visual_reference = has_visual_reference and visual_capable
+    has_trusted_visual_reference = has_usable_visual_reference and (
+        visual_reference_trust in {"P2", "P3", "P4"}
+        if visual_reference_trust is not None
+        else True
+    )
+    if direct_cryptographic_evidence and declared_capability == "cryptographic":
         return ReferenceDecision(
             "Issuer cryptographically verified",
             "P4",
@@ -44,8 +56,12 @@ def reference_strength(
             "The exact reference has independent trusted-source evidence.",
         )
     if provenance in {"P2", "P3"} and bounded >= 76.0:
-        applicability = "A3" if has_visual_reference else "A2"
-        qualifier = "including stored visual structure" if has_visual_reference else "using metadata and structural descriptors"
+        applicability = "A3" if has_trusted_visual_reference else "A2"
+        qualifier = (
+            "including stored visual structure"
+            if has_trusted_visual_reference
+            else "using metadata and structural descriptors"
+        )
         return ReferenceDecision(
             "Strong trusted-profile match",
             provenance,

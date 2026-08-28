@@ -374,7 +374,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -752,7 +753,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -1134,7 +1136,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -1454,7 +1457,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -1761,7 +1765,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -2067,7 +2072,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -2372,7 +2378,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -2679,7 +2686,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -2986,7 +2994,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -3294,7 +3303,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -3600,7 +3610,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -3884,7 +3895,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -4191,7 +4203,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -4499,7 +4512,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -4806,7 +4820,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -5123,7 +5138,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -5440,7 +5456,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -5720,7 +5737,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -6039,7 +6057,8 @@
       "Regional, year, language and delivery-channel variants may differ.",
       "A profile match cannot verify personal field values or issuance."
     ],
-    "visual_reference": null,
+    "capability_tier": "metadata_only",
+    "reference_assets": [],
     "enabled": true
   },
   {
@@ -6420,12 +6439,103 @@
       "Synthetic profile demonstrates matching and forensic controls but is not an official reference.",
       "Similarity does not establish issuance or identity."
     ],
-    "visual_reference": {
-      "relative_path": "samples/synthetic/template_reference.pdf",
-      "sha256": "c5cccf620048657d7e3e0515d154bad2d0f92719375473ff7441a7fcdef2a5e9",
-      "format": "pdf",
-      "provenance": "synthetic_showcase"
-    },
+    "capability_tier": "visual_reference",
+    "reference_assets": [
+      {
+        "asset_id": "lumen-grove-reference-page-1",
+        "profile_id": "synthetic.lumen-grove.achievement-record.v1",
+        "page_number": 1,
+        "side": "front",
+        "relative_path": "samples/synthetic/template_reference.pdf",
+        "mime_type": "application/pdf",
+        "sha256": "c5cccf620048657d7e3e0515d154bad2d0f92719375473ff7441a7fcdef2a5e9",
+        "dimensions": {
+          "width": 595,
+          "height": 842,
+          "unit": "points"
+        },
+        "source_url": null,
+        "retrieval_date": "2026-08-28",
+        "redistribution_status": "permitted",
+        "trust_level": "P0",
+        "fixed_region_masks": [
+          {
+            "region_id": "fixed-header",
+            "page": 1,
+            "box": {
+              "x": 0.04,
+              "y": 0.03,
+              "width": 0.92,
+              "height": 0.2
+            },
+            "label": "Issuer and document heading"
+          }
+        ],
+        "variable_region_masks": [
+          {
+            "region_id": "variable-content",
+            "page": 1,
+            "box": {
+              "x": 0.05,
+              "y": 0.2,
+              "width": 0.9,
+              "height": 0.64
+            },
+            "label": "Document-specific values"
+          }
+        ],
+        "security_element_regions": {
+          "logo": [
+            {
+              "region_id": "logo",
+              "page": 1,
+              "box": {
+                "x": 0.04,
+                "y": 0.04,
+                "width": 0.22,
+                "height": 0.16
+              },
+              "label": "Issuer logo area"
+            }
+          ],
+          "seal": [],
+          "photo": [],
+          "signature": [
+            {
+              "region_id": "signature",
+              "page": 1,
+              "box": {
+                "x": 0.55,
+                "y": 0.78,
+                "width": 0.36,
+                "height": 0.12
+              },
+              "label": "Signature area"
+            }
+          ],
+          "handwriting": [],
+          "qr": [
+            {
+              "region_id": "qr",
+              "page": 1,
+              "box": {
+                "x": 0.72,
+                "y": 0.68,
+                "width": 0.2,
+                "height": 0.22
+              },
+              "label": "QR area"
+            }
+          ],
+          "barcode": []
+        },
+        "precomputed_fingerprint": {
+          "algorithm": "phash-64-fixed-v1",
+          "value": "be3a7a6a6b4bc1c1",
+          "mask_sha256": "1382bb5fc15e72c00e2b8cbe3923ae6c4db56d22a6ad3cbe188e24c3fce7677c"
+        }
+      }
+    ],
     "enabled": true
   }
 ]

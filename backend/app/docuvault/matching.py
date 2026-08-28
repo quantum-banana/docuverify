@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from functools import lru_cache
-from pathlib import Path
 from typing import Any, Sequence
 
 import cv2
@@ -14,7 +12,7 @@ import numpy as np
 
 from backend.app.docuvault.repository import DocumentProfile, ProfileRepository
 from backend.app.docuvault.trust import ReferenceDecision, reference_strength
-from backend.app.services.documents import render_document_page, validate_upload
+from backend.app.docuvault.visual_assets import fixed_region_fingerprint, fingerprint_similarity
 
 
 _TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
@@ -139,10 +137,23 @@ class ProfileMatcher:
         headings = manifest.get("stable_headings", [])
         heading_scores = [_phrase_score(str(heading), text, document_tokens) for heading in headings]
         heading_score = sum(heading_scores) / len(heading_scores) if heading_scores else 0.4
-        layout_score = _layout_anchor_score(manifest.get("layout_anchors", []), pages)
-        page_score = _page_geometry_score(manifest["expected_pages"], pages)
-        visual_score = _fixed_visual_score(profile.visual_reference_path, pages[0])
-        security_score = _security_region_score(manifest["security_regions"], pages)
+        structural_capable = profile.capability_tier in {
+            "structural",
+            "visual_reference",
+            "cryptographic",
+        }
+        layout_score = (
+            _layout_anchor_score(manifest.get("layout_anchors", []), pages)
+            if structural_capable
+            else 0.0
+        )
+        page_score = _page_geometry_score(manifest["expected_pages"], pages) if structural_capable else 0.0
+        visual_score = _fixed_visual_score(profile, pages)
+        security_score = (
+            _security_region_score(manifest["security_regions"], pages)
+            if structural_capable
+            else 0.0
+        )
         expected_scripts = {str(item) for item in manifest.get("scripts", [])}
         script_score = 1.0 if not scripts or scripts & expected_scripts else 0.15
         completeness_score = float(manifest["completeness"]) / 100.0
@@ -151,28 +162,67 @@ class ProfileMatcher:
             "headings": heading_score,
             "layout_anchors": layout_score,
             "page_geometry": page_score,
-            "fixed_visual": visual_score,
+            "fixed_visual": visual_score if visual_score is not None else 0.0,
             "security_regions": security_score,
             "language_script": script_score,
             "profile_completeness": completeness_score,
         }
-        total = sum(raw[name] * weight for name, weight in _COMPONENT_WEIGHTS.items()) * 100.0
+        unavailable_components = set()
+        if not structural_capable:
+            unavailable_components.update(
+                {"layout_anchors", "page_geometry", "security_regions", "fixed_visual"}
+            )
+        elif visual_score is None:
+            unavailable_components.add("fixed_visual")
+        active_weights = {
+            name: weight
+            for name, weight in _COMPONENT_WEIGHTS.items()
+            if name not in unavailable_components
+        }
+        total = (
+            sum(raw[name] * weight for name, weight in active_weights.items())
+            / sum(active_weights.values())
+            * 100.0
+        )
         total *= 0.72 + 0.28 * float(manifest["profile_confidence"]) / 100.0
         bounded = round(max(0.0, min(100.0, total)), 1)
-        components = {name: round(value * 100.0, 1) for name, value in raw.items()}
+        components = {
+            name: round(raw[name] * 100.0, 1)
+            for name in active_weights
+        }
         decision = reference_strength(
             provenance=str(manifest["provenance"]["assurance"]),
             match_score=bounded,
             has_visual_reference=profile.visual_reference_path is not None,
+            capability_tier=profile.capability_tier,
+            visual_reference_trust=min(
+                (asset.trust_level for asset in profile.reference_assets),
+                key=lambda value: int(value[1]),
+                default=None,
+            ),
         )
-        strongest = sorted(components.items(), key=lambda item: (-item[1], item[0]))[:3]
-        weakest = min(components.items(), key=lambda item: (item[1], item[0]))
+        explained_components = {
+            name: value
+            for name, value in components.items()
+            if name not in unavailable_components
+        }
+        strongest = sorted(
+            explained_components.items(), key=lambda item: (-item[1], item[0])
+        )[:3]
+        weakest = min(explained_components.items(), key=lambda item: (item[1], item[0]))
         explanation = (
             "Strongest signals: "
             + ", ".join(f"{name.replace('_', ' ')} {value:.0f}" for name, value in strongest)
             + f". Weakest signal: {weakest[0].replace('_', ' ')} {weakest[1]:.0f}. "
             + decision.rationale
         )
+        if profile.capability_tier == "metadata_only":
+            explanation += (
+                " This metadata-only profile used no page-geometry, region-occupancy, "
+                "or pixel evidence."
+            )
+        elif visual_score is None:
+            explanation += " No trusted visual specimen participated in this match."
         return ProfileMatch(profile, bounded, components, explanation, decision)
 
 
@@ -222,42 +272,37 @@ def _page_geometry_score(expected: dict[str, Any], pages: Sequence[Any]) -> floa
     return 0.7 * count_score + 0.3 * orientation_score
 
 
-@lru_cache(maxsize=32)
-def _reference_hash(path_value: str, modified_ns: int) -> np.ndarray:
-    path = Path(path_value)
-    data = path.read_bytes()
-    content_type = "application/pdf" if path.suffix.casefold() == ".pdf" else "image/png"
-    upload = validate_upload(
-        field="profile_reference",
-        filename=path.name,
-        content_type=content_type,
-        data=data,
-        max_bytes=max(len(data), 1),
-    )
-    rendered = render_document_page(upload, 0, 900)
-    return _perceptual_hash(rendered.image)
-
-
-def _perceptual_hash(image: np.ndarray) -> np.ndarray:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
-    resized = cv2.resize(gray, (32, 32), interpolation=cv2.INTER_AREA).astype(np.float32)
-    low = cv2.dct(resized)[:8, :8]
-    median = float(np.median(low[1:]))
-    return (low > median).reshape(-1)
-
-
-def _fixed_visual_score(reference_path: Path | None, page: Any) -> float:
-    if reference_path is None:
-        return 0.42
-    try:
-        reference = _reference_hash(str(reference_path), reference_path.stat().st_mtime_ns)
-        image = cv2.imread(str(page.image_path), cv2.IMREAD_COLOR)
-        if image is None:
-            return 0.0
-        candidate = _perceptual_hash(image)
-        return float(1.0 - np.count_nonzero(reference != candidate) / reference.size)
-    except (OSError, ValueError):
-        return 0.0
+def _fixed_visual_score(
+    profile: DocumentProfile, pages: Sequence[Any]
+) -> float | None:
+    if profile.capability_tier not in {"visual_reference", "cryptographic"}:
+        return None
+    if not profile.reference_assets:
+        return None
+    scores: list[float] = []
+    for asset in profile.reference_assets:
+        if asset.page_number > len(pages):
+            scores.append(0.0)
+            continue
+        try:
+            image = cv2.imread(
+                str(pages[asset.page_number - 1].image_path), cv2.IMREAD_COLOR
+            )
+            if image is None:
+                scores.append(0.0)
+                continue
+            candidate = fixed_region_fingerprint(
+                image,
+                fixed_regions=asset.fixed_region_masks,
+                variable_regions=asset.variable_region_masks,
+                page_number=asset.page_number,
+            )
+            scores.append(
+                fingerprint_similarity(asset.precomputed_fingerprint["value"], candidate)
+            )
+        except (OSError, ValueError):
+            scores.append(0.0)
+    return sum(scores) / len(scores) if scores else None
 
 
 def _security_region_score(regions: dict[str, Sequence[dict[str, Any]]], pages: Sequence[Any]) -> float:

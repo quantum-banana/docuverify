@@ -31,7 +31,14 @@ from backend.app.docuvault.repository import DocumentProfile
 from backend.app.services.documents import DocumentValidationError, ValidatedUpload, validate_upload
 from backend.app.services.ocr import raster_ocr_capability
 from backend.app.services.biometric_similarity import RegionSelection
-from backend.app.services.pipeline import AnalysisOptions
+from backend.app.services.pipeline import (
+    AnalysisOptions,
+    _humanize_profile_value,
+    _profile_capability,
+    _profile_display_name,
+    _profile_reference_asset_summary,
+    _reference_capability_label,
+)
 
 
 router = APIRouter(prefix="/api/v1")
@@ -642,6 +649,7 @@ def _raster_ocr_capability(request: Request) -> tuple[bool, str, str]:
 def _catalog_profile_summary(profile: DocumentProfile) -> ProfileMatchSummary:
     manifest = profile.manifest
     source = manifest["source"]
+    capability = _profile_capability(profile)
     return ProfileMatchSummary(
         profile_id=profile.profile_id,
         issuer=profile.issuer,
@@ -655,6 +663,17 @@ def _catalog_profile_summary(profile: DocumentProfile) -> ProfileMatchSummary:
         explanation=str(manifest["provenance"]["description"]),
         completeness=float(manifest["completeness"]),
         authoritative_source_url=source.get("authoritative_url"),
-        visual_reference_available=profile.visual_reference_path is not None,
+        visual_reference_available=(
+            capability.value in {"visual_reference", "cryptographic"}
+            and profile.visual_reference_path is not None
+        ),
+        display_name=_profile_display_name(manifest),
+        document_category=_humanize_profile_value(str(manifest["document_family"])),
+        version_label=str(manifest.get("version") or "") or None,
+        capability_tier=capability,
+        match_level="Weak",
+        reference_capability=_reference_capability_label(capability),
+        match_reasons=[],
+        reference_asset=_profile_reference_asset_summary(profile),
         limitations=[str(item) for item in manifest["known_limitations"]],
     )
