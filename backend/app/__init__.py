@@ -1,3 +1,3 @@
-"""DocuVerify Phase 1 API application."""
+"""DocuVerify local document-investigation API."""
 
 __version__ = "0.1.0"

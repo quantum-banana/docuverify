@@ -22,6 +22,8 @@ EXPECTED_STAGES = [
     "checking_digital_signatures",
     "inspecting_metadata",
     "validating_field_consistency",
+    "comparing_handwriting",
+    "comparing_signatures",
     "aggregating_evidence",
     "complete",
 ]

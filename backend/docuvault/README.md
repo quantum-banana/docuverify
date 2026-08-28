@@ -33,7 +33,16 @@ artifact, model, database, log or generated file was imported.
 
 ## Evidence boundary
 
-Most bundled profiles are `P2` official-source-metadata profiles. They do not
-claim a stored official visual original and cannot verify personal values or
-issuance. The Northstar profile and its existing reference are fictional
-showcase material. Each result exposes provenance, completeness and limitations.
+Nineteen bundled profiles are `P2` official-source-metadata/generic profiles.
+They do not claim a stored official visual original and cannot verify personal
+values or issuance. The Lumen Grove profile and its hash-bound existing
+reference are fictional showcase material (`P0`). The 20 validated profiles
+cover 19 document families. Each result exposes provenance, completeness,
+component scores, trust tier and limitations; a high similarity score cannot
+upgrade weak provenance into issuer proof.
+
+Runtime matching uses issuer text, stable headings, layout anchors, page
+geometry, fixed visual evidence where available, expected security regions,
+script and completeness. Filenames are excluded. The top three matches are
+returned with explanations, and a nearest-but-weak result is explicitly marked
+as `Closest available profile`.

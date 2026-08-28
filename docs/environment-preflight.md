@@ -1,6 +1,9 @@
 # Windows environment preflight
 
-Captured on 2026-08-28 in the Asia/Calcutta time zone for the Phase 2 working branch, with the later confirmed RTX 5060 Phase 1 smoke incorporated. This report is sanitized: personal installation paths, usernames, machine identifiers, tokens, and secrets are omitted.
+Captured on 2026-08-28 and updated on 2026-08-29 in the Asia/Calcutta
+time zone for the core-expansion candidate, with the confirmed RTX 5060 Phase
+1 smoke incorporated. This report is sanitized: personal installation paths,
+usernames, machine identifiers, tokens, and secrets are omitted.
 
 ## Observed machine
 
@@ -19,12 +22,14 @@ Captured on 2026-08-28 in the Asia/Calcutta time zone for the Phase 2 working br
 
 ## Repository state
 
-- Current local branch: `phase-2-work`
-- Branch base/HEAD commit: `ee2ad3ca7defe1010ac1d3f6be39bd5eee205392`
+- Current work branch: `phase-3-core-expansion`
+- Verified Phase 2 checkpoint: `VARIABLE-SUCKS-RC2` at `051d44ce00592e59ad04c84f21b917ebbdfa943f`
+- Intended immutable review branch: `candidate/phase-3-core-rc1`
 - Phase 1 tag: `phase-1-4h-demo`
 - `main` and `origin/main`: approved Phase 1 commit
 - Remote: private `https://github.com/quantum-banana/docuverify.git`
-- Phase 2 commit, tag, merge, and push: none
+- Core expansion is committed/pushed only on its work branch; no merge to
+  `main`, tag or force-push is authorized
 
 GitHub CLI 2.98.0 was installed for the successful private-remote setup. A terminal opened before installation may not see `gh` until its `PATH` is refreshed; that does not mean the remote is absent. Tokens are not printed or stored in this report.
 
@@ -42,6 +47,8 @@ GitHub CLI 2.98.0 was installed for the successful private-remote setup. A termi
 | Preserved `.venv-phase2-py311` | Python 3.11.9; retained as a recoverable pre-correction environment, not a support claim |
 | RapidOCR | 3.9.2 |
 | ONNX Runtime | 1.29.0 |
+| jsonschema | 4.26.0 |
+| pyHanko | 0.36.2 |
 | OCR device | CPU |
 
 ## Python environment strategy
@@ -135,4 +142,6 @@ The browser skill found zero browser instances. Browser validation was unavailab
 
 The RTX 5060 Phase 1 smoke passed 34 backend tests, 8 frontend tests, and the production build. Clean/tampered risk remained `0/93.6`, IoU remained `0.2201`, observed processing was approximately `0.4-0.6 s`, and the repository remained clean. This establishes the Python 3.12 Phase 1 portability baseline; it does not replace an RTX 5060 Phase 2 OCR/multi-page acceptance run. Do not release Phase 2 based on the Phase 1 RTX 5060 evidence if the release process requires Phase 2 validation there.
 
-DocuVault remains Phase 3, signature/handwriting work Phase 4, and blockchain Phase 6. No driver/CUDA work should be started to pull those phases forward.
+DocuVault, digital/logical evidence, handwriting and signature appearance are
+now integrated on the core-expansion candidate. Blockchain/DocuLedger remains
+the final optional phase. No driver/CUDA work is required for this candidate.

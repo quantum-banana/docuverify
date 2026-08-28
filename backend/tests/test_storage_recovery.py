@@ -4,12 +4,24 @@ import sqlite3
 import uuid
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.core.config import Settings
 from backend.app.core.storage import JobStore
 from backend.app.main import create_app
 from backend.app.models.contracts import StageId
+
+
+def test_job_store_connection_context_closes_its_sqlite_handle(tmp_path: Path) -> None:
+    runtime_dir = tmp_path / "runtime"
+    store = JobStore(runtime_dir, runtime_dir / "jobs.sqlite3")
+
+    with store._connect() as connection:
+        assert connection.execute("SELECT 1").fetchone()[0] == 1
+
+    with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+        connection.execute("SELECT 1")
 
 
 def test_page_context_persists_on_create_event_and_store_reopen(tmp_path: Path) -> None:

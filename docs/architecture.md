@@ -1,153 +1,220 @@
-# Phase 2 architecture
+# DocuVerify core architecture
 
-## Boundary and trust model
+## Local trust boundary
 
-DocuVerify remains a two-process local application. The React/TypeScript/Vite frontend is a presentation client: it selects files, submits requests, displays backend progress/results, and fetches only registered API assets. It never receives a local filesystem path. PDFs are not passed to a browser PDF parser or local object URL; previews and evidence are backend-rendered browser-safe images.
+DocuVerify is a two-process local application. The React/TypeScript frontend is
+a presentation client. FastAPI is authoritative for validation, private
+storage, rendering, OCR, profile retrieval, forensic checks, scoring, progress,
+results and allowlisted assets. The browser never receives a filesystem path or
+parses an uploaded PDF.
 
-FastAPI is authoritative for validation, private storage, page rendering, text/OCR extraction, page correspondence, alignment, comparison, scoring, job state, progress, and asset access. The backend, not UI timing, determines stage completion and result values.
+The application produces investigative evidence, not an authenticity
+probability. It keeps these dimensions separate:
 
-Phase 2 is currently an unreleased working-tree implementation on `phase-2-work`, based on Phase 1 commit `ee2ad3ca7defe1010ac1d3f6be39bd5eee205392`. The additive contracts retain Phase 1-compatible defaults. Its verified candidate status is `PASS_ON_4060_PENDING_RTX5060`; this is not final release readiness.
+- visual tampering risk;
+- trusted-reference/profile strength;
+- profile-match score;
+- digital PDF-signature state;
+- QR/barcode consistency and cryptographic availability;
+- metadata/provenance indicators;
+- logical field consistency;
+- OCR confidence and analysis coverage;
+- handwriting appearance similarity;
+- signature appearance similarity and independent compositing evidence.
 
 ## Main components
 
 | Area | Responsibility |
 | --- | --- |
-| `frontend/src/api` | Versioned API calls, SSE reconnect/backoff, status polling, and wire-shape normalization |
-| `frontend/src/types` | UI-facing exact/template, page, OCR, suggestion, anomaly, aggregate, and progress types |
-| `frontend/src/components` | Upload, safe document preview, selected-page markers, filmstrip/navigation, and evidence details |
-| `backend/app/models` | Canonical Pydantic job/result, page, finding, OCR, correspondence, aggregate, progress, diagnostics, and error contracts |
-| `backend/app/api` | Health, diagnostics, upload/demo, job status, event stream, and registered-asset endpoints |
+| `frontend/src/api` | Versioned API calls, candidate-only/reference submission, SSE recovery and defensive normalization |
+| `frontend/src/types` | Stable UI contracts for pages, profiles and independent evidence dimensions |
+| `frontend/src/components` | Safe rendered viewers, page markers/navigation and evidence drawer |
+| `backend/app/api` | Health, diagnostics, profile catalog/state, analysis, SSE and registered assets |
+| `backend/app/models` | Canonical additive Pydantic contracts |
 | `backend/app/core` | Environment settings and private SQLite/runtime storage |
-| `backend/app/services/documents.py` | Content validation, 10-page limit, page rendering, embedded text, and raster OCR fallback |
-| `backend/app/services/ocr.py` | Cached RapidOCR/ONNX Runtime provider and truthful failure results |
-| `backend/app/services/pipeline.py` | Sequential page orchestration, correspondence, findings, evidence, aggregation, and progress |
-| `backend/app/forensics` | Alignment, text/role comparison, localized differences, and deterministic scoring |
-| `samples/synthetic` | Deterministic fictional Phase 1 and Phase 2 inputs/previews |
-| `samples/expected` | Test-only manifests and expected masks; production forensics never reads them |
+| `backend/app/docuvault` | Safe paths, strict repository/index, trust tiers and multi-signal matching |
+| `backend/app/services/pipeline.py` | Bounded orchestration, progress, visual findings and unified result |
+| `backend/app/services/digital_signatures.py` | pyHanko signature/incremental-revision inspection with explicit local trust |
+| `backend/app/services/qr_codes.py` | Local QR provider abstraction, redacted parsing and visible consistency |
+| `backend/app/services/metadata_forensics.py` | Conservative PDF/image metadata and revision indicators |
+| `backend/app/services/logical_rules.py` | Versioned profile-driven field rules and low-OCR skip behavior |
+| `backend/app/services/biometric_similarity.py` | Classical handwriting/signature ensemble and signature compositing evidence |
+| `backend/app/services/assessment.py` | Deterministic multidimensional investigative assessment |
+| `backend/app/forensics` | Alignment, difference localization, template roles and visual scoring |
+| `backend/docuvault` | Versioned profiles/schema, empty trust-store boundary and provenance notes |
+| `samples` | Deterministic fictional inputs and test-only expected masks/manifests |
 
-## Input and resource limits
+## Input modes and limits
 
-Each PDF input may contain 1 through 10 physical pages. PNG and JPEG inputs remain single-page. Validation rejects more than 10 physical pages in either upload, encrypted or structurally corrupt PDFs, unsupported formats, invalid image dimensions, and pages that are unusable under the document rules.
+`POST /api/v1/analyses/reference` accepts `exact` or `template` plus a trusted
+reference and questioned candidate. `POST /api/v1/analyses/automatic` accepts a
+candidate and retrieves a DocuVault profile. Both accept optional 1-5
+handwriting exemplars and 2-5 signature exemplars. Automatic mode also accepts
+an exact local profile-ID override. Normalized page regions can be supplied to
+the API; profile regions take precedence and automatic suggestions are the last
+fallback.
 
-The per-upload maximum can be configured downward with `DOCUVERIFY_MAX_PAGES`, but it cannot be raised above 10. Correspondence may produce up to 20 ordered review slots when missing reference pages and added candidate pages must both be represented. Review-slot count is therefore distinct from each input's physical page count. Page analysis is sequential by default to bound CPU/RAM usage and OCR work. The design does not create one OCR engine per page.
+Each PDF contains 1-10 physical pages. PNG/JPEG inputs are single-page. A result
+may contain up to 20 review slots when unmatched reference and candidate pages
+must both be represented. Page work remains sequential and full-size
+intermediates are released when no longer required.
 
-## Multi-page lifecycle
+## Lifecycle
 
-1. The API validates both uploads and captures their page counts before accepting a job.
-2. The backend stores sanitized role-based inputs beneath a generated private job directory and persists the queued state.
-3. The analysis plan emits page-aware progress for physical input work; the eventual ordered correspondence can contain the union of unmatched reference and candidate pages.
-4. Pages are rendered and normalized into a stable candidate-oriented coordinate system.
-5. Page correspondence is estimated from heading/text similarity, perceptual/layout evidence, dimensions, and page position.
-6. Matched pages proceed through text/OCR extraction, alignment, structure/template reasoning, visual localization, scoring, and evidence generation.
-7. Unmatched or out-of-order pages produce explicit missing, added, reordered, or dimension-mismatch status/evidence; they are not silently ignored.
-8. Per-page risk, confidence, coverage, OCR status, findings, suggestions, and assets are persisted.
-9. A deterministic aggregate retains the strongest page evidence so clean pages cannot erase a suspicious page.
-10. The final result remains available through status polling after SSE closes.
+1. Validate extension, MIME, signature, size, page count and usable content.
+2. Store sanitized role-named inputs beneath a generated private job directory.
+3. Render/normalize pages and extract embedded text or local raster OCR.
+4. In DocuVault mode, identify family signals, search validated profiles, rank
+   issuer/layout evidence and optionally replace the internal lifecycle proxy
+   with a real stored profile visual reference.
+5. Estimate page correspondence and expose missing, added, reordered and
+   dimension anomalies.
+6. Align matched pages and run Exact or Template visual/text forensics.
+7. Decode supported codes, inspect PDF signatures and metadata, and evaluate
+   profile logical rules.
+8. Compare requested handwriting and signatures against their exemplar
+   ensembles; inspect signature placement/scale/compositing independently.
+9. Materialize suspicious findings and registered crops/diagnostic overlays.
+10. Aggregate page evidence and build the separate investigative dimensions.
+11. Persist terminal state and replayable SSE events; polling can recover the
+    same result if streaming is interrupted.
 
-There are no artificial backend delays. Phase 2 remains a local in-process executor rather than a distributed scheduler.
+Every new progress stage is backend-driven. There are no artificial UI delays.
 
-## Page correspondence and anomalies
+## DocuVault validation and retrieval
 
-Index order is the conservative starting point. Correspondence scoring can identify when another reference page is a materially better match by combining text/headings, perceptual similarity, dimensions, and layout. The resulting mapping distinguishes:
+Profile manifests are validated against `profile.v1.schema.json` with Draft
+2020-12 semantics, bounded fields, safe relative references and deterministic
+fingerprints. Invalid or duplicate profiles are diagnosed and excluded rather
+than partially trusted. The SQLite index stores catalog state/fingerprints, not
+uploaded document content or OCR text.
 
-- `matched`: expected candidate/reference relationship;
-- `missing`: a trusted reference page has no candidate counterpart;
-- `added`: a candidate page has no trusted counterpart;
-- `reordered`: content corresponds to a different position;
-- `dimension_mismatch`: corresponding pages have incompatible geometry.
+Retrieval returns three ranked matches. The weighted components are issuer
+text, stable headings, layout anchors, expected page geometry, fixed visual
+perceptual evidence, expected security-region evidence, script and completeness.
+The filename is never used. Explicit overrides are labelled and do not inflate
+their score.
 
-Correspondence is heuristic. Near-identical boilerplate pages may remain ambiguous; the result exposes the mapping and anomaly instead of claiming semantic certainty.
+Trust separates provenance from applicability:
 
-## Exact and template comparison
+- `Issuer cryptographically verified` requires configured cryptographic proof;
+- `Trusted exact issued reference` requires an independently trusted exact
+  reference;
+- `Strong trusted-profile match` requires P2/P3 provenance and a strong match;
+- `Moderate trusted-profile match` retains unresolved variant details;
+- `Closest available profile` is context only.
 
-The API accepts `exact` and `template` modes.
+No match tier proves personal values or issuance.
 
-### Exact mode
+## Digital-signature boundary
 
-All stable document content is expected to match closely. Page count/order, dimensions, fixed and value text, OCR output, layout, logos/seals, visual differences, inserted/removed regions, and available metadata may contribute evidence.
+pyHanko inspects PDF signature fields, signed byte ranges, cryptographic
+integrity, post-signing incremental updates, signer certificates, signing time
+and multiple signatures. Trust comes only from certificates in the configured
+local directory. No AIA/OCSP/CRL/network fetching or implicit operating-system
+root set is used.
 
-### Template mode
+The result distinguishes cryptographically valid and locally trusted, valid
+with unknown trust, modified signed content, invalid/broken, unsigned and
+unsupported formats. Unsigned does not mean forged; unknown trust does not mean
+invalid.
 
-Changed text receives a role:
+## QR/code boundary
 
-- `fixed`: stable structure or label;
-- `variable`: a suggested value field allowed to differ;
-- `unknown`: insufficient evidence for either role.
+The active provider uses OpenCV QR detection/decoding. The provider interface
+allows another local maintained decoder later without changing the result
+contract. The backend records a redacted payload summary and SHA-256 digest,
+never raw sensitive payload text in report/log surfaces. Structure, required
+keys/prefixes, visible-field equality, expected region, geometry and
+compositing indicators remain separate.
 
-Variable suggestions use normalized word boxes and recognizable stable labels, including name, recipient, identifier, date, result, grade, mark, and score patterns. A consistent variable-value change is informational or low risk. Independent typography or compositing evidence can still raise risk. Fixed-region changes receive greater weight.
+Cryptographic verification is `unsupported` unless a profile provides a
+specific locally implemented issuer format and verification material. A valid
+JSON or visible match is not a cryptographic signature.
 
-The heuristic does not claim complete document understanding or exact raster font-family identification.
+## Metadata and logical rules
 
-## OCR and text-provider architecture
+Metadata inspection can report contradictory creation/modification timelines,
+XMP conflicts, revisions/incremental updates, producer/creator/software fields,
+embedded-font changes, EXIF, mixed compression/resolution, re-encoding and
+missing metadata. It reports evidence and limitations, never an invented
+website or editor.
 
-Text extraction returns words, normalized boxes, confidence, provider/source, device, coverage, success, and an error state where applicable.
+Logical rules are profile-versioned and deterministic. Extracted sensitive
+values are redacted before serialization. Each rule exposes the fields used,
+status, confidence and explanation. If OCR confidence is below the rule's
+minimum, the rule skips and coverage is limited; no risk is created merely by
+missing text.
 
-1. Reliable born-digital PDF text uses PyMuPDF embedded extraction.
-2. Raster/image-only pages use a cached RapidOCR 3.9.2 engine with ONNX Runtime 1.29.0.
-3. Python 3.12 is the tested cross-laptop runtime baseline; Python 3.11 is not supported by the current dependency set, and Python 3.14 is not selected automatically for Phase 2 OCR.
-4. The verified device is CPU; GPU detection is diagnostics only, and CPU raster OCR is the mandatory fallback.
-5. The provider is initialized once per process/cache key and reused across pages.
-6. An OCR exception is contained at the page boundary. Visual comparison continues, OCR success remains false, and coverage is reduced.
-7. Missing OCR does not itself increase tampering risk.
+## Handwriting and signature ensemble
 
-`DOCUVERIFY_OCR_PROVIDER=auto` and `DOCUVERIFY_OCR_DEVICE=cpu` are the supported defaults. `none` permits an intentional visual-only setup. GPU OCR may be attempted only through a supported provider/runtime combination; the verified Phase 2 configuration rejects an unsupported GPU request. Driver-reported CUDA compatibility is not an installed toolkit or GPU OCR capability, and no system CUDA toolkit installation or modification belongs to this phase.
+Exemplar images or pages are rendered locally and foreground quality is checked.
+Blank/weak samples are excluded instead of treated as mismatches. Cropped
+samples are scale/translation normalized. Only small capture rotation is
+corrected; larger slant is preserved as potential style evidence.
 
-## Alignment and finding localization
+The ensemble combines:
 
-The alignment stage maps the trusted reference into candidate-page space. It uses exact identity when pixels match, ORB/RANSAC homography when evidence is reliable, and a bounded dimension-aware fallback otherwise.
+- HOG/gradient direction;
+- local texture/ink distribution;
+- horizontal/vertical projection and spacing;
+- contour Hu moments and curvature;
+- connected components, baseline and slant structure;
+- morphological skeleton overlap;
+- ORB keypoint agreement.
 
-Difference localization combines adaptive pixel intensity, edges, connected components, and text boxes. Reference and candidate text extents are unioned; reference boxes can be mapped through the actual reference-to-candidate homography. Context padding is based on line height rather than fixture coordinates. Nearby components merge transitively while border noise and weak components are suppressed.
+Scores aggregate against multiple trusted exemplars and return closest sample,
+confidence, coverage, per-region measurements, reasons and limitations.
+Signature regions also produce independent boundary/background/noise
+compositing plus profile-region placement/scale indicators. Similarity does not
+erase a paste indicator, and neither result is definitive authorship or legal
+identity proof.
 
-Every finding bounding box is serialized in normalized candidate-page coordinates `(x, y, width, height)` within 0 to 1. Production code does not read expected fixture manifests or masks. Test-only masks measure regression IoU.
+## Visual evidence and scoring
 
-Observed scoped regression values are Phase 1 IoU `0.3745511831` and three-page page-2 IoU `0.5584561077`.
+Existing alignment uses exact identity where possible, ORB/RANSAC homography
+when reliable and a bounded geometry fallback. Difference localization combines
+pixel intensity, edges, OCR/text boxes, residual content and region-role
+reasoning. All finding boxes are normalized candidate-page coordinates.
 
-## Evidence and scoring separation
+Template variable content can differ without becoming suspicious. Typography,
+stroke weight, baseline, spacing, geometry, local background, residual text,
+erasure halo, compression/noise and compositing remain active for every variable
+field. Fixed labels stay strict. Raster analysis does not claim an exact font
+family.
 
-Each finding retains page number, category, title, explanation, normalized box, risk, confidence, severity, reference/candidate crops, difference overlay, evidence sources, and supporting measurements.
+Visual page aggregation keeps the maximum page evidence plus bounded
+corroboration so clean pages cannot erase a strong one. Digital, logical,
+metadata and biometric dimensions are not silently converted into the visual
+tampering score; the unified assessment displays contradictions and coverage
+explicitly.
 
-The system keeps these concepts separate:
+## Frontend presentation
 
-- tampering risk: strength of suspicious evidence;
-- assessment confidence: reliability of the assessment inputs/alignment;
-- analysis coverage: how much requested analysis was actually available;
-- alignment quality: trust in geometric correspondence;
-- OCR confidence: provider confidence for recognized text.
+The upload surface preserves the approved professional white/red/limited-black
+system. Advanced exemplar/profile inputs are collapsed. Results show the main
+visual risk first and independent evidence in compact disclosure sections.
 
-Weak alignment lowers confidence. OCR failure lowers coverage. Allowed variable-value changes do not dominate risk. Strong fixed-region or compositing evidence can remain high risk. Document aggregation preserves the strongest page evidence and adds only bounded corroboration.
+For DocuVault profiles without stored visual bytes, only the questioned viewer
+is shown. The candidate-copy proxy used internally to preserve the bounded page
+lifecycle is never labelled or displayed as a trusted reference.
 
-Scores are deterministic investigative indicators, not authenticity probabilities.
+## Storage, privacy and portability
 
-## Progress, SSE, and recovery
+Runtime uploads, page renders, OCR output, decoded data, SQLite files, crops,
+overlays, caches, logs and trust material remain under ignored local paths.
+Asset lookup requires registered `(job_id, asset_id)` pairs. Retention removes
+only terminal jobs older than the configured cutoff and tolerates Windows locks
+for later retry.
 
-Persisted progress events include overall progress, current page, total pages, page stage, finding count, OCR provider, and optionally a localized region or candidate page URL. Per-page result summaries record the reference/candidate OCR provider and execution device.
+Python 3.12.10 is the tested baseline. CPU raster OCR is mandatory. Driver CUDA
+compatibility is diagnostics only and does not imply a toolkit or supported GPU
+OCR provider. The build does not install/modify CUDA, drivers, global Python or
+recoverable environments.
 
-The frontend treats SSE as a notification channel rather than the sole state record. It reconnects with bounded backoff, uses event identifiers for replay, polls job status while disconnected, and fetches terminal results after fast completion. The UI does not invent page completion.
+## Explicit exclusions
 
-## Frontend page model
-
-The result interface derives its selected page from backend page results and correspondence:
-
-- the filmstrip exposes page order, risk, finding count, and anomaly state;
-- previous/next and direct page selection update one selected-page viewer;
-- only findings for the selected page render markers;
-- selecting a finding navigates to its page before opening evidence;
-- missing candidate pages display an explicit unavailable state;
-- suggested variable regions are visually distinct from findings;
-- normalized coordinates preserve marker alignment across responsive resizing.
-
-The browser receives only registered PNG assets, never raw local file paths.
-
-## Local storage and retention
-
-The configurable runtime root contains SQLite state and generated per-job inputs/assets. Asset lookup uses `(job_id, asset_id)` registrations and cannot nominate arbitrary paths. Runtime data, OCR/model caches, virtual environments, logs, screenshots, uploads, databases, and evidence are ignored by Git.
-
-Retention selects only terminal jobs older than the configured cutoff. Filesystem cleanup occurs before SQLite deletion; a Windows file lock retains the database record for a later retry. Interrupted-job recovery occurs during ASGI lifespan startup, not merely on module import.
-
-Separate backend processes must not share one runtime directory because there is no cross-process job coordination.
-
-## Repository and phase boundary
-
-The Phase 1 commit/tag remain recoverable on `main` and `origin/main`. Phase 2 is uncommitted and unpushed on `phase-2-work`. The final Phase 2 candidate gate passed on the RTX 4060. A separate RTX 5060 Phase 1 smoke passed 34 backend tests, 8 frontend tests, the production build, clean/tampered risk `0/93.6`, and IoU `0.2201` in approximately `0.4-0.6 s`, with a clean repository. That RTX 5060 has 8 GB VRAM and driver-reported CUDA compatibility 13.3 but no system CUDA toolkit; Phase 1 remained CPU/OpenCV/PyMuPDF. Phase 2-specific RTX 5060 OCR and multi-page validation remain pending. Browser validation was unavailable because the browser skill reported zero instances; screenshot paths are `NONE`.
-
-DocuVault remains Phase 3, signature/handwriting work Phase 4, and blockchain Phase 6. Accounts, cloud deployment, public verification APIs, custom training, H100 processing, and unlimited OCR are outside this architecture.
+Accounts, cloud deployment, public verification APIs, custom large-model
+training, H100 processing, legal identity certification and claims that infer a
+specific editing website are excluded. Blockchain/DocuLedger remains a final
+optional future phase.
