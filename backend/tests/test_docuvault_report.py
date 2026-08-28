@@ -55,6 +55,12 @@ def _match(profile, *, score: float = 72.9) -> ProfileMatch:
             has_visual_reference=profile.visual_reference_path is not None,
             capability_tier=profile.capability_tier,
         ),
+        selected_exemplar_id=("reference-a" if profile.reference_assets else None),
+        exemplar_scores=({"reference-a": 96.0, "reference-b": 94.0} if profile.reference_assets else {}),
+        visual_coverage=(100.0 if profile.reference_assets else 0.0),
+        visual_alignment_quality=(92.0 if profile.reference_assets else 0.0),
+        visual_risk_allowed=bool(profile.reference_assets),
+        visual_policy_reason="Controlled synthetic candidate policy satisfied.",
     )
 
 
@@ -126,6 +132,10 @@ def test_visual_profile_exposes_safe_asset_summary_and_declared_masks(
     assert summary.capability_tier is ProfileCapabilityTier.VISUAL_REFERENCE
     assert summary.visual_reference_available is True
     assert summary.reference_asset is not None
+    assert summary.reference_asset.source_label == "Synthetic demonstration reference"
+    assert summary.reference_asset.demonstration_only is True
+    assert summary.selected_exemplar_id == "reference-a"
+    assert summary.visual_comparison_coverage == 100.0
     serialized = summary.reference_asset.model_dump_json()
     assert "relative_path" not in serialized
     assert str(PROJECT_ROOT) not in serialized
@@ -133,12 +143,14 @@ def test_visual_profile_exposes_safe_asset_summary_and_declared_masks(
     variable = _profile_mask_role(
         profile,
         1,
-        BoundingBox(x=0.3, y=0.3, width=0.12, height=0.08),
+        BoundingBox(x=0.18, y=0.20, width=0.12, height=0.03),
+        exemplar_id="reference-a",
     )
     fixed = _profile_mask_role(
         profile,
         1,
         BoundingBox(x=0.25, y=0.08, width=0.16, height=0.05),
+        exemplar_id="reference-a",
     )
     assert variable is not None and variable[0] is RegionRole.VARIABLE
     assert fixed is not None and fixed[0] is RegionRole.FIXED

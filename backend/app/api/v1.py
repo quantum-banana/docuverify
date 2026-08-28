@@ -650,6 +650,7 @@ def _catalog_profile_summary(profile: DocumentProfile) -> ProfileMatchSummary:
     manifest = profile.manifest
     source = manifest["source"]
     capability = _profile_capability(profile)
+    asset_summary = _profile_reference_asset_summary(profile)
     return ProfileMatchSummary(
         profile_id=profile.profile_id,
         issuer=profile.issuer,
@@ -672,8 +673,12 @@ def _catalog_profile_summary(profile: DocumentProfile) -> ProfileMatchSummary:
         version_label=str(manifest.get("version") or "") or None,
         capability_tier=capability,
         match_level="Weak",
-        reference_capability=_reference_capability_label(capability),
+        reference_capability=(
+            asset_summary.source_label
+            if asset_summary is not None
+            else _reference_capability_label(capability)
+        ),
         match_reasons=[],
-        reference_asset=_profile_reference_asset_summary(profile),
+        reference_asset=asset_summary,
         limitations=[str(item) for item in manifest["known_limitations"]],
     )

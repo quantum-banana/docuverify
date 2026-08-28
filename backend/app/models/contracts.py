@@ -314,6 +314,15 @@ class ProfileReferenceAssetSummary(ContractModel):
     retrieval_date: str | None = None
     redistribution_status: str
     trust_level: str
+    exemplar_id: str | None = None
+    source_class: str = "unknown"
+    source_label: str = "Metadata and layout profile only"
+    issuer: str | None = None
+    profile_version: str | None = None
+    demonstration_only: bool = False
+    may_influence_tampering_risk: bool = False
+    page_count: Annotated[int, Field(ge=1, le=10)] = 1
+    thumbnail_available: bool = False
 
 
 class ProfileMatchSummary(ContractModel):
@@ -338,6 +347,12 @@ class ProfileMatchSummary(ContractModel):
     reference_capability: str = "Metadata only"
     match_reasons: list[str] = Field(default_factory=list, max_length=4)
     reference_asset: ProfileReferenceAssetSummary | None = None
+    selected_exemplar_id: str | None = None
+    exemplar_scores: dict[str, Score] = Field(default_factory=dict)
+    visual_comparison_coverage: Score = 0.0
+    visual_alignment_quality: Score = 0.0
+    visual_risk_allowed: bool = False
+    visual_policy_reason: str = "No compatible visual exemplar was selected."
     selected_by_override: bool = False
     limitations: list[str] = Field(default_factory=list)
 
@@ -356,6 +371,13 @@ class ReferenceProfileAssessment(ContractModel):
     unverified_items: list[str] = Field(default_factory=list)
     result_summary: str = "The available evidence is summarized below."
     reference_asset: ProfileReferenceAssetSummary | None = None
+    matched_items: list[str] = Field(default_factory=list)
+    differed_items: list[str] = Field(default_factory=list)
+    visual_comparison_coverage: Score = 0.0
+    visual_tampering_interpretation: str = "No trusted pixel comparison was performed."
+    reference_source_label: str = "Metadata and layout profile only"
+    selected_exemplar: str | None = None
+    reference_image_available: bool = False
 
 
 class CertificateSummary(ContractModel):

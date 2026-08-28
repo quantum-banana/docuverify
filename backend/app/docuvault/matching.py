@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 from typing import Any, Sequence
 
@@ -12,7 +12,12 @@ import numpy as np
 
 from backend.app.docuvault.repository import DocumentProfile, ProfileRepository
 from backend.app.docuvault.trust import ReferenceDecision, reference_strength
-from backend.app.docuvault.visual_assets import fixed_region_fingerprint, fingerprint_similarity
+from backend.app.docuvault.visual_assets import (
+    fixed_region_fingerprint,
+    fingerprint_similarity,
+    render_visual_page,
+)
+from backend.app.forensics.alignment import align_reference
 
 
 _TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
@@ -36,6 +41,23 @@ class ProfileMatch:
     explanation: str
     strength: ReferenceDecision
     selected_by_override: bool = False
+    selected_exemplar_id: str | None = None
+    exemplar_scores: dict[str, float] | None = None
+    visual_coverage: float = 0.0
+    visual_alignment_quality: float = 0.0
+    visual_risk_allowed: bool = False
+    visual_policy_reason: str = "No compatible visual exemplar was selected."
+
+
+@dataclass(frozen=True, slots=True)
+class _VisualExemplarMatch:
+    score: float
+    exemplar_id: str
+    exemplar_scores: dict[str, float]
+    coverage: float
+    alignment_quality: float
+    risk_allowed: bool
+    policy_reason: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,13 +113,13 @@ class ProfileMatcher:
             raise KeyError(profile_override)
         if override is not None:
             chosen = next(item for item in scored if item.profile.profile_id == override.profile_id)
-            chosen = ProfileMatch(
-                chosen.profile,
-                chosen.score,
-                chosen.component_scores,
-                chosen.explanation + " Selected by the explicit local profile override.",
-                chosen.strength,
-                True,
+            chosen = replace(
+                chosen,
+                explanation=(
+                    chosen.explanation
+                    + " Selected by the explicit local profile override."
+                ),
+                selected_by_override=True,
             )
             ranked = [chosen, *(item for item in scored if item.profile.profile_id != override.profile_id)]
         else:
@@ -148,7 +170,8 @@ class ProfileMatcher:
             else 0.0
         )
         page_score = _page_geometry_score(manifest["expected_pages"], pages) if structural_capable else 0.0
-        visual_score = _fixed_visual_score(profile, pages)
+        visual_match = _fixed_visual_score(profile, pages, text)
+        visual_score = visual_match.score if visual_match is not None else None
         security_score = (
             _security_region_score(manifest["security_regions"], pages)
             if structural_capable
@@ -185,6 +208,9 @@ class ProfileMatcher:
             * 100.0
         )
         total *= 0.72 + 0.28 * float(manifest["profile_confidence"]) / 100.0
+        synthetic_profile = str(manifest["provenance"]["kind"]) == "synthetic_showcase"
+        if synthetic_profile and not _controlled_synthetic_candidate(profile, text):
+            total *= 0.58
         bounded = round(max(0.0, min(100.0, total)), 1)
         components = {
             name: round(raw[name] * 100.0, 1)
@@ -196,7 +222,14 @@ class ProfileMatcher:
             has_visual_reference=profile.visual_reference_path is not None,
             capability_tier=profile.capability_tier,
             visual_reference_trust=min(
-                (asset.trust_level for asset in profile.reference_assets),
+                (
+                    asset.trust_level
+                    for asset in (
+                        profile.assets_for_exemplar(visual_match.exemplar_id)
+                        if visual_match is not None
+                        else profile.reference_assets
+                    )
+                ),
                 key=lambda value: int(value[1]),
                 default=None,
             ),
@@ -223,7 +256,36 @@ class ProfileMatcher:
             )
         elif visual_score is None:
             explanation += " No trusted visual specimen participated in this match."
-        return ProfileMatch(profile, bounded, components, explanation, decision)
+        if synthetic_profile and not _controlled_synthetic_candidate(profile, text):
+            explanation += (
+                " Synthetic pixel evidence was disabled because the candidate did not "
+                "match the controlled fictional issuer and demonstration marker; it cannot "
+                "create tampering risk for this document."
+            )
+        if visual_match is not None:
+            explanation += (
+                f" Best compatible exemplar: {visual_match.exemplar_id}; "
+                f"visual coverage {visual_match.coverage:.0f}% and alignment "
+                f"quality {visual_match.alignment_quality:.0f}%. "
+                + visual_match.policy_reason
+            )
+        return ProfileMatch(
+            profile=profile,
+            score=bounded,
+            component_scores=components,
+            explanation=explanation,
+            strength=decision,
+            selected_exemplar_id=(visual_match.exemplar_id if visual_match else None),
+            exemplar_scores=(visual_match.exemplar_scores if visual_match else None),
+            visual_coverage=(visual_match.coverage if visual_match else 0.0),
+            visual_alignment_quality=(visual_match.alignment_quality if visual_match else 0.0),
+            visual_risk_allowed=(visual_match.risk_allowed if visual_match else False),
+            visual_policy_reason=(
+                visual_match.policy_reason
+                if visual_match
+                else "No compatible visual exemplar participated in matching."
+            ),
+        )
 
 
 def _layout_anchor_score(anchors: Sequence[dict[str, Any]], pages: Sequence[Any]) -> float:
@@ -273,36 +335,128 @@ def _page_geometry_score(expected: dict[str, Any], pages: Sequence[Any]) -> floa
 
 
 def _fixed_visual_score(
-    profile: DocumentProfile, pages: Sequence[Any]
-) -> float | None:
+    profile: DocumentProfile, pages: Sequence[Any], document_text: str
+) -> _VisualExemplarMatch | None:
     if profile.capability_tier not in {"visual_reference", "cryptographic"}:
         return None
     if not profile.reference_assets:
         return None
-    scores: list[float] = []
-    for asset in profile.reference_assets:
-        if asset.page_number > len(pages):
-            scores.append(0.0)
-            continue
-        try:
-            image = cv2.imread(
-                str(pages[asset.page_number - 1].image_path), cv2.IMREAD_COLOR
-            )
-            if image is None:
-                scores.append(0.0)
+    synthetic_allowed = _controlled_synthetic_candidate(profile, document_text)
+    if all(asset.source_class == "synthetic_demo" for asset in profile.reference_assets) and not synthetic_allowed:
+        return None
+    ranked: list[tuple[float, float, float, str, float]] = []
+    exemplar_scores: dict[str, float] = {}
+    for exemplar_id in profile.reference_exemplars():
+        assets = profile.assets_for_exemplar(exemplar_id)
+        fixed_scores: list[float] = []
+        tie_breakers: list[float] = []
+        alignments: list[float] = []
+        for asset in assets:
+            if asset.document_page_number > len(pages):
                 continue
-            candidate = fixed_region_fingerprint(
-                image,
-                fixed_regions=asset.fixed_region_masks,
-                variable_regions=asset.variable_region_masks,
-                page_number=asset.page_number,
-            )
-            scores.append(
-                fingerprint_similarity(asset.precomputed_fingerprint["value"], candidate)
-            )
-        except (OSError, ValueError):
-            scores.append(0.0)
-    return sum(scores) / len(scores) if scores else None
+            try:
+                candidate_image = cv2.imread(
+                    str(pages[asset.document_page_number - 1].image_path),
+                    cv2.IMREAD_COLOR,
+                )
+                if candidate_image is None:
+                    continue
+                reference_image = render_visual_page(
+                    asset.path, asset.mime_type, asset.asset_page_number
+                )
+                alignment = align_reference(reference_image, candidate_image)
+                inverse = np.linalg.inv(alignment.matrix)
+                aligned_candidate = cv2.warpPerspective(
+                    candidate_image,
+                    inverse,
+                    (reference_image.shape[1], reference_image.shape[0]),
+                    flags=cv2.INTER_LINEAR,
+                    borderMode=cv2.BORDER_CONSTANT,
+                    borderValue=(255, 255, 255),
+                )
+                candidate_fixed = fixed_region_fingerprint(
+                    aligned_candidate,
+                    fixed_regions=asset.fixed_region_masks,
+                    variable_regions=asset.variable_region_masks,
+                    page_number=asset.document_page_number,
+                )
+                fixed_scores.append(
+                    fingerprint_similarity(
+                        str(asset.precomputed_fingerprint["value"]), candidate_fixed
+                    )
+                )
+                if asset.variable_region_masks:
+                    reference_variable = fixed_region_fingerprint(
+                        reference_image,
+                        fixed_regions=asset.variable_region_masks,
+                        variable_regions=(),
+                        page_number=asset.document_page_number,
+                    )
+                    candidate_variable = fixed_region_fingerprint(
+                        aligned_candidate,
+                        fixed_regions=asset.variable_region_masks,
+                        variable_regions=(),
+                        page_number=asset.document_page_number,
+                    )
+                    tie_breakers.append(
+                        fingerprint_similarity(reference_variable, candidate_variable)
+                    )
+                alignments.append(float(alignment.quality))
+            except (OSError, ValueError, np.linalg.LinAlgError):
+                continue
+        coverage = len(fixed_scores) / max(len(pages), len(assets), 1)
+        fixed_score = sum(fixed_scores) / len(fixed_scores) if fixed_scores else 0.0
+        tie_score = sum(tie_breakers) / len(tie_breakers) if tie_breakers else 0.0
+        alignment_quality = sum(alignments) / len(alignments) if alignments else 0.0
+        compatibility = fixed_score * (0.75 + 0.25 * alignment_quality) * coverage
+        exemplar_scores[exemplar_id] = round(compatibility * 100.0, 1)
+        ranked.append((compatibility, tie_score, alignment_quality, exemplar_id, coverage))
+    if not ranked:
+        return None
+    compatibility, _, alignment_quality, exemplar_id, coverage = max(
+        ranked, key=lambda item: (item[0], item[1], item[2], item[3] == "reference-b", item[3])
+    )
+    selected_assets = profile.assets_for_exemplar(exemplar_id)
+    source_classes = {asset.source_class for asset in selected_assets}
+    risk_enabled = all(asset.may_influence_tampering_risk for asset in selected_assets)
+    if source_classes == {"synthetic_demo"}:
+        risk_allowed = risk_enabled and synthetic_allowed and coverage >= 0.999 and alignment_quality >= 0.55
+        policy_reason = (
+            "Synthetic visual evidence may affect risk only because the candidate carries the controlled synthetic marker."
+            if risk_allowed
+            else "Synthetic visual evidence is retrieval-only for this candidate and cannot create tampering risk."
+        )
+    else:
+        trusted = all(asset.trust_level in {"P2", "P3", "P4"} for asset in selected_assets)
+        risk_allowed = risk_enabled and trusted and coverage >= 0.999 and alignment_quality >= 0.55
+        policy_reason = (
+            "Authorized visual evidence met the trust, coverage, and alignment policy."
+            if risk_allowed
+            else "Visual evidence has limited trust, page coverage, or alignment and cannot create strong tampering risk."
+        )
+    return _VisualExemplarMatch(
+        score=compatibility,
+        exemplar_id=exemplar_id,
+        exemplar_scores=dict(sorted(exemplar_scores.items())),
+        coverage=round(coverage * 100.0, 1),
+        alignment_quality=round(alignment_quality * 100.0, 1),
+        risk_allowed=risk_allowed,
+        policy_reason=policy_reason,
+    )
+
+
+def _controlled_synthetic_candidate(profile: DocumentProfile, text: str) -> bool:
+    if str(profile.manifest["provenance"]["kind"]) != "synthetic_showcase":
+        return False
+    normalised = _normalise(text)
+    if "synthetic demonstration" not in normalised:
+        return False
+    issuers = {
+        _normalise(asset.issuer)
+        for asset in profile.reference_assets
+        if asset.source_class == "synthetic_demo"
+    }
+    return bool(issuers and any(issuer and issuer in normalised for issuer in issuers))
 
 
 def _security_region_score(regions: dict[str, Sequence[dict[str, Any]]], pages: Sequence[Any]) -> float:

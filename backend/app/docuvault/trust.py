@@ -55,7 +55,7 @@ def reference_strength(
             "A4",
             "The exact reference has independent trusted-source evidence.",
         )
-    if provenance in {"P2", "P3"} and bounded >= 76.0:
+    if provenance in {"P2", "P3", "P4"} and bounded >= 76.0:
         applicability = "A3" if has_trusted_visual_reference else "A2"
         qualifier = (
             "including stored visual structure"
@@ -68,7 +68,7 @@ def reference_strength(
             applicability,
             f"Issuer, headings, layout and document characteristics matched strongly, {qualifier}.",
         )
-    if provenance in {"P2", "P3"} and bounded >= 52.0:
+    if provenance in {"P2", "P3", "P4"} and bounded >= 52.0:
         return ReferenceDecision(
             "Moderate trusted-profile match",
             provenance,
@@ -77,7 +77,7 @@ def reference_strength(
         )
     return ReferenceDecision(
         "Closest available profile",
-        provenance if provenance in {"P0", "P1", "P2", "P3"} else "P0",
+        provenance if provenance in {"P0", "P1", "P2", "P3", "P4"} else "P0",
         "A1" if bounded > 0 else "A0",
         "This is the nearest local profile, not a sufficiently strong reference match.",
     )

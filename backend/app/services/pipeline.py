@@ -16,6 +16,7 @@ from threading import Lock
 from typing import Any
 
 import cv2
+import fitz
 import numpy as np
 
 from backend.app.core.config import Settings
@@ -471,10 +472,11 @@ class AnalysisManager:
             )
             if (
                 profile_search.selected is not None
-                and profile_search.selected.profile.visual_reference_path is not None
+                and profile_search.selected.selected_exemplar_id is not None
             ):
-                reference = _validated_profile_reference(
-                    profile_search.selected.profile.visual_reference_path,
+                reference = _validated_profile_exemplar(
+                    profile_search.selected.profile,
+                    profile_search.selected.selected_exemplar_id,
                     self.settings.max_upload_bytes,
                 )
                 reference_count = int(reference.page_count)
@@ -501,6 +503,13 @@ class AnalysisManager:
 
         matches = _estimate_page_correspondence(reference_pages, candidate_pages)
         anomalies = _page_anomalies(matches, reference_pages, candidate_pages)
+        if (
+            comparison_mode is ComparisonMode.DOCUVAULT
+            and profile_search is not None
+            and profile_search.selected is not None
+            and not profile_search.selected.visual_risk_allowed
+        ):
+            anomalies = []
         metadata_changes = (
             compare_document_metadata(reference, candidate)
             if comparison_mode is ComparisonMode.EXACT
@@ -540,6 +549,15 @@ class AnalysisManager:
                     reference_pages,
                     candidate_pages,
                 )
+                if (
+                    comparison_mode is ComparisonMode.DOCUVAULT
+                    and profile_search is not None
+                    and profile_search.selected is not None
+                    and not profile_search.selected.visual_risk_allowed
+                ):
+                    page = page.model_copy(
+                        update={"risk_score": 0.0, "finding_count": 0, "findings": []}
+                    )
                 pages.append(page)
                 cumulative_findings += page.finding_count
                 self._stage(
@@ -620,45 +638,66 @@ class AnalysisManager:
                 candidate_page_url=candidate_url,
                 ocr_provider=provider,
             )
-            findings, page_suggestions = self._build_findings(
-                job_id,
-                assets_dir,
-                display_index,
-                candidate_image,
-                alignment,
-                differences,
-                reference_page.text,
-                candidate_page.text,
-                forensic_mode,
-                single_page=(total_pages == 1),
-                reference_size=(reference_image.shape[1], reference_image.shape[0]),
-                profile=(
-                    profile_search.selected.profile
-                    if comparison_mode is ComparisonMode.DOCUVAULT
-                    and profile_search is not None
-                    and profile_search.selected is not None
-                    and profile_search.selected.profile.visual_reference_path is not None
-                    else None
-                ),
+            visual_findings_allowed = not (
+                comparison_mode is ComparisonMode.DOCUVAULT
+                and (
+                    profile_search is None
+                    or profile_search.selected is None
+                    or not profile_search.selected.visual_risk_allowed
+                )
             )
-            findings.extend(
-                self._build_match_anomaly_findings(
+            if visual_findings_allowed:
+                findings, page_suggestions = self._build_findings(
                     job_id,
                     assets_dir,
                     display_index,
-                    match,
+                    candidate_image,
+                    alignment,
+                    differences,
+                    reference_page.text,
+                    candidate_page.text,
+                    forensic_mode,
+                    single_page=(total_pages == 1),
+                    reference_size=(reference_image.shape[1], reference_image.shape[0]),
+                    profile=(
+                        profile_search.selected.profile
+                        if comparison_mode is ComparisonMode.DOCUVAULT
+                        and profile_search is not None
+                        and profile_search.selected is not None
+                        else None
+                    ),
+                    profile_exemplar_id=(
+                        profile_search.selected.selected_exemplar_id
+                        if comparison_mode is ComparisonMode.DOCUVAULT
+                        and profile_search is not None
+                        and profile_search.selected is not None
+                        else None
+                    ),
+                    profile_page_number=reference_page.page_number,
+                )
+                findings.extend(
+                    self._build_match_anomaly_findings(
+                        job_id,
+                        assets_dir,
+                        display_index,
+                        match,
+                        reference_page,
+                        candidate_page,
+                    )
+                )
+                ocr_uncertainty = _ocr_uncertainty_finding(
+                    job_id,
+                    display_index,
                     reference_page,
                     candidate_page,
                 )
-            )
-            ocr_uncertainty = _ocr_uncertainty_finding(
-                job_id,
-                display_index,
-                reference_page,
-                candidate_page,
-            )
-            if ocr_uncertainty is not None:
-                findings.append(ocr_uncertainty)
+                if (
+                    ocr_uncertainty is not None
+                    and comparison_mode is not ComparisonMode.DOCUVAULT
+                ):
+                    findings.append(ocr_uncertainty)
+            else:
+                findings, page_suggestions = [], []
             if metadata_changes and not metadata_attached:
                 findings.append(
                     _metadata_change_finding(
@@ -686,9 +725,13 @@ class AnalysisManager:
                 localized_region=(findings[0].bounding_box if findings else None),
             )
 
-            page_risk = overall_score(
-                [finding.risk_score for finding in findings if finding.risk_score > 0.0],
-                differences.global_changed_ratio,
+            page_risk = (
+                overall_score(
+                    [finding.risk_score for finding in findings if finding.risk_score > 0.0],
+                    differences.global_changed_ratio,
+                )
+                if visual_findings_allowed
+                else 0.0
             )
             text_available = bool(reference_page.text.text and candidate_page.text.text)
             confidence = min(
@@ -743,8 +786,9 @@ class AnalysisManager:
         if (
             comparison_mode is ComparisonMode.DOCUVAULT
             and (
-                selected_profile is None
-                or selected_profile.visual_reference_path is None
+                profile_search is None
+                or profile_search.selected is None
+                or profile_search.selected.selected_exemplar_id is None
             )
         ):
             # Candidate-only automatic analysis uses a private lifecycle proxy
@@ -1346,6 +1390,8 @@ class AnalysisManager:
         single_page: bool,
         reference_size: tuple[int, int] | None = None,
         profile: Any | None = None,
+        profile_exemplar_id: str | None = None,
+        profile_page_number: int | None = None,
     ) -> tuple[list[Finding], list[RegionSuggestion]]:
         height, width = candidate_image.shape[:2]
         reference_width, reference_height = reference_size or (
@@ -1356,6 +1402,12 @@ class AnalysisManager:
         scored_findings: list[_ScoredFinding] = []
         suggestions: list[RegionSuggestion] = []
         for index, region in enumerate(differences.regions, start=1):
+            if region.changed_pixels <= 0 and region.edge_changed_pixels <= 0:
+                # OCR/provider geometry can disagree even when the trusted and
+                # questioned pixels are identical. Text-only localization is
+                # not visual tampering evidence without a measured pixel or
+                # edge delta.
+                continue
             finding_id = (
                 f"finding-{index:03d}"
                 if single_page
@@ -1373,7 +1425,12 @@ class AnalysisManager:
                 height,
             )
             bounding_box = _normalized_box(region, width, height)
-            declared_role = _profile_mask_role(profile, page_number, bounding_box)
+            declared_role = _profile_mask_role(
+                profile,
+                profile_page_number or page_number,
+                bounding_box,
+                exemplar_id=profile_exemplar_id,
+            )
             if declared_role is not None:
                 role, role_confidence, reason, label = declared_role
             if comparison_mode is ComparisonMode.TEMPLATE and (
@@ -1830,11 +1887,29 @@ class AnalysisManager:
             preview_url=_asset_url(job_id, candidate_first.asset_id),
             transform=candidate_first.transform,
         )
+        visual_sources = {
+            "pixel_difference",
+            "edge_difference",
+            "text_difference",
+            "page_correspondence",
+        }
+        suspicious_visual_findings = sum(
+            1
+            for page in pages
+            for finding in page.findings
+            if finding.risk_score > 0
+            and finding.evidence_source
+            and any(source in visual_sources for source in finding.evidence_source)
+        )
         reference_assessment = _reference_profile_assessment(
             comparison_mode,
             profile_search,
             codes=code_assessment,
-            suspicious_findings=aggregate.finding_count,
+            suspicious_findings=suspicious_visual_findings,
+            ocr_limited=any(
+                not _extraction_succeeded(page.text)
+                for page in (*reference_pages, *candidate_pages)
+            ),
         )
         investigative_assessment: InvestigativeAssessment = build_investigative_assessment(
             visual_risk=aggregate.risk_score,
@@ -1843,7 +1918,7 @@ class AnalysisManager:
                 for page in pages
                 for finding in page.findings
                 if finding.evidence_source
-                and any(source in {"pixel_difference", "edge_difference", "text_difference", "page_correspondence"} for source in finding.evidence_source)
+                and any(source in visual_sources for source in finding.evidence_source)
             ),
             coverage=aggregate.coverage_score,
             reference=reference_assessment,
@@ -1960,28 +2035,57 @@ def aggregate_page_results(
     )
 
 
-def _validated_profile_reference(path: Path, max_bytes: int) -> ValidatedUpload:
-    data = path.read_bytes()
-    suffix = path.suffix.casefold()
-    content_type = {
-        ".pdf": "application/pdf",
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-    }.get(suffix, "application/octet-stream")
+def _validated_profile_exemplar(
+    profile: Any, exemplar_id: str, max_bytes: int
+) -> ValidatedUpload:
+    assets = profile.assets_for_exemplar(exemplar_id)
+    if not assets:
+        raise ValueError("selected DocuVault exemplar has no active pages")
+    expected_pages = list(range(1, len(assets) + 1))
+    actual_pages = [asset.document_page_number for asset in assets]
+    if actual_pages != expected_pages:
+        raise ValueError("selected DocuVault exemplar does not provide contiguous page coverage")
+    combined = fitz.open()
+    try:
+        for asset in assets:
+            if asset.mime_type == "application/pdf":
+                with fitz.open(asset.path) as source:
+                    page_index = asset.asset_page_number - 1
+                    combined.insert_pdf(source, from_page=page_index, to_page=page_index)
+            else:
+                with fitz.open(asset.path) as raster:
+                    converted = raster.convert_to_pdf()
+                with fitz.open("pdf", converted) as source:
+                    combined.insert_pdf(source)
+        combined.set_metadata(
+            {
+                "title": f"DocuVault visual exemplar {exemplar_id}",
+                "author": "DocuVerify local visual profile",
+                "subject": "Runtime materialization of validated visual-reference pages",
+                "creator": "DocuVerify",
+                "producer": "PyMuPDF",
+                "creationDate": "D:20420829000000Z",
+                "modDate": "D:20420829000000Z",
+            }
+        )
+        data = combined.tobytes(garbage=4, deflate=True, clean=True, no_new_id=True)
+    finally:
+        combined.close()
     return documents.validate_upload(
         field="profile_reference",
-        filename=path.name,
-        content_type=content_type,
+        filename=f"{exemplar_id}.docuvault.pdf",
+        content_type="application/pdf",
         data=data,
-        max_bytes=max(max_bytes, len(data)),
+        max_bytes=max_bytes,
     )
 
 
 def _profile_match_summary(match: Any) -> ProfileMatchSummary:
     manifest = match.profile.manifest
     capability = _profile_capability(match.profile)
-    asset_summary = _profile_reference_asset_summary(match.profile)
+    asset_summary = _profile_reference_asset_summary(
+        match.profile, getattr(match, "selected_exemplar_id", None)
+    )
     return ProfileMatchSummary(
         profile_id=match.profile.profile_id,
         issuer=match.profile.issuer,
@@ -2010,6 +2114,20 @@ def _profile_match_summary(match: Any) -> ProfileMatchSummary:
         reference_capability=_reference_capability_label(capability),
         match_reasons=_profile_match_reasons(match, capability),
         reference_asset=asset_summary,
+        selected_exemplar_id=getattr(match, "selected_exemplar_id", None),
+        exemplar_scores=dict(getattr(match, "exemplar_scores", None) or {}),
+        visual_comparison_coverage=float(getattr(match, "visual_coverage", 0.0)),
+        visual_alignment_quality=float(
+            getattr(match, "visual_alignment_quality", 0.0)
+        ),
+        visual_risk_allowed=bool(getattr(match, "visual_risk_allowed", False)),
+        visual_policy_reason=str(
+            getattr(
+                match,
+                "visual_policy_reason",
+                "No compatible visual exemplar was selected.",
+            )
+        ),
         selected_by_override=match.selected_by_override,
         limitations=[str(item) for item in manifest["known_limitations"]],
     )
@@ -2021,6 +2139,7 @@ def _reference_profile_assessment(
     *,
     codes: CodeAssessment | None = None,
     suspicious_findings: int = 0,
+    ocr_limited: bool = False,
 ) -> ReferenceProfileAssessment:
     if comparison_mode is not ComparisonMode.DOCUVAULT:
         mode = "issued-original" if comparison_mode is ComparisonMode.EXACT else "template"
@@ -2055,12 +2174,19 @@ def _reference_profile_assessment(
             "Page structure and dimensions",
             "Fixed labels and layout",
         ]
-    if selected.visual_reference_available:
-        checked.append("Trusted visual specimen and fixed regions")
+    if selected.visual_reference_available and selected.visual_risk_allowed:
+        checked.append(
+            "Synthetic demonstration structure and fixed regions"
+            if selected.reference_asset
+            and selected.reference_asset.source_class == "synthetic_demo"
+            else "Trusted visual specimen and fixed regions"
+        )
 
     unverified: list[str] = []
     if not selected.visual_reference_available:
         unverified.append("No trusted visual specimen is available for this profile")
+    elif not selected.visual_risk_allowed:
+        unverified.append(selected.visual_policy_reason)
     if codes is not None:
         code_messages = {
             QREvidenceState.DETECTED_BUT_UNREADABLE: "QR code detected but could not be decoded",
@@ -2076,13 +2202,22 @@ def _reference_profile_assessment(
         unverified.append(
             "This is the closest available profile; a generic match cannot prove issuance"
         )
+    if ocr_limited:
+        unverified.append(
+            "OCR evidence was incomplete; visual analysis continued with reduced coverage"
+        )
 
-    if selected.visual_reference_available:
+    if selected.visual_reference_available and selected.visual_risk_allowed:
         result_summary = (
-            "The document closely matches the trusted visual profile. "
+            "The document was compared with the selected visual exemplar. "
             "Localized evidence requiring review is listed below."
             if suspicious_findings
-            else "The document closely matches the trusted visual profile in the checks that were available."
+            else "The document matches the selected visual exemplar in the checks that were available."
+        )
+    elif selected.visual_reference_available:
+        result_summary = (
+            "A visual profile was identified, but its pixel evidence was limited to "
+            "retrieval and display by the source, coverage, or alignment policy."
         )
     else:
         result_summary = (
@@ -2101,6 +2236,31 @@ def _reference_profile_assessment(
         unverified_items=unverified,
         result_summary=result_summary,
         reference_asset=selected.reference_asset,
+        matched_items=list(selected.match_reasons[:4]),
+        differed_items=(
+            ["Localized differences requiring review are listed in the findings."]
+            if selected.visual_risk_allowed and suspicious_findings
+            else ["No reportable fixed-region differences were found."]
+            if selected.visual_risk_allowed
+            else []
+        ),
+        visual_comparison_coverage=selected.visual_comparison_coverage,
+        visual_tampering_interpretation=(
+            "Localized visual differences contributed to tampering risk."
+            if selected.visual_risk_allowed and suspicious_findings
+            else "The selected visual exemplar produced no reportable tampering finding."
+            if selected.visual_risk_allowed
+            else "The visual asset supported retrieval only and did not contribute tampering risk."
+        ),
+        reference_source_label=(
+            selected.reference_asset.source_label
+            if selected.reference_asset
+            else "Metadata and layout profile only"
+        ),
+        selected_exemplar=selected.selected_exemplar_id,
+        reference_image_available=bool(
+            selected.visual_reference_available and selected.selected_exemplar_id
+        ),
     )
 
 
@@ -2142,7 +2302,7 @@ def _reference_capability_label(capability: ProfileCapabilityTier) -> str:
         ProfileCapabilityTier.METADATA_ONLY: "Metadata only",
         ProfileCapabilityTier.STRUCTURAL: "Structure and layout",
         ProfileCapabilityTier.VISUAL_REFERENCE: "Trusted visual specimen",
-        ProfileCapabilityTier.CRYPTOGRAPHIC: "Cryptographically verifiable",
+        ProfileCapabilityTier.CRYPTOGRAPHIC: "Configured cryptographic capability",
     }[capability]
 
 
@@ -2188,6 +2348,7 @@ def _profile_match_reasons(
 
 def _profile_reference_asset_summary(
     profile: Any,
+    exemplar_id: str | None = None,
 ) -> ProfileReferenceAssetSummary | None:
     if _profile_capability(profile) not in {
         ProfileCapabilityTier.VISUAL_REFERENCE,
@@ -2196,10 +2357,26 @@ def _profile_reference_asset_summary(
         return None
     raw_assets = profile.manifest.get("reference_assets") or []
     if raw_assets:
-        asset = raw_assets[0]
+        active = [asset for asset in raw_assets if bool(asset.get("enabled", True))]
+        if exemplar_id is not None:
+            active = [
+                asset for asset in active if str(asset.get("exemplar_id")) == exemplar_id
+            ]
+        if not active:
+            return None
+        active.sort(
+            key=lambda asset: (
+                int(asset.get("document_page_number", asset.get("page_number", 1))),
+                str(asset.get("side", "unspecified")),
+            )
+        )
+        asset = active[0]
         source_url = asset.get("source_url")
+        source_class = str(asset.get("source_class", "unknown"))
         return ProfileReferenceAssetSummary(
-            page_number=int(asset.get("page_number", 1)),
+            page_number=int(
+                asset.get("document_page_number", asset.get("page_number", 1))
+            ),
             side=str(asset.get("side", "single")),
             mime_type=str(asset.get("mime_type", "application/octet-stream")),
             dimensions=dict(asset.get("dimensions") or {}),
@@ -2207,6 +2384,26 @@ def _profile_reference_asset_summary(
             retrieval_date=str(asset.get("retrieval_date") or asset.get("retrieved_at") or "") or None,
             redistribution_status=str(asset.get("redistribution_status", "unclear")),
             trust_level=str(asset.get("trust_level", "unknown")),
+            exemplar_id=str(asset.get("exemplar_id")) if asset.get("exemplar_id") else None,
+            source_class=source_class,
+            source_label=_reference_source_label(source_class),
+            issuer=str(asset.get("issuer")) if asset.get("issuer") else None,
+            profile_version=(
+                str(asset.get("profile_version"))
+                if asset.get("profile_version")
+                else None
+            ),
+            demonstration_only=bool(asset.get("demonstration_only", False)),
+            may_influence_tampering_risk=bool(
+                asset.get("may_influence_tampering_risk", False)
+            ),
+            page_count=len(
+                {
+                    int(item.get("document_page_number", item.get("page_number", 1)))
+                    for item in active
+                }
+            ),
+            thumbnail_available=bool(asset.get("thumbnail")),
         )
     legacy = profile.manifest.get("visual_reference") or {}
     return ProfileReferenceAssetSummary(
@@ -2224,6 +2421,16 @@ def _profile_reference_asset_summary(
     )
 
 
+def _reference_source_label(source_class: str) -> str:
+    return {
+        "synthetic_demo": "Synthetic demonstration reference",
+        "authorized_official_specimen": "Authorized visual reference",
+        "authorized_organization_template": "Authorized visual reference",
+        "user_registered_trusted_reference": "User-registered trusted reference",
+        "derived_from_multiple_trusted_exemplars": "Derived trusted exemplar profile",
+    }.get(source_class, "Metadata and layout profile only")
+
+
 def _docuvault_coverage(
     visual_coverage: float,
     profile: Any,
@@ -2239,6 +2446,18 @@ def _docuvault_coverage(
     }[capability]
     if search is None or search.selected is None or search.closest_fallback_used:
         cap = min(cap, 48.0)
+    elif capability in {
+        ProfileCapabilityTier.VISUAL_REFERENCE,
+        ProfileCapabilityTier.CRYPTOGRAPHIC,
+    }:
+        if not search.selected.visual_risk_allowed:
+            cap = min(cap, 62.0)
+        else:
+            cap = min(
+                cap,
+                float(search.selected.visual_coverage),
+                55.0 + 0.45 * float(search.selected.visual_alignment_quality),
+            )
     combined = 0.78 * float(visual_coverage) + 0.22 * float(codes.coverage_score)
     return round(max(0.0, min(cap, combined)), 1)
 
@@ -3276,12 +3495,18 @@ def _profile_mask_role(
     profile: Any | None,
     page_number: int,
     difference_box: BoundingBox,
+    *,
+    exemplar_id: str | None = None,
 ) -> tuple[RegionRole, float, str, str | None] | None:
     if profile is None:
         return None
     candidates: list[tuple[float, RegionRole, str | None]] = []
     for asset in profile.manifest.get("reference_assets") or ():
-        if int(asset.get("page_number", 1)) != page_number:
+        if exemplar_id is not None and str(asset.get("exemplar_id")) != exemplar_id:
+            continue
+        if not bool(asset.get("enabled", True)):
+            continue
+        if int(asset.get("document_page_number", asset.get("page_number", 1))) != page_number:
             continue
         for key, role in (
             ("variable_region_masks", RegionRole.VARIABLE),

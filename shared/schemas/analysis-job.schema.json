@@ -1759,6 +1759,15 @@
           "title": "Document Family",
           "type": "string"
         },
+        "exemplar_scores": {
+          "additionalProperties": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "title": "Exemplar Scores",
+          "type": "object"
+        },
         "explanation": {
           "title": "Explanation",
           "type": "string"
@@ -1835,6 +1844,18 @@
           "title": "Selected By Override",
           "type": "boolean"
         },
+        "selected_exemplar_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Exemplar Id"
+        },
         "subtype": {
           "title": "Subtype",
           "type": "string"
@@ -1851,9 +1872,33 @@
           "default": null,
           "title": "Version Label"
         },
+        "visual_alignment_quality": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Visual Alignment Quality",
+          "type": "number"
+        },
+        "visual_comparison_coverage": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Visual Comparison Coverage",
+          "type": "number"
+        },
+        "visual_policy_reason": {
+          "default": "No compatible visual exemplar was selected.",
+          "title": "Visual Policy Reason",
+          "type": "string"
+        },
         "visual_reference_available": {
           "default": false,
           "title": "Visual Reference Available",
+          "type": "boolean"
+        },
+        "visual_risk_allowed": {
+          "default": false,
+          "title": "Visual Risk Allowed",
           "type": "boolean"
         }
       },
@@ -1876,6 +1921,11 @@
     "ProfileReferenceAssetSummary": {
       "additionalProperties": false,
       "properties": {
+        "demonstration_only": {
+          "default": false,
+          "title": "Demonstration Only",
+          "type": "boolean"
+        },
         "dimensions": {
           "additionalProperties": {
             "anyOf": [
@@ -1893,15 +1943,63 @@
           "title": "Dimensions",
           "type": "object"
         },
+        "exemplar_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exemplar Id"
+        },
+        "issuer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Issuer"
+        },
+        "may_influence_tampering_risk": {
+          "default": false,
+          "title": "May Influence Tampering Risk",
+          "type": "boolean"
+        },
         "mime_type": {
           "title": "Mime Type",
           "type": "string"
+        },
+        "page_count": {
+          "default": 1,
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Page Count",
+          "type": "integer"
         },
         "page_number": {
           "maximum": 10,
           "minimum": 1,
           "title": "Page Number",
           "type": "integer"
+        },
+        "profile_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile Version"
         },
         "redistribution_status": {
           "title": "Redistribution Status",
@@ -1923,6 +2021,16 @@
           "title": "Side",
           "type": "string"
         },
+        "source_class": {
+          "default": "unknown",
+          "title": "Source Class",
+          "type": "string"
+        },
+        "source_label": {
+          "default": "Metadata and layout profile only",
+          "title": "Source Label",
+          "type": "string"
+        },
         "source_url": {
           "anyOf": [
             {
@@ -1934,6 +2042,11 @@
           ],
           "default": null,
           "title": "Source Url"
+        },
+        "thumbnail_available": {
+          "default": false,
+          "title": "Thumbnail Available",
+          "type": "boolean"
         },
         "trust_level": {
           "title": "Trust Level",
@@ -1978,6 +2091,13 @@
           "title": "Closest Fallback Used",
           "type": "boolean"
         },
+        "differed_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Differed Items",
+          "type": "array"
+        },
         "explanation": {
           "default": "A user-supplied reference supports comparison but has no independent issuer proof.",
           "title": "Explanation",
@@ -2007,6 +2127,13 @@
           "default": null,
           "title": "Inferred Issuer"
         },
+        "matched_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Items",
+          "type": "array"
+        },
         "reference_asset": {
           "anyOf": [
             {
@@ -2018,6 +2145,16 @@
           ],
           "default": null
         },
+        "reference_image_available": {
+          "default": false,
+          "title": "Reference Image Available",
+          "type": "boolean"
+        },
+        "reference_source_label": {
+          "default": "Metadata and layout profile only",
+          "title": "Reference Source Label",
+          "type": "string"
+        },
         "reference_strength": {
           "default": "User-supplied unverified reference",
           "title": "Reference Strength",
@@ -2027,6 +2164,18 @@
           "default": "The available evidence is summarized below.",
           "title": "Result Summary",
           "type": "string"
+        },
+        "selected_exemplar": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Exemplar"
         },
         "selected_profile": {
           "anyOf": [
@@ -2053,6 +2202,18 @@
           },
           "title": "Unverified Items",
           "type": "array"
+        },
+        "visual_comparison_coverage": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Visual Comparison Coverage",
+          "type": "number"
+        },
+        "visual_tampering_interpretation": {
+          "default": "No trusted pixel comparison was performed.",
+          "title": "Visual Tampering Interpretation",
+          "type": "string"
         }
       },
       "title": "ReferenceProfileAssessment",
