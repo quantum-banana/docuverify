@@ -13,8 +13,10 @@ dimensions. None of those scores is a legal authenticity or identity decision.
 
 - Phase 2 checkpoint: `VARIABLE-SUCKS-RC2` at
   `051d44ce00592e59ad04c84f21b917ebbdfa943f`
-- Core-expansion work branch: `phase-3-core-expansion`
-- Intended immutable review branch: `candidate/phase-3-core-rc1`
+- Immutable Phase 3 RC1 remains `candidate/phase-3-core-rc1`
+- DocuVault visual-library work branch:
+  `phase-3-docuvault-visual-library-work`, based directly on
+  `857323632108dfd3df4902f51b0269bdb104a15e`
 - Released Phase 1 baseline and tag remain unchanged
 - Primary supported runtime: Python 3.12; Python 3.12.10 is the tested
   cross-laptop baseline
@@ -22,8 +24,8 @@ dimensions. None of those scores is a legal authenticity or identity decision.
 - OCR execution: RapidOCR/ONNX Runtime on CPU, with CPU as the mandatory
   raster fallback
 
-The candidate branch is for review only. It is not merged into `main` and no
-release tag is created by the core-expansion workflow.
+The visual-library branch is for manual review only. It is not merged into
+`main`; no RC2 branch or release tag is created by this workflow.
 
 ## Three verification paths
 
@@ -49,17 +51,26 @@ the score components. Matching uses issuer text, headings, layout anchors, page
 geometry, fixed visual evidence when available, security regions, script and
 profile completeness. Filenames are not matching evidence.
 
-The bundled catalog contains 20 validated profiles spanning 19 document
-families: 19 conservative official-source metadata/generic profiles and one
-explicitly fictional visual showcase profile. A strong match does not prove
-issuance. A closest-profile fallback is clearly labelled and must not be
-treated as a trusted original.
+The bundled catalog contains 39 validated profiles spanning 19 internal
+document families: 19 conservative official-source metadata/generic profiles
+and a separate 20-profile fictional visual library covering the 20 supported
+semantic document types. Every fictional visual profile has two legitimate
+exemplars with different variable values, exact region masks, thumbnails and
+source-bound fingerprints. A strong match does not prove issuance. A
+closest-profile fallback is clearly labelled and must not be treated as a
+trusted original.
 
 ## Core evidence checks
 
 - Strict, versioned local profile validation with duplicate rejection,
   enable/disable state, deterministic SQLite indexing and safe optional
   `DOCUVAULT_PATH` loading
+- Multi-exemplar visual matching over fixed regions, with variable identity
+  allowed, variable-region appearance still checked, best-exemplar selection,
+  and alignment/coverage reported separately from tampering risk
+- Five explicit visual-source classes, conservative risk gates, and a strict
+  boundary that prevents a synthetic profile mismatch from creating visual
+  tampering risk for an unrelated real document
 - Local PDF signature inspection with pyHanko: unsigned, valid but unknown
   trust, locally trusted, invalid, changed-after-signing and unsupported states
 - An explicit local certificate trust store; no network certificate fetching
@@ -151,9 +162,11 @@ delays.
 
 ## Validation
 
-The RTX 4060 candidate gate passed with 120 backend tests, 23 frontend tests,
+The immutable Phase 3 RC1 gate passed with 120 backend tests, 23 frontend tests,
 TypeScript typecheck, a 435-module production build and the integrated smoke.
-The exact evidence is recorded in `docs/verification-status.md`.
+The exact evidence is recorded in `docs/verification-status.md`. The visual
+library uses a separate focused gate; it intentionally does not rerun the full
+project regression.
 
 Run the complete automated gate only after an integrated change set is ready:
 
@@ -168,6 +181,12 @@ in-memory/generated keys. It covers existing Exact and Template behavior,
 multi-page and raster OCR, DocuVault strong matching and fallback, QR mismatch,
 PDF signature trust/modification states, metadata, logical rules, handwriting,
 signature appearance and pasted-signature compositing.
+
+For visual-library work, use the deterministic generator, comprehensive asset
+validator, targeted importer/matcher/frontend tests, typecheck, production
+build and the single visual-library smoke documented in
+`backend/docuvault/README.md`. The evaluation documents and ground truth under
+`samples/docuvault-visual-evaluation/` are never production inputs.
 
 ## Privacy and storage
 
@@ -184,8 +203,9 @@ signature appearance and pasted-signature compositing.
 
 - Profile coverage is intentionally conservative and not universal across
   issuer, regional, language, year or delivery-channel variants.
-- Nineteen official-source profiles contain metadata/structural descriptors,
-  not redistributed official document bytes.
+- Nineteen official-source profiles contain metadata descriptors, not
+  redistributed official document bytes. The separate visual library is
+  unmistakably fictional and cannot silently become an official reference.
 - Profile matching cannot verify personal field values or issuance.
 - OpenCV QR is the active decoder; additional barcode providers report
   unsupported unless configured.

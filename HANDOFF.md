@@ -10,9 +10,11 @@ This work starts from the manually approved Phase 2 repair checkpoint on
 - parent: `3c7b6f653efcdd0b82b0a6859cd356eea707be43`
 - manual Template forensic review: PASS
 
-The active development line is `phase-3-core-expansion`. The intended immutable
-review line is `candidate/phase-3-core-rc1`. The workflow must not merge into
-`main`, move an existing candidate, alter a tag or force-push.
+The immutable core review line remains `candidate/phase-3-core-rc1`. The active
+visual-library development line is
+`phase-3-docuvault-visual-library-work`, created directly from
+`857323632108dfd3df4902f51b0269bdb104a15e`. This workflow must not merge into
+`main`, move an existing candidate, create RC2, alter a tag or force-push.
 
 ## Environment
 
@@ -48,18 +50,37 @@ not automatic OCR selections.
 
 ### DocuVault
 
-- 20 strictly validated profiles covering 19 families
-- 19 conservative official-source metadata/generic profiles
-- one fictional hash-bound visual showcase profile
+- 39 strictly validated profiles covering 19 internal families and 20
+  supported semantic document types
+- 19 conservative official-source metadata/generic profiles retained as
+  metadata-only, including the original Aadhaar-style profile
+- 20 separate `P0` fictional visual profiles: the existing Lumen showcase plus
+  19 synthetic companions
+- two legitimate A/B exemplars per visual profile with stable structure and
+  different names, identifiers, dates, photos, QR payloads and signatures
+- 54 hash-bound page assets, each with thumbnail, normalized fixed/variable/
+  security regions, exact binary masks and a deterministic v2 fingerprint
 - strict Draft 2020-12 schema and semantic duplicate checks
 - deterministic local SQLite index and enable/disable state
 - safe optional `DOCUVAULT_PATH` loading without link/path escape
-- top-three matching with component explanations
+- top-three, multi-exemplar matching with component explanations, selected
+  exemplar, alignment and visual-coverage reporting
 - issuer text, headings, anchors, geometry, fixed visual features, security
   regions, script and completeness as independent inputs
+- variable values excluded from fixed-layout scoring while typography,
+  background, geometry and compositing remain examinable
+- synthetic pixel evidence gated to the exact fictional issuer plus controlled
+  synthetic-demonstration marker, so unrelated real documents cannot receive
+  synthetic visual risk
 - no filename matching
 - explicit strong, moderate and closest-available tiers
 - optional exact profile override
+- separate 20-folder evaluation library with 40 clean references, 100
+  document-appropriate questioned PDFs and production-inaccessible ground truth
+- authorized local PDF/PNG/JPEG importer with explicit source class, trust,
+  provenance, region confirmation, all-page PDF rendering, atomic
+  content-addressed storage, duplicate/conflict handling, and recoverable asset
+  lifecycle operations
 
 ### Digital, code, metadata and logical evidence
 
@@ -99,6 +120,11 @@ not automatic OCR selections.
 - collapsed optional profile override, handwriting and signature inputs
 - backend-driven labels for every new stage
 - selected profile, top matches and component score explanations
+- human-readable reference source badge, issuer/version, selected exemplar,
+  visual comparison coverage, reference image/link and explicit synthetic
+  warning
+- concise matched/differed/unverified sections and a visual-tampering versus
+  limited-coverage interpretation; raw IDs and scores remain technical details
 - digital signature, QR, metadata, logical, handwriting, signature and unified
   assessment sections behind progressive disclosure
 - candidate-only document viewer when no profile visual reference exists, so
@@ -143,6 +169,26 @@ and pasted-signature compositing `66.4`.
 
 No RTX 5060 validation or performance benchmark was run for this candidate.
 
+The DocuVault visual-library branch used only its focused gates:
+
+- all 39 profile schemas and all 54 asset/hash/mask/fingerprint records: PASS;
+- 27 legitimate A/B page-pair variable-mask containment checks: PASS;
+- focused importer tests: 8 passed;
+- focused multi-exemplar matcher scenarios: 6 passed after the single failed
+  clean-risk subset exposed and verified an OCR-only/zero-pixel repair;
+- focused frontend visual-reference assertions: 10 passed, 20 unrelated tests
+  skipped;
+- TypeScript typecheck: PASS;
+- production build: PASS, 435 modules;
+- one marksheet/identity/certificate/receipt/multi-page smoke: PASS, all five
+  clean risks `0.0`, reference B selected, no findings or whole-page markers.
+
+The first smoke invocation completed its analysis assertions but its result
+formatter used the obsolete `coverage_score` key. Only that smoke gate was
+rerun after changing it to the current `analysis_coverage` contract. The
+120-test backend regression, unrelated forensic suites and performance
+benchmarks were not run.
+
 ## Confirmed RTX 5060 Phase 1 portability evidence
 
 A separate laptop smoke used Python 3.12.10 and passed the released Phase 1
@@ -175,8 +221,8 @@ acceptance for OCR, multi-page, DocuVault or the new forensic checks.
 
 ## Known limitations
 
-- Official-source profiles contain metadata and structural descriptors, not
-  redistributed official visual documents.
+- Official-source profiles contain metadata descriptors, not redistributed
+  official visual documents. Bundled visuals are fictional demonstrations.
 - Coverage is not universal across issuer/year/region/language variants.
 - A profile match cannot prove issuance or validate personal field values.
 - OpenCV QR is the currently supported decoder; other barcodes may be
@@ -208,5 +254,7 @@ Default URLs are frontend `http://127.0.0.1:5173`, backend
 
 ## Next action
 
-Perform the final manual showcase review of `candidate/phase-3-core-rc1`. Do
-not merge to `main` or create a release tag during review.
+After the focused visual-library gate passes, manually review the marksheet,
+identity, metadata-only Aadhaar-style and fictional authorized-import flows on
+`phase-3-docuvault-visual-library-work`. Do not create RC2 until that review
+passes.
