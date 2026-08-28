@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic voter-card-style document",
+  "document_family": "government.voter_id_epic",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.voter-card.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 3607930169,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.213777
+      },
+      "expected_severity": "medium",
+      "file": "voter-card/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "ed3ec586366616a041bb8017260c7991eb0d9f3bede3c5594e117cb94e57e4b0",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 1430161874,
+      "expected_category": "field_displacement",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.275534
+      },
+      "expected_severity": "medium",
+      "file": "voter-card/questioned/b-position-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate position shift in the identifier region.",
+      "mutation": "position_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "d6524137a8634df7ef63fe4372536183f55b806442e5fc00efc851e7c0abad3f",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "photo",
+      "deterministic_seed": 3082035871,
+      "expected_category": "photo_compositing",
+      "expected_normalized_box": {
+        "height": 0.168646,
+        "width": 0.164706,
+        "x": 0.110924,
+        "y": 0.211401
+      },
+      "expected_severity": "high",
+      "file": "voter-card/questioned/b-photo-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate photo paste in the photo region.",
+      "mutation": "photo_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "ef0d4b9dcbb7c3c75759b8537d591c3bd22300c258848be99e7a632f88be6ae6",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "qr",
+      "deterministic_seed": 3591172838,
+      "expected_category": "security_element_displacement",
+      "expected_normalized_box": {
+        "height": 0.124703,
+        "width": 0.176471,
+        "x": 0.663866,
+        "y": 0.593824
+      },
+      "expected_severity": "high",
+      "file": "voter-card/questioned/b-qr-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate qr displacement in the qr region.",
+      "mutation": "qr_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "9bc31e496b4345ad8ce274044b76c97ed285d9fbd0757a0c008925a063b1b448",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "address",
+      "deterministic_seed": 4040257384,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.083135,
+        "width": 0.747899,
+        "x": 0.12605,
+        "y": 0.43943
+      },
+      "expected_severity": "high",
+      "file": "voter-card/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the address region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "25b878ef410fc2a20ca9da5a416846b919bb3b4ee04e6413f8fb0767c691b040",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "in.eci.voter-card.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "71da8c1833398823422a50a3966c01369bf1cf68faccf8e199874cf610e17232",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "c9e01bfe7645510819d0eb8b94482f30c5a3251d569af9f2082a39beb1d32d62"
+  }
+}

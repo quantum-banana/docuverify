@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic Class 10 marksheet",
+  "document_family": "academic.cbse_class_10_documents",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.cbse-class10.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 1410497636,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.187648
+      },
+      "expected_severity": "medium",
+      "file": "cbse-class10/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "cb446c972fc6e4c465cde9db9ff1b40d40a648b2e8149f57e179254e3a47cefd",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 3880242974,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.243468
+      },
+      "expected_severity": "medium",
+      "file": "cbse-class10/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the identifier region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "440d465777439a06a648394941f18c0fa05cb8a119393dc6f00f5c5d68989875",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "grade",
+      "deterministic_seed": 2925368383,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.65677
+      },
+      "expected_severity": "high",
+      "file": "cbse-class10/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the grade region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "db294646e307ad5921fe1c651a1e6a5595db2b6bed51f530a54339aa88307b8d",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "grade",
+      "deterministic_seed": 1530825715,
+      "expected_category": "logical_value_inconsistency",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.65677
+      },
+      "expected_severity": "high",
+      "file": "cbse-class10/questioned/b-logical-value-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate logical value change in the grade region.",
+      "mutation": "logical_value_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "841c9d8b8e2151ffab1922f648cbfc7337b944c8550edda301ab4e9aa56e1b17",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 899398577,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.047506,
+        "width": 0.252101,
+        "x": 0.596639,
+        "y": 0.80285
+      },
+      "expected_severity": "high",
+      "file": "cbse-class10/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "7b8559f09e391121cdd9657d664fe1455ee810f4488c0563dab2885706bd78d6",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "in.cbse.class10.generic.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "51762dd9f0a42fb67bba4d3126efb2659c492bddd9edf855eb7e4077ce3221f6",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "1c8cc318e0172d2bb090966b39afefbb350b1b817a96cb5d3ecb9baba9a26a9a"
+  }
+}

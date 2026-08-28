@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic fee receipt",
+  "document_family": "academic.fee_receipt",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.fee-receipt.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 583285862,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.19715
+      },
+      "expected_severity": "medium",
+      "file": "fee-receipt/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "af0e8b63ef9cd4647b1aa9cb30ce6094cffabd8c7c82a55e333be71b4857cbea",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "amount",
+      "deterministic_seed": 2782817412,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.055819,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.653207
+      },
+      "expected_severity": "high",
+      "file": "fee-receipt/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the amount region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "4ba8726abdb4893a426b3e912e0b45f4cefc53526926bccdcbbc9ef423edfae2",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "amount",
+      "deterministic_seed": 913432466,
+      "expected_category": "total_inconsistency",
+      "expected_normalized_box": {
+        "height": 0.055819,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.653207
+      },
+      "expected_severity": "high",
+      "file": "fee-receipt/questioned/b-logical-value-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate logical value change in the amount region.",
+      "mutation": "logical_value_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0286b53064af0f4d93a447e4a0e1782f9390317a0b01dbca056874ece2a6a561",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "qr",
+      "deterministic_seed": 3929232347,
+      "expected_category": "qr_payload_change",
+      "expected_normalized_box": {
+        "height": 0.10095,
+        "width": 0.142857,
+        "x": 0.722689,
+        "y": 0.199525
+      },
+      "expected_severity": "high",
+      "file": "fee-receipt/questioned/b-qr-replacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate qr replacement in the qr region.",
+      "mutation": "qr_replacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "d8023b24c723d379b0b374c2e2f3e948a8d0e57f63756c21320e4c5b3a6bd438",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 1850575155,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.079572,
+        "width": 0.112605,
+        "x": 0.092437,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "fee-receipt/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "4e1e3497d5a60e7da9db6f2b11af47b356500664a4ec25cf929a83bb6d436a67",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.education.fee-receipt.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "accd03ce8eb8a6ff9fea726199edb8cb4d919a987844bb3c54053aa400dbf2c2",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "146683769bb5bb246d59fd22c87ea892636e4a627df57013a302ac6f6d8c2382"
+  }
+}

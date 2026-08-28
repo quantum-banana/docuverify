@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic bonafide certificate",
+  "document_family": "academic.bonafide_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.bonafide-certificate.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 4069512566,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.062945,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.308789
+      },
+      "expected_severity": "medium",
+      "file": "bonafide-certificate/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0cb65736fcdab65044cc842232ea519c9953348dd539d0189154fb4e94f3f049",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "date",
+      "deterministic_seed": 1904230985,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.605701
+      },
+      "expected_severity": "medium",
+      "file": "bonafide-certificate/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the date region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "faf7b631eed14aec31d89ad623a3873b8286a32a670e27d9c5f603073f46410f",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 1233717505,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.263866,
+        "x": 0.147899,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "bonafide-certificate/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0169dd4360bbdd4fc8d838539ae175525a181efc8484bd0c735b9967120204ef",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 209202672,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.110451,
+        "width": 0.156303,
+        "x": 0.658824,
+        "y": 0.745843
+      },
+      "expected_severity": "high",
+      "file": "bonafide-certificate/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "5e889b6bfe2782ca0a493949fe81ee859cc9eda2f5b9096ed8fe1a39fefdb255",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "border",
+      "deterministic_seed": 3755732412,
+      "expected_category": "border_interruption",
+      "expected_normalized_box": {
+        "height": 0.942993,
+        "width": 0.919328,
+        "x": 0.040336,
+        "y": 0.028504
+      },
+      "expected_severity": "high",
+      "file": "bonafide-certificate/questioned/b-border-interrupt.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate border interrupt in the border region.",
+      "mutation": "border_interrupt",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "55c44277ee895a997ede26512efd182aa0afc56e0ebe73a3ceb5a31ae74eff5d",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.education.bonafide-certificate.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "4ddfd5be77ccf62cc9529a71e5fd90bb8133348154c38a885868094ad2fe9cbc",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "5760042a1b26ac6d0a19a6a0950c3431b9f1cc967b2430ebf73c42b4ca6ba920"
+  }
+}

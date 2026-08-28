@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic Aadhaar-style identity document",
+  "document_family": "government.aadhaar_card",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.aadhaar-style.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 3774204894,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.213777
+      },
+      "expected_severity": "medium",
+      "file": "aadhaar-style/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "cf0d535210eae8679bca4bb94461e27c4dce08ce04fccbd32990aa8147191fc5",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 3539197995,
+      "expected_category": "field_displacement",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.275534
+      },
+      "expected_severity": "medium",
+      "file": "aadhaar-style/questioned/b-position-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate position shift in the identifier region.",
+      "mutation": "position_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "4d589d6dffcf8c6a14617047c6cdf22edd1451709caa6a5ac091dac4af77d292",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "photo",
+      "deterministic_seed": 3051951057,
+      "expected_category": "photo_compositing",
+      "expected_normalized_box": {
+        "height": 0.168646,
+        "width": 0.164706,
+        "x": 0.110924,
+        "y": 0.211401
+      },
+      "expected_severity": "high",
+      "file": "aadhaar-style/questioned/b-photo-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate photo paste in the photo region.",
+      "mutation": "photo_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "888429516f7837f340ee1da8c85a68b1ea56958675d4279833c264c09b0b1dfc",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "qr",
+      "deterministic_seed": 2375605795,
+      "expected_category": "security_element_displacement",
+      "expected_normalized_box": {
+        "height": 0.124703,
+        "width": 0.176471,
+        "x": 0.663866,
+        "y": 0.593824
+      },
+      "expected_severity": "high",
+      "file": "aadhaar-style/questioned/b-qr-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate qr displacement in the qr region.",
+      "mutation": "qr_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "bfc51b4051c3c862e149eec799ff44a1652838be7c0958cddfbeaadd25458075",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "address",
+      "deterministic_seed": 3418197429,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.083135,
+        "width": 0.747899,
+        "x": 0.12605,
+        "y": 0.43943
+      },
+      "expected_severity": "high",
+      "file": "aadhaar-style/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the address region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "1a9fd56962f61cac47c78865b7aa8f936a698d70bfd77eb02ee308d6233a3186",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "in.uidai.aadhaar-style.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "0f2f93d9f92578704a8ba466726c88400b2a05466b2d3a3064579ed31425e905",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "05c8ae8e9d8ba8c61f6137e1855d86755fffdba973571f22eddece82f4736200"
+  }
+}

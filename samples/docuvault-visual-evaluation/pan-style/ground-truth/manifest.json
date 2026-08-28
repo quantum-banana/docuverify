@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic PAN-style document",
+  "document_family": "government.pan_card",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.pan-style.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 1086354603,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.213777
+      },
+      "expected_severity": "medium",
+      "file": "pan-style/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0fa6dc6c14836b59372eda1984bd835d1f9aad7d139f73fad648ef0c359f364f",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 1859897929,
+      "expected_category": "field_displacement",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.275534
+      },
+      "expected_severity": "medium",
+      "file": "pan-style/questioned/b-position-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate position shift in the identifier region.",
+      "mutation": "position_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "65bd379641d71b15dd876fff9e84f483c215d0fe5932d137f3a2e2b10b23b873",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "photo",
+      "deterministic_seed": 1648418438,
+      "expected_category": "photo_compositing",
+      "expected_normalized_box": {
+        "height": 0.168646,
+        "width": 0.164706,
+        "x": 0.110924,
+        "y": 0.211401
+      },
+      "expected_severity": "high",
+      "file": "pan-style/questioned/b-photo-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate photo paste in the photo region.",
+      "mutation": "photo_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "6b6ecb9974df1fda6647db2b38279834fc698bbb4822c2e59b18cfb5b97bb1c7",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "qr",
+      "deterministic_seed": 2815736093,
+      "expected_category": "security_element_displacement",
+      "expected_normalized_box": {
+        "height": 0.124703,
+        "width": 0.176471,
+        "x": 0.663866,
+        "y": 0.593824
+      },
+      "expected_severity": "high",
+      "file": "pan-style/questioned/b-qr-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate qr displacement in the qr region.",
+      "mutation": "qr_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "14952227c14bb716f840a1f1e2af6f6750e194fa09fa8a88d868ed0f59134a1c",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "address",
+      "deterministic_seed": 1759082323,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.083135,
+        "width": 0.747899,
+        "x": 0.12605,
+        "y": 0.43943
+      },
+      "expected_severity": "high",
+      "file": "pan-style/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the address region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "891cc0beb6c725caac98e565f0bb9ec731614fe6a90a76a987f638cc24e1283b",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "in.itd.pan-card.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "5bc5d5f68ed12f700b6857475602cd72af7ba6d79251d8376747a1365955a547",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "d5b27c00950d0471f2c59bdb3787be7e5a96fa9b29b1a989000e634821edbf8a"
+  }
+}

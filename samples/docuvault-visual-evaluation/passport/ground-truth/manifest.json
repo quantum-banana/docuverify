@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic passport-style document",
+  "document_family": "government.passport",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.passport.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 2749523426,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.213777
+      },
+      "expected_severity": "medium",
+      "file": "passport/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "264607fb8851dc4d9f3ad126915f82f40b90d5e403f6993c963c61e3268c2369",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 3144137718,
+      "expected_category": "field_displacement",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.275534
+      },
+      "expected_severity": "medium",
+      "file": "passport/questioned/b-position-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate position shift in the identifier region.",
+      "mutation": "position_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "3ab6154e4f61a0f45b73953476222620e24b850656b610dc4a9430c0424ddc91",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "photo",
+      "deterministic_seed": 2394295277,
+      "expected_category": "photo_compositing",
+      "expected_normalized_box": {
+        "height": 0.168646,
+        "width": 0.164706,
+        "x": 0.110924,
+        "y": 0.211401
+      },
+      "expected_severity": "high",
+      "file": "passport/questioned/b-photo-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate photo paste in the photo region.",
+      "mutation": "photo_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0de53baa655a4f41bc597b25edfa2a500e78dc525c9c34f680bdedbf25c9844d",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "qr",
+      "deterministic_seed": 138673429,
+      "expected_category": "security_element_displacement",
+      "expected_normalized_box": {
+        "height": 0.124703,
+        "width": 0.176471,
+        "x": 0.663866,
+        "y": 0.593824
+      },
+      "expected_severity": "high",
+      "file": "passport/questioned/b-qr-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate qr displacement in the qr region.",
+      "mutation": "qr_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "1050de0e9b6ffe8de1741249efcf6ce908dafb29d6598dfc9ff602b195d58861",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "address",
+      "deterministic_seed": 2606455497,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.083135,
+        "width": 0.747899,
+        "x": 0.12605,
+        "y": 0.43943
+      },
+      "expected_severity": "high",
+      "file": "passport/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the address region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "e57a185138425970419e11c94fcf18ce93793c7a6ae00bd23a7a5470d4a43028",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "in.mea.passport.generic.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "8d51c2f0d2e9ea814d5bfb27eb4ef231697f3cece47850ad006033f6848a3a7e",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "4218dd2687db3028cd296cc32e30f244089b28119b924c47a92c2aa2b71880c1"
+  }
+}

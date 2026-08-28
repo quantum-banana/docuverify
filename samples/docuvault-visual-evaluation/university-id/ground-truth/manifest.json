@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic university identity card",
+  "document_family": "academic.university_or_college_identity_card",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.university-id.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 1948419706,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.213777
+      },
+      "expected_severity": "medium",
+      "file": "university-id/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "c0a12305382eedf58e280e1243274d69b54bb8b23997d90b39eb9eccd7012d4b",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 3383513983,
+      "expected_category": "field_displacement",
+      "expected_normalized_box": {
+        "height": 0.049881,
+        "width": 0.554622,
+        "x": 0.319328,
+        "y": 0.275534
+      },
+      "expected_severity": "medium",
+      "file": "university-id/questioned/b-position-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate position shift in the identifier region.",
+      "mutation": "position_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "c4e475bd257c5f2e34161af6ee0d8979ea50be6acac8c54c61ca8212009ce4ed",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "photo",
+      "deterministic_seed": 831391947,
+      "expected_category": "photo_compositing",
+      "expected_normalized_box": {
+        "height": 0.168646,
+        "width": 0.164706,
+        "x": 0.110924,
+        "y": 0.211401
+      },
+      "expected_severity": "high",
+      "file": "university-id/questioned/b-photo-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate photo paste in the photo region.",
+      "mutation": "photo_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0b883cb7cc8c1f054385bb755a727975af070c850ee8d40444290d8e3c6ea8b8",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "qr",
+      "deterministic_seed": 2139121177,
+      "expected_category": "security_element_displacement",
+      "expected_normalized_box": {
+        "height": 0.124703,
+        "width": 0.176471,
+        "x": 0.663866,
+        "y": 0.593824
+      },
+      "expected_severity": "high",
+      "file": "university-id/questioned/b-qr-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate qr displacement in the qr region.",
+      "mutation": "qr_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "26a7c4a9128ed9bfd7020a1116a29d7c2963cb5ea47b6b1a4f23b0480856ad35",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "address",
+      "deterministic_seed": 1880828857,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.083135,
+        "width": 0.747899,
+        "x": 0.12605,
+        "y": 0.43943
+      },
+      "expected_severity": "high",
+      "file": "university-id/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the address region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "5af0fbc115312c692eecf8632d25dceac21a048e17498203149b6036000eb33e",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.university.student-id.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "07ff92e359b1546ac14142779d13c82e7e90db91b6ceacdcc1ce79ec9a48ed7f",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "25e49e5f594612d911d112bb3f1c4d69bebdeb7ac6ca7f97c607283ad4cf478b"
+  }
+}

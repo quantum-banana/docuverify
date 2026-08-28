@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic NOC certificate",
+  "document_family": "academic.no_objection_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.noc-certificate.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 3601659657,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.062945,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.308789
+      },
+      "expected_severity": "medium",
+      "file": "noc-certificate/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "9443f9fa365a8fbc1b606c31e3706bc0d3367bd3a5ce7c0959eb8fc49504fe67",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "date",
+      "deterministic_seed": 2090877803,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.605701
+      },
+      "expected_severity": "medium",
+      "file": "noc-certificate/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the date region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "0c0304338e28a9083102c2ac06ca1adc4aeccf9e323a2d27851a49243ebad987",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 1582223697,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.263866,
+        "x": 0.147899,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "noc-certificate/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "7390480f1fff74475f41a4d55b9023923d2d290544b37f4f8fc1ea2b08ce7b83",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 1502426285,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.110451,
+        "width": 0.156303,
+        "x": 0.658824,
+        "y": 0.745843
+      },
+      "expected_severity": "high",
+      "file": "noc-certificate/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "d3f64123370f827b8e0f2a8979b70e8898fc8b04bdb4fdbdae620af8e3e7488d",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "border",
+      "deterministic_seed": 2474166481,
+      "expected_category": "border_interruption",
+      "expected_normalized_box": {
+        "height": 0.942993,
+        "width": 0.919328,
+        "x": 0.040336,
+        "y": 0.028504
+      },
+      "expected_severity": "high",
+      "file": "noc-certificate/questioned/b-border-interrupt.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate border interrupt in the border region.",
+      "mutation": "border_interrupt",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "31082802e3bcece7fcb2b22535b8066e9d4857adafac5f7a5bbd2cbfb30ffb86",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.education.noc-certificate.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "3bc767bedfb0952be452230ca710ef856f00bca2a1caf0cc1d89bd663000e765",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "2669669b0407b82f230484fe33d175c3408f456b22567a5dfbfc972abc360ba2"
+  }
+}

@@ -21,6 +21,7 @@ from backend.app.services.qr_codes import DecodedCode, analyze_codes
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SYNTHETIC = PROJECT_ROOT / "samples" / "synthetic"
+VISUAL_EVALUATION = PROJECT_ROOT / "samples" / "docuvault-visual-evaluation"
 
 
 def _require(condition: bool, message: str) -> None:
@@ -180,7 +181,12 @@ def main() -> None:
             )
             visual = _automatic(
                 client,
-                (SYNTHETIC / "template_legitimate_candidate.pdf").read_bytes(),
+                (
+                    VISUAL_EVALUATION
+                    / "cgpa-certificate"
+                    / "truth"
+                    / "reference-b.pdf"
+                ).read_bytes(),
                 "fictional-lumen-candidate.pdf",
                 profile_override="synthetic.lumen-grove.achievement-record.v1",
             )

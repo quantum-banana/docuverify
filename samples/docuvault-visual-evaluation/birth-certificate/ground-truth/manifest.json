@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic birth certificate",
+  "document_family": "civil.birth_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.birth-certificate.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 1422562581,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.764706,
+        "x": 0.117647,
+        "y": 0.239905
+      },
+      "expected_severity": "medium",
+      "file": "birth-certificate/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "45b46e176320cea7deb7b23a6b5cd510e579ab8cb7c8d8f3a6b05f365d337a0e",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "date",
+      "deterministic_seed": 656298414,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.764706,
+        "x": 0.117647,
+        "y": 0.370546
+      },
+      "expected_severity": "medium",
+      "file": "birth-certificate/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the date region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "1bbb6165578f60f2c97243a18c086c320e0d4a9c335204785021e1e2836762ff",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 3745466616,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.27395,
+        "x": 0.137815,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "birth-certificate/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "2a27890330096a1d942aa791728b8e06261658d19ab10d0c3210a44acbac855a",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 4043030307,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.110451,
+        "width": 0.156303,
+        "x": 0.662185,
+        "y": 0.745843
+      },
+      "expected_severity": "high",
+      "file": "birth-certificate/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "135f006139e11252edbec16f6a2d636b13b667f8e1261d683dd7da7f0758ce3c",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "border",
+      "deterministic_seed": 2077886929,
+      "expected_category": "border_interruption",
+      "expected_normalized_box": {
+        "height": 0.942993,
+        "width": 0.919328,
+        "x": 0.040336,
+        "y": 0.028504
+      },
+      "expected_severity": "high",
+      "file": "birth-certificate/questioned/b-border-interrupt.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate border interrupt in the border region.",
+      "mutation": "border_interrupt",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "bd672f85aa844ef642cc424e4f5f38ac90927d23a1fab4a526e68ed804379e71",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "in.civil.birth-certificate.generic.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "88b1ecfb037543cc2e5cca81d9f733529a144d2a505f5935425d72db536bab25",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "17998dc056fbe64b97c1bc643ca722c276aff91e55536b91a6cd5e74766cac73"
+  }
+}

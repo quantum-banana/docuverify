@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic proof-of-address document",
+  "document_family": "civil.proof_of_address",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.proof-of-address.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 1780048674,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.764706,
+        "x": 0.117647,
+        "y": 0.239905
+      },
+      "expected_severity": "medium",
+      "file": "proof-of-address/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "ab19c0d2a4bc0c91ac4647311897ca53d348bf21ac03ce1b27bb81ddf9db7df2",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "date",
+      "deterministic_seed": 3783490932,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.764706,
+        "x": 0.117647,
+        "y": 0.370546
+      },
+      "expected_severity": "medium",
+      "file": "proof-of-address/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the date region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "3667ad1ce3991240acef18590c9f8f7dc42507835d497058a344a6d4dc18cc46",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 3381145462,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.27395,
+        "x": 0.137815,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "proof-of-address/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "670e3e8812c27ddb6efc3497b4462e50be73f57547aec73d0f70bee69b409a54",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 948934632,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.110451,
+        "width": 0.156303,
+        "x": 0.662185,
+        "y": 0.745843
+      },
+      "expected_severity": "high",
+      "file": "proof-of-address/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "7ac6f757beb2fac674a04ae5b53fec9e16dfd954b1321ad0282a7f2b95e9772e",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "border",
+      "deterministic_seed": 61946190,
+      "expected_category": "border_interruption",
+      "expected_normalized_box": {
+        "height": 0.942993,
+        "width": 0.919328,
+        "x": 0.040336,
+        "y": 0.028504
+      },
+      "expected_severity": "high",
+      "file": "proof-of-address/questioned/b-border-interrupt.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate border interrupt in the border region.",
+      "mutation": "border_interrupt",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "733a15d84f177665612041ed028f54c842c3457c199edc1ee2e7e34271830470",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.civil.proof-of-address.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "11647d48484c8c79fcb269510d15833a5a5dc60d28f1fc32a237b3ee60e2e095",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "878f4fafb771cb08156a840efbf952bbb4035eebf8417af5a57826d603d2c398"
+  }
+}

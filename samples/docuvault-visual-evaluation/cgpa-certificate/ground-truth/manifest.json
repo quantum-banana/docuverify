@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic CGPA certificate",
+  "document_family": "academic.grade_or_cgpa_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.lumen-grove.achievement-record.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 1422109986,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.187648
+      },
+      "expected_severity": "medium",
+      "file": "cgpa-certificate/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "75b18e1638f7c8c488932e26396c62e149932864c22e39075afa627a825cb254",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 2112198130,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.243468
+      },
+      "expected_severity": "medium",
+      "file": "cgpa-certificate/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the identifier region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "c7d49b2a05bf1e131d0c7d566554c463085ce3dd2c519864632cc6a87738c396",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "grade",
+      "deterministic_seed": 1228566392,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.65677
+      },
+      "expected_severity": "high",
+      "file": "cgpa-certificate/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the grade region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "b6d3f12f476fc8ff8ebac8c01db4af2525049251c527749148a8023c0b0f17f6",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "grade",
+      "deterministic_seed": 761633054,
+      "expected_category": "logical_value_inconsistency",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.65677
+      },
+      "expected_severity": "high",
+      "file": "cgpa-certificate/questioned/b-logical-value-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate logical value change in the grade region.",
+      "mutation": "logical_value_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "2a26c1847fd63e8b12d58df5054f521901fbc5199db75c80c432c2e238438603",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 2875128789,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.047506,
+        "width": 0.252101,
+        "x": 0.596639,
+        "y": 0.80285
+      },
+      "expected_severity": "high",
+      "file": "cgpa-certificate/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "34544df4b2662d20deb439372e759ca0f5196d042a26dacf963cdac922d5aed4",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "synthetic.lumen-grove.achievement-record.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "ca2c7f1d8726f4ef6a3c0c84cc8cfb61fb097fb831afd09d644887feef3716ac",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "51e9a64fb5ef234383e18726cce4eb08644d550805483fd5ee96f0aabc99b5af"
+  }
+}

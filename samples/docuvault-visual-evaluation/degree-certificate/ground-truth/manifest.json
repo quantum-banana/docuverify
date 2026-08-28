@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic degree certificate",
+  "document_family": "academic.degree_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.degree-certificate.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 2873371455,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.062945,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.308789
+      },
+      "expected_severity": "medium",
+      "file": "degree-certificate/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "e04eac0ead68b180f49af6b40048f8cc3bf2950b9d699369601ee5501d846e5a",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "date",
+      "deterministic_seed": 4284263950,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.605701
+      },
+      "expected_severity": "medium",
+      "file": "degree-certificate/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the date region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "c08390e0002852486b01a84899407c9f4d0956e4b7d0c414bdd44a169c10b949",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 3308562496,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.263866,
+        "x": 0.147899,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "degree-certificate/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "795d8a45b38a75e07154c57c368699f5de31298770da6be9daf8a30ce3ca4309",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 2878669200,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.110451,
+        "width": 0.156303,
+        "x": 0.658824,
+        "y": 0.745843
+      },
+      "expected_severity": "high",
+      "file": "degree-certificate/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "5edf1953f69771159cde913a627ada42d5810a84d70f99749b8041231649bb11",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "border",
+      "deterministic_seed": 2728999296,
+      "expected_category": "border_interruption",
+      "expected_normalized_box": {
+        "height": 0.942993,
+        "width": 0.919328,
+        "x": 0.040336,
+        "y": 0.028504
+      },
+      "expected_severity": "high",
+      "file": "degree-certificate/questioned/b-border-interrupt.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate border interrupt in the border region.",
+      "mutation": "border_interrupt",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "d13be8bd522419363fcb0e0e43cbda436aec9ff83e637cb5eac939c29ed2a1dd",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.university.degree.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "64f033c2840ed906fab1cbfe60d9b91a2035e9cba909e7648478649ecd94b547",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "584fa410072c316566ec08b22b5213154ecb9e4c2af0400aff645006644fa76e"
+  }
+}

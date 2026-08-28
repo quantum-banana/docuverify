@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic university marksheet",
+  "document_family": "academic.grade_or_cgpa_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.university-marksheet.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 3577099051,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.187648
+      },
+      "expected_severity": "medium",
+      "file": "university-marksheet/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "073ba04c3d50229251c8ff650925f3842e8d904d67bffbd43bd3686be0d0a4f6",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "identifier",
+      "deterministic_seed": 2247050698,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.243468
+      },
+      "expected_severity": "medium",
+      "file": "university-marksheet/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the identifier region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "bd5ce8afab1e170ff1cf767ef524b2559fee369c958af0dea4bb6871a71de0a9",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "grade",
+      "deterministic_seed": 3222798209,
+      "expected_category": "background_compositing",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.65677
+      },
+      "expected_severity": "high",
+      "file": "university-marksheet/questioned/b-pasted-background.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate pasted background in the grade region.",
+      "mutation": "pasted_background",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "82fb0f7df69041d548f0ca6c53db8f03fc9d2953d8d11ff9279d5fd62f3361e1",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "grade",
+      "deterministic_seed": 2079439462,
+      "expected_category": "logical_value_inconsistency",
+      "expected_normalized_box": {
+        "height": 0.048694,
+        "width": 0.563025,
+        "x": 0.092437,
+        "y": 0.65677
+      },
+      "expected_severity": "high",
+      "file": "university-marksheet/questioned/b-logical-value-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate logical value change in the grade region.",
+      "mutation": "logical_value_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "4ce91d7edcf7dd36c2d24e2604ff334d120f11ac2c7c340dd4efc824ae2ac4d6",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 3294370373,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.047506,
+        "width": 0.252101,
+        "x": 0.596639,
+        "y": 0.80285
+      },
+      "expected_severity": "high",
+      "file": "university-marksheet/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "c1dca12a45cd5e008c3d7d4feed22f989e8ded158a8d09327c7ea29a1e75d2f7",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.university.grade-cgpa.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "82ee46938160e78a9e3dc51c7895d194a1de755b1f9e5aac1fca5cdf5b2bce9e",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "6ca92060e524f4db7b3353a4f308a90288e4dc4aa1b462e7021b5f0c7357333a"
+  }
+}

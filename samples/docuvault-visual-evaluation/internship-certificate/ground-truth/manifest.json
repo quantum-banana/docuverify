@@ -1,0 +1,113 @@
+{
+  "display_family": "Synthetic internship certificate",
+  "document_family": "academic.internship_certificate",
+  "generator_version": "1.0.0",
+  "notice": "All documents, identities, issuers, identifiers, signatures, seals, and payloads are fictional.",
+  "profile_id": "synthetic.docuverify.internship-certificate.v1",
+  "questioned": [
+    {
+      "changed_field": "name",
+      "deterministic_seed": 2831777493,
+      "expected_category": "variable_typography_change",
+      "expected_normalized_box": {
+        "height": 0.062945,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.308789
+      },
+      "expected_severity": "medium",
+      "file": "internship-certificate/questioned/b-font-weight-change.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate font weight change in the name region.",
+      "mutation": "font_weight_change",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "a060e159802efc5dd090b51822e8bf98ffa632b5d250bd82e26934a0886166a2",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "date",
+      "deterministic_seed": 2743349595,
+      "expected_category": "baseline_displacement",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.704202,
+        "x": 0.147899,
+        "y": 0.605701
+      },
+      "expected_severity": "medium",
+      "file": "internship-certificate/questioned/b-baseline-shift.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate baseline shift in the date region.",
+      "mutation": "baseline_shift",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "26ee0004cc2d0e543df46ec2c1ba739b2f017da85f1677d9ac8ae29b81c55146",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "signature",
+      "deterministic_seed": 895703984,
+      "expected_category": "signature_compositing",
+      "expected_normalized_box": {
+        "height": 0.053444,
+        "width": 0.263866,
+        "x": 0.147899,
+        "y": 0.771971
+      },
+      "expected_severity": "high",
+      "file": "internship-certificate/questioned/b-signature-paste.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate signature paste in the signature region.",
+      "mutation": "signature_paste",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "cef5555eeb7abf82e6e8df32736b35016311a657c0eb51b180f4bc8e6c933598",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "seal",
+      "deterministic_seed": 4076131568,
+      "expected_category": "seal_displacement",
+      "expected_normalized_box": {
+        "height": 0.110451,
+        "width": 0.156303,
+        "x": 0.658824,
+        "y": 0.745843
+      },
+      "expected_severity": "high",
+      "file": "internship-certificate/questioned/b-seal-displacement.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate seal displacement in the seal region.",
+      "mutation": "seal_displacement",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "d7700063a46f3028061c7f40a5f83892d19aa213321e4526ff93d2df17d266ab",
+      "verification_mode": "docuvault"
+    },
+    {
+      "changed_field": "border",
+      "deterministic_seed": 2005151492,
+      "expected_category": "border_interruption",
+      "expected_normalized_box": {
+        "height": 0.942993,
+        "width": 0.919328,
+        "x": 0.040336,
+        "y": 0.028504
+      },
+      "expected_severity": "high",
+      "file": "internship-certificate/questioned/b-border-interrupt.pdf",
+      "human_readable_ground_truth": "Reference B was regenerated with the document-appropriate border interrupt in the border region.",
+      "mutation": "border_interrupt",
+      "page_number": 1,
+      "production_access_permitted": false,
+      "sha256": "ec0e06c7916794c8b60bdf8b25850c33c92aedd55245f5c1e8e8133861df37b8",
+      "verification_mode": "docuvault"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_profile_id": "generic.education.internship-certificate.v1",
+  "synthetic": true,
+  "truth": {
+    "reference_a": "truth/reference-a.pdf",
+    "reference_a_sha256": "4cbbcd53bf8ef488aef7db5f3772438cf6f09eceb60a69cd384bc6cba07c8bf2",
+    "reference_b": "truth/reference-b.pdf",
+    "reference_b_sha256": "7d8248d8ce7d5e512142f0a16e39806d59884ba8f2b050ce8633c0b9eebf652d"
+  }
+}
