@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseDocumentResult, runDemo, watchAnalysis } from '../api/client'
+import { apiInternals, parseDocumentResult, runDemo, watchAnalysis } from '../api/client'
 import type {
   AnalysisJobCreated,
   AnalysisWatchHandlers,
@@ -154,6 +154,133 @@ describe('Phase 1 API contract and recovery behavior', () => {
     expect(parsed.findings[0].evidence_source).toBe('visual_difference, embedded_pdf_text')
     expect(parsed.findings[0].measurements.changed_pixel_ratio).toBe(0.12)
     expect(parsed.pages[0].candidate_image_url).toContain('/assets/candidate-page')
+  })
+
+  it('normalizes Phase 2 page metrics, OCR, variable suggestions and page anomalies defensively', () => {
+    const parsed = parseDocumentResult({
+      ...backendResult,
+      schema_version: '2.0',
+      comparison_mode: 'template',
+      total_pages: 3,
+      reference_page_count: 3,
+      candidate_page_count: 2,
+      reference: { ...backendResult.reference, page_count: 3 },
+      candidate: { ...backendResult.candidate, page_count: 2 },
+      findings: [],
+      pages: [
+        {
+          page_number: 1,
+          page_status: 'matched',
+          page_risk: 0.04,
+          page_confidence: 0.96,
+          page_coverage: 1,
+          candidate_page_url: '/assets/page-1',
+          reference_page_url: '/assets/reference-1',
+          findings: [],
+          ocr_summary: {
+            reference_provider: 'pymupdf_embedded_text',
+            candidate_provider: 'RapidOCR',
+            reference_device: 'cpu',
+            candidate_device: 'cpu',
+            reference_confidence: 99,
+            candidate_confidence: 91,
+            reference_characters: 150,
+            candidate_characters: 144,
+            reference_succeeded: true,
+            candidate_succeeded: true,
+          },
+          suggested_variable_regions: [
+            {
+              id: 'field-name',
+              page: 1,
+              region_role: 'variable',
+              confidence: 0.89,
+              reason: 'Value follows the Name label.',
+              bbox: [0.2, 0.3, 0.4, 0.08],
+            },
+          ],
+        },
+        {
+          page_number: 2,
+          status: 'page_reordered',
+          risk_score: 82,
+          candidate_image_url: '/assets/page-2',
+          reference_image_url: '/assets/reference-3',
+          findings: [],
+          reference_page_number: 3,
+          candidate_page_number: 2,
+        },
+        {
+          page_number: 3,
+          status: 'missing_page',
+          risk_score: 70,
+          candidate_image_url: '',
+          reference_image_url: '/assets/reference-2',
+          findings: [],
+          reference_page_number: 2,
+          candidate_page_number: null,
+        },
+      ],
+      page_order_anomalies: [
+        {
+          anomaly_type: 'page_reordered',
+          title: 'Reordered page',
+          page_number: 2,
+          reference_page: 3,
+          candidate_page: 2,
+        },
+        {
+          anomaly_type: 'page_missing',
+          title: 'Missing page',
+          reference_page_number: 2,
+          candidate_page_number: null,
+        },
+      ],
+      aggregate: { pages_requiring_review: 2, max_page_risk: 82 },
+    })
+
+    expect(parsed.comparison_mode).toBe('template')
+    expect(parsed.total_page_count).toBe(3)
+    expect(parsed.candidate_page_count).toBe(2)
+    expect(parsed.pages[0]).toMatchObject({ risk_score: 4, confidence_score: 96, coverage_score: 100 })
+    expect(parsed.pages[0].ocr).toMatchObject({
+      provider: 'RapidOCR',
+      device: 'cpu',
+      confidence_score: 91,
+      succeeded: true,
+      reference_provider: 'pymupdf_embedded_text',
+    })
+    expect(parsed.region_suggestions?.[0]).toMatchObject({ suggestion_id: 'field-name', role: 'variable' })
+    expect(parsed.pages[1].status).toBe('reordered')
+    expect(parsed.pages[2]).toMatchObject({ status: 'missing', candidate_page_number: null })
+    expect(parsed.page_order_anomalies?.[0].type).toBe('reordered')
+    expect(parsed.page_order_anomalies).toHaveLength(2)
+    expect(parsed.page_order_anomalies?.[1]).toMatchObject({
+      type: 'missing',
+      page_number: 3,
+      reference_page_number: 2,
+      candidate_page_number: null,
+    })
+    expect(parsed.document_aggregate).toMatchObject({ reviewed_page_count: 2, highest_page_risk: 82 })
+
+    const progress = apiInternals.parseProgressEvent({
+      id: 'progress-2',
+      current_page: 2,
+      total_page_count: 3,
+      current_page_stage: 'Raster OCR',
+      text_provider: 'RapidOCR',
+      execution_device: 'cpu',
+      region: [0.4, 0.5, 0.2, 0.1],
+      progress: 58,
+    }, 'job-phase-2')
+    expect(progress).toMatchObject({
+      page_number: 2,
+      total_pages: 3,
+      page_stage: 'Raster OCR',
+      ocr_provider: 'RapidOCR',
+      ocr_device: 'cpu',
+      localized_region: { x: 0.4, y: 0.5, width: 0.2, height: 0.1 },
+    })
   })
 
   it('polls the final job after an SSE interruption and returns the completed result', async () => {

@@ -1,3 +1,4 @@
-# Phase 1 deliberately has no heavyweight raster-OCR dependency.
-# PyMuPDF embedded-PDF text extraction is supplied by common.txt; raster images
-# remain fully analyzable by the visual pipeline and report OCR as unavailable.
+# Phase 2 CPU raster OCR. RapidOCR is Apache-2.0 licensed and uses the local
+# ONNX Runtime execution provider on Windows; GPU packages remain optional.
+rapidocr==3.9.2
+onnxruntime==1.29.0

@@ -3,9 +3,9 @@ fastapi==0.116.1
 uvicorn==0.35.0
 python-multipart==0.0.20
 
-# Contracts and forensic runtime (confirmed against Python 3.14.6)
+# Contracts and forensic runtime (tested cross-laptop baseline: Python 3.12)
 pydantic==2.13.4
 numpy==2.5.1
-opencv-python-headless==4.13.0.92
+opencv-python==5.0.0.93
 PyMuPDF==1.28.0
 Pillow==12.3.0

@@ -16,6 +16,7 @@ from backend.app.core.storage import utc_now
 from backend.app.models.contracts import (
     AnalysisJob,
     CapabilityStatus,
+    ComparisonMode,
     CreateAnalysisResponse,
     DiagnosticsResponse,
     ErrorDetail,
@@ -23,6 +24,7 @@ from backend.app.models.contracts import (
     HealthResponse,
 )
 from backend.app.services.documents import DocumentValidationError, validate_upload
+from backend.app.services.ocr import raster_ocr_capability
 
 
 router = APIRouter(prefix="/api/v1")
@@ -39,6 +41,7 @@ class APIProblem(Exception):
 @router.get("/health", response_model=HealthResponse, tags=["system"])
 def health(request: Request) -> HealthResponse:
     runtime_writable = request.app.state.store.runtime_writable()
+    raster_ocr, _, _ = _raster_ocr_capability(request)
     return HealthResponse(
         status="ok" if runtime_writable else "degraded",
         version=__version__,
@@ -50,8 +53,10 @@ def health(request: Request) -> HealthResponse:
             alignment=True,
             visual_comparison=True,
             embedded_pdf_text=True,
-            raster_ocr=False,
+            raster_ocr=raster_ocr,
             sse=True,
+            multi_page=True,
+            template_comparison=True,
         ),
     )
 
@@ -83,10 +88,11 @@ def diagnostics(request: Request) -> DiagnosticsResponse:
         except (OSError, subprocess.SubprocessError):
             gpu_detected = False
     runtime_writable = request.app.state.store.runtime_writable()
+    _, ocr_provider, ocr_device = _raster_ocr_capability(request)
     return DiagnosticsResponse(
         python_version=platform.python_version(),
-        ocr_provider="pymupdf_embedded_text",
-        ocr_device="cpu",
+        ocr_provider=ocr_provider,
+        ocr_device=ocr_device,
         opencv_version=cv2.__version__,
         pymupdf_version=str(getattr(fitz, "VersionBind", fitz.version[0])),
         numpy_version=np.__version__,
@@ -105,18 +111,20 @@ def diagnostics(request: Request) -> DiagnosticsResponse:
 )
 async def create_reference_analysis(
     request: Request,
-    reference: Annotated[UploadFile, File(description="Trusted one-page reference")],
-    candidate: Annotated[UploadFile, File(description="Questioned one-page document")],
+    reference: Annotated[UploadFile, File(description="Trusted 1-10 page reference")],
+    candidate: Annotated[UploadFile, File(description="Questioned 1-10 page document")],
     comparison_mode: Annotated[str, Form()] = "exact",
 ) -> CreateAnalysisResponse:
-    if comparison_mode != "exact":
+    try:
+        mode = ComparisonMode(comparison_mode)
+    except ValueError:
         raise APIProblem(
             422,
             ErrorDetail(
                 code="unsupported_comparison_mode",
-                message="Phase 1 supports only comparison_mode=exact.",
+                message="comparison_mode must be exact or template.",
                 field="comparison_mode",
-                details={"supported": ["exact"]},
+                details={"supported": ["exact", "template"]},
             ),
         )
     settings = request.app.state.settings
@@ -139,6 +147,20 @@ async def create_reference_analysis(
             data=candidate_data,
             max_bytes=settings.max_upload_bytes,
         )
+        for upload in (validated_reference, validated_candidate):
+            if upload.page_count > settings.max_pages:
+                raise DocumentValidationError(
+                    "page_limit_exceeded",
+                    (
+                        f"The {upload.field} PDF exceeds the configured "
+                        f"{settings.max_pages}-page limit."
+                    ),
+                    field=upload.field,
+                    details={
+                        "page_count": upload.page_count,
+                        "max_pages": settings.max_pages,
+                    },
+                )
     except DocumentValidationError as exc:
         status = 413 if exc.code == "file_too_large" else 422
         raise APIProblem(
@@ -153,7 +175,9 @@ async def create_reference_analysis(
     finally:
         await reference.close()
         await candidate.close()
-    return request.app.state.manager.submit(validated_reference, validated_candidate)
+    return request.app.state.manager.submit(
+        validated_reference, validated_candidate, comparison_mode=mode
+    )
 
 
 @router.post(
@@ -197,7 +221,9 @@ def create_demo_analysis(request: Request) -> CreateAnalysisResponse:
                 message="The bundled synthetic demo fixture could not be validated.",
             ),
         ) from exc
-    return request.app.state.manager.submit(reference, candidate)
+    return request.app.state.manager.submit(
+        reference, candidate, comparison_mode=ComparisonMode.EXACT
+    )
 
 
 @router.get(
@@ -210,7 +236,10 @@ def get_analysis(job_id: str, request: Request) -> AnalysisJob:
     job = request.app.state.store.get_job(job_id)
     if job is None:
         raise _job_not_found()
-    if request.app.state.store.resolve_asset(job_id, "candidate-page") is not None:
+    if (
+        job.candidate_page_url is None
+        and request.app.state.store.resolve_asset(job_id, "candidate-page") is not None
+    ):
         job = job.model_copy(
             update={
                 "candidate_page_url": f"/api/v1/analyses/{job_id}/assets/candidate-page"
@@ -331,3 +360,12 @@ def api_problem_response(problem: APIProblem) -> JSONResponse:
         status_code=problem.status_code,
         content=json.loads(ErrorResponse(error=problem.error).model_dump_json()),
     )
+
+
+def _raster_ocr_capability(request: Request) -> tuple[bool, str, str]:
+    preference = request.app.state.settings.ocr_provider_preference
+    try:
+        return raster_ocr_capability(preference)
+    except TypeError:
+        # Compatibility while upgrading an existing Phase 1 environment.
+        return raster_ocr_capability()

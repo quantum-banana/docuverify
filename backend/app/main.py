@@ -47,7 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application = FastAPI(
         title="DocuVerify API",
-        description="Explainable exact-document comparison for the Phase 1 vertical slice.",
+        description="Explainable exact and template comparison for 1-10 page documents.",
         version=__version__,
         lifespan=lifespan,
         docs_url="/api/docs",

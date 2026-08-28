@@ -32,13 +32,54 @@ function Test-PythonCandidate {
     }
 }
 
+function Get-DocuVerifyTestedPythonBaseline {
+    [CmdletBinding()]
+    param()
+
+    return '3.12'
+}
+
+function Select-DocuVerifyPythonVersion {
+    [CmdletBinding()]
+    param(
+        [string[]]$AvailableVersions = @(),
+
+        [string]$RequestedVersion
+    )
+
+    $targetVersion = $RequestedVersion
+    if ([string]::IsNullOrWhiteSpace($targetVersion)) {
+        $targetVersion = Get-DocuVerifyTestedPythonBaseline
+    }
+
+    foreach ($availableVersion in $AvailableVersions) {
+        if ([string]::IsNullOrWhiteSpace($availableVersion)) {
+            continue
+        }
+        if ($availableVersion.Equals($targetVersion, [System.StringComparison]::Ordinal) -or
+            $availableVersion.StartsWith($targetVersion + '.', [System.StringComparison]::Ordinal)) {
+            return $targetVersion
+        }
+    }
+
+    return $null
+}
+
 function Resolve-DocuVerifyPython {
     [CmdletBinding()]
     param(
-        [switch]$IncludeProjectVenv
+        [switch]$IncludeProjectVenv,
+
+        [string]$PythonExecutable,
+
+        [string]$PreferredVersion = (Get-DocuVerifyTestedPythonBaseline)
     )
 
     $projectRoot = Get-DocuVerifyProjectRoot
+    $selectionVersion = $PreferredVersion
+    if ([string]::IsNullOrWhiteSpace($selectionVersion)) {
+        $selectionVersion = Get-DocuVerifyTestedPythonBaseline
+    }
     $candidateList = New-Object 'System.Collections.Generic.List[object]'
     $candidateKeys = @{}
 
@@ -64,6 +105,19 @@ function Resolve-DocuVerifyPython {
         }
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
+        $explicitPath = [System.IO.Path]::GetFullPath($PythonExecutable)
+        $explicitCandidate = [pscustomobject]@{
+            FilePath        = $explicitPath
+            PrefixArguments = [string[]]@()
+            Label           = 'explicit Python executable'
+        }
+        if (Test-PythonCandidate -FilePath $explicitCandidate.FilePath) {
+            return $explicitCandidate
+        }
+        return $null
+    }
+
     if ($IncludeProjectVenv) {
         $venvPython = Join-Path $projectRoot '.venv\Scripts\python.exe'
         Add-PythonCandidate -FilePath $venvPython -PrefixArguments @() -Label 'project virtual environment'
@@ -71,10 +125,7 @@ function Resolve-DocuVerifyPython {
 
     $launcherCommands = @(Get-Command py.exe -CommandType Application -All -ErrorAction SilentlyContinue)
     foreach ($launcherCommand in $launcherCommands) {
-        foreach ($selector in @('-3.11', '-3.12', '-3.13', '-3.10', '-3.14', '-3')) {
-            Add-PythonCandidate -FilePath $launcherCommand.Source -PrefixArguments @($selector) -Label "Python launcher $selector"
-        }
-        Add-PythonCandidate -FilePath $launcherCommand.Source -PrefixArguments @() -Label 'Python launcher default'
+        Add-PythonCandidate -FilePath $launcherCommand.Source -PrefixArguments @("-$selectionVersion") -Label "Python launcher -$selectionVersion"
     }
 
     foreach ($commandName in @('python.exe', 'python3.exe')) {
@@ -118,7 +169,12 @@ function Resolve-DocuVerifyPython {
 
     foreach ($candidate in $candidateList) {
         if (Test-PythonCandidate -FilePath $candidate.FilePath -PrefixArguments $candidate.PrefixArguments) {
-            return $candidate
+            $candidateVersion = Get-DocuVerifyPythonVersion -PythonCommand $candidate
+            $selectedVersion = Select-DocuVerifyPythonVersion -AvailableVersions @($candidateVersion) -RequestedVersion $selectionVersion
+            if ($null -ne $selectedVersion) {
+                $candidate | Add-Member -NotePropertyName Version -NotePropertyValue $candidateVersion
+                return $candidate
+            }
         }
     }
 

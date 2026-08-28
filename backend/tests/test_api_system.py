@@ -11,8 +11,10 @@ def test_health_endpoint_reports_real_capabilities(client: TestClient) -> None:
     assert body["version"] == "0.1.0"
     assert body["capabilities"]["pdf_rendering"] is True
     assert body["capabilities"]["visual_comparison"] is True
-    assert body["capabilities"]["raster_ocr"] is False
+    assert body["capabilities"]["raster_ocr"] is True
     assert body["capabilities"]["sse"] is True
+    assert body["capabilities"]["multi_page"] is True
+    assert body["capabilities"]["template_comparison"] is True
 
 
 def test_diagnostics_are_safe_and_honest(client: TestClient) -> None:
@@ -21,7 +23,7 @@ def test_diagnostics_are_safe_and_honest(client: TestClient) -> None:
     body = response.json()
     assert body["backend_ready"] is True
     assert body["runtime_writable"] is True
-    assert body["ocr_provider"] == "pymupdf_embedded_text"
+    assert body["ocr_provider"] == "rapidocr_onnxruntime"
     assert body["ocr_device"] == "cpu"
     assert body["opencv_version"]
     assert body["pymupdf_version"]

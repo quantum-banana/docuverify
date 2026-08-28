@@ -35,6 +35,14 @@ def _origins() -> tuple[str, ...]:
     return tuple(value.strip() for value in raw.split(",") if value.strip())
 
 
+def _env_choice(name: str, default: str, choices: set[str]) -> str:
+    value = os.getenv(name, default).strip().lower()
+    if value not in choices:
+        allowed = ", ".join(sorted(choices))
+        raise ValueError(f"{name} must be one of: {allowed}")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     runtime_dir: Path = field(
@@ -57,13 +65,27 @@ class Settings:
     max_render_dimension: int = field(
         default_factory=lambda: _env_int("DOCUVERIFY_MAX_RENDER_DIMENSION", 1800, 1000, 2400)
     )
+    max_pages: int = field(
+        default_factory=lambda: _env_int("DOCUVERIFY_MAX_PAGES", 10, 1, 10)
+    )
     cors_origins: tuple[str, ...] = field(default_factory=_origins)
     ocr_provider_preference: str = field(
-        default_factory=lambda: os.getenv("DOCUVERIFY_OCR_PROVIDER", "auto").strip().lower()
+        default_factory=lambda: _env_choice(
+            "DOCUVERIFY_OCR_PROVIDER", "auto", {"auto", "rapidocr", "none"}
+        )
     )
     ocr_device: str = field(
-        default_factory=lambda: os.getenv("DOCUVERIFY_OCR_DEVICE", "cpu").strip().lower()
+        default_factory=lambda: _env_choice(
+            "DOCUVERIFY_OCR_DEVICE", "cpu", {"cpu", "gpu"}
+        )
     )
+
+    def __post_init__(self) -> None:
+        if self.ocr_device == "gpu":
+            raise ValueError(
+                "GPU OCR is not enabled by the verified Phase 2 environment; "
+                "set DOCUVERIFY_OCR_DEVICE=cpu"
+            )
 
     @property
     def max_upload_bytes(self) -> int:

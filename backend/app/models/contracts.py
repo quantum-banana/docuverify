@@ -1,4 +1,8 @@
-"""Canonical, versioned API contracts for the Phase 1 vertical slice."""
+"""Canonical, versioned API contracts for document analysis.
+
+The v1 wire format is intentionally additive.  Phase 1 consumers can continue
+to read the original fields while Phase 2 clients use the page-aware fields.
+"""
 
 from __future__ import annotations
 
@@ -23,6 +27,32 @@ class JobState(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class ComparisonMode(StrEnum):
+    EXACT = "exact"
+    TEMPLATE = "template"
+
+
+class PageStatus(StrEnum):
+    MATCHED = "matched"
+    REORDERED = "reordered"
+    MISSING = "missing"
+    ADDED = "added"
+    FAILED = "failed"
+
+
+class RegionRole(StrEnum):
+    FIXED = "fixed"
+    VARIABLE = "variable"
+    UNKNOWN = "unknown"
+
+
+class PageAnomalyType(StrEnum):
+    MISSING_PAGE = "page_missing"
+    ADDED_PAGE = "page_added"
+    REORDERED_PAGE = "page_reordered"
+    DIMENSION_MISMATCH = "page_dimension_mismatch"
 
 
 class StageId(StrEnum):
@@ -109,16 +139,52 @@ class Finding(ContractModel):
     severity: Severity
     evidence_source: list[str]
     assets: AssetLinks
+    region_role: RegionRole = RegionRole.UNKNOWN
     supporting_measurements: dict[str, MeasurementValue] = Field(default_factory=dict)
+
+
+class PageOCRSummary(ContractModel):
+    reference_provider: str
+    candidate_provider: str
+    reference_device: str = "cpu"
+    candidate_device: str = "cpu"
+    reference_confidence: Score | None = None
+    candidate_confidence: Score | None = None
+    reference_characters: Annotated[int, Field(ge=0)] = 0
+    candidate_characters: Annotated[int, Field(ge=0)] = 0
+    reference_succeeded: bool = False
+    candidate_succeeded: bool = False
 
 
 class PageResult(ContractModel):
     page_number: Annotated[int, Field(ge=1)]
+    status: PageStatus = PageStatus.MATCHED
+    reference_page_number: Annotated[int, Field(ge=1)] | None = None
+    candidate_page_number: Annotated[int, Field(ge=1)] | None = None
+    risk_score: Score = 0.0
+    confidence_score: Score = 0.0
+    coverage_score: Score = 0.0
+    alignment_quality: Score = 0.0
+    finding_count: Annotated[int, Field(ge=0)] = 0
     width: Annotated[int, Field(gt=0)]
     height: Annotated[int, Field(gt=0)]
-    reference_image_url: str
-    candidate_image_url: str
+    reference_image_url: str | None
+    candidate_image_url: str | None
+    ocr: PageOCRSummary | None = None
     findings: list[Finding]
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_page_defaults(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        page_number = values.get("page_number")
+        values.setdefault("reference_page_number", page_number)
+        values.setdefault("candidate_page_number", page_number)
+        if "finding_count" not in values:
+            values["finding_count"] = len(values.get("findings") or ())
+        return values
 
 
 class CoordinateTransform(ContractModel):
@@ -135,7 +201,7 @@ class DocumentDescriptor(ContractModel):
     filename: str
     content_type: str
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
-    page_count: Literal[1]
+    page_count: Annotated[int, Field(ge=1, le=10)]
     width: Annotated[int, Field(gt=0)]
     height: Annotated[int, Field(gt=0)]
     preview_url: str
@@ -150,13 +216,76 @@ class TextExtractionSummary(ContractModel):
     similarity: UnitFloat | None
 
 
+class PageCorrespondence(ContractModel):
+    reference_page_number: Annotated[int, Field(ge=1)] | None = None
+    candidate_page_number: Annotated[int, Field(ge=1)] | None = None
+    status: PageStatus
+    confidence_score: Score
+    heading_similarity: UnitFloat | None = None
+    perceptual_similarity: UnitFloat | None = None
+    dimension_similarity: UnitFloat | None = None
+
+
+class PageOrderAnomaly(ContractModel):
+    anomaly_id: str
+    anomaly_type: PageAnomalyType
+    title: str
+    explanation: str
+    risk_score: Score
+    confidence_score: Score
+    reference_page_number: Annotated[int, Field(ge=1)] | None = None
+    candidate_page_number: Annotated[int, Field(ge=1)] | None = None
+
+
+class RegionSuggestion(ContractModel):
+    suggestion_id: str
+    page_number: Annotated[int, Field(ge=1)]
+    bounding_box: BoundingBox
+    role: RegionRole
+    confidence_score: Score
+    reason: str
+    label: str | None = None
+
+
+class DocumentAggregate(ContractModel):
+    risk_score: Score
+    confidence_score: Score
+    coverage_score: Score
+    alignment_quality: Score
+    finding_count: Annotated[int, Field(ge=0)]
+    matched_page_count: Annotated[int, Field(ge=0)]
+    missing_page_count: Annotated[int, Field(ge=0)]
+    added_page_count: Annotated[int, Field(ge=0)]
+    reordered_page_count: Annotated[int, Field(ge=0)]
+
+
 class DocumentResult(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     job_id: str
-    comparison_mode: Literal["exact"] = "exact"
+    comparison_mode: ComparisonMode = ComparisonMode.EXACT
     reference: DocumentDescriptor
     candidate: DocumentDescriptor
     pages: list[PageResult]
+    # Each input remains capped at ten physical pages. A missing reference page
+    # and an unrelated added candidate page occupy separate review slots, so the
+    # correspondence union can contain up to twenty entries.
+    total_page_count: Annotated[
+        int,
+        Field(
+            ge=1,
+            le=20,
+            description=(
+                "Number of ordered review slots in pages/page_correspondence; "
+                "reference and candidate physical page counts remain capped at ten each."
+            ),
+        ),
+    ] = 1
+    reference_page_count: Annotated[int, Field(ge=1, le=10)] = 1
+    candidate_page_count: Annotated[int, Field(ge=1, le=10)] = 1
+    page_correspondence: list[PageCorrespondence] = Field(default_factory=list)
+    page_order_anomalies: list[PageOrderAnomaly] = Field(default_factory=list)
+    region_suggestions: list[RegionSuggestion] = Field(default_factory=list)
+    document_aggregate: DocumentAggregate | None = None
     overall_tampering_risk: Score
     risk_label: RiskLabel
     assessment_confidence: Score
@@ -167,6 +296,31 @@ class DocumentResult(ContractModel):
     text_extraction: TextExtractionSummary
     generated_at: datetime
 
+    @model_validator(mode="before")
+    @classmethod
+    def populate_document_defaults(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        reference = values.get("reference")
+        candidate = values.get("candidate")
+        reference_pages = _field_value(reference, "page_count", 1)
+        candidate_pages = _field_value(candidate, "page_count", 1)
+        pages = values.get("pages") or ()
+        highest_page_number = max(
+            (_field_value(page, "page_number", 0) for page in pages), default=0
+        )
+        values.setdefault("reference_page_count", reference_pages)
+        values.setdefault("candidate_page_count", candidate_pages)
+        values["total_page_count"] = max(
+            int(values.get("total_page_count", 1)),
+            reference_pages,
+            candidate_pages,
+            len(pages),
+            highest_page_number,
+        )
+        return values
+
 
 class ProgressEvent(ContractModel):
     event_id: Annotated[int, Field(ge=1)]
@@ -174,11 +328,14 @@ class ProgressEvent(ContractModel):
     stage_id: StageId
     message: str
     progress: Progress
-    page_number: Literal[1] = 1
-    total_pages: Literal[1] = 1
+    page_number: Annotated[int, Field(ge=1, le=10)] = 1
+    total_pages: Annotated[int, Field(ge=1, le=10)] = 1
+    page_stage: StageId | None = None
     timestamp: datetime
     finding_count: Annotated[int, Field(ge=0)] = 0
     candidate_page_url: str | None = None
+    ocr_provider: str | None = None
+    localized_region: BoundingBox | None = None
 
 
 class CreateAnalysisResponse(ContractModel):
@@ -197,6 +354,8 @@ class AnalysisJob(ContractModel):
     current_stage_message: str
     created_at: datetime
     updated_at: datetime
+    current_page: Annotated[int, Field(ge=1, le=10)] = 1
+    total_pages: Annotated[int, Field(ge=1, le=10)] = 1
     candidate_page_url: str | None = None
     result: DocumentResult | None = None
     error: ErrorDetail | None = None
@@ -211,6 +370,8 @@ class CapabilityStatus(ContractModel):
     embedded_pdf_text: bool
     raster_ocr: bool
     sse: bool
+    multi_page: bool = True
+    template_comparison: bool = True
 
 
 class HealthResponse(ContractModel):
@@ -230,3 +391,9 @@ class DiagnosticsResponse(ContractModel):
     gpu_detected: bool
     backend_ready: bool
     runtime_writable: bool
+
+
+def _field_value(value: Any, field: str, default: int) -> int:
+    if isinstance(value, dict):
+        return int(value.get(field, default))
+    return int(getattr(value, field, default))

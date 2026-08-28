@@ -84,7 +84,11 @@ export function FileDropzone({
           <span className="dropzone__icon"><FileIcon /></span>
           <span className="dropzone__file-copy">
             <strong>{file.name}</strong>
-            <small>{formatBytes(file.size)} · Ready</small>
+            <small>
+              {formatBytes(file.size)} · {file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+                ? 'Page count verified locally'
+                : '1 page · Ready'}
+            </small>
           </span>
           <button
             type="button"
@@ -104,7 +108,7 @@ export function FileDropzone({
           <div>
             <strong>{title}</strong>
             <p>{description}</p>
-            <small>PDF, PNG or JPEG · single page</small>
+            <small>PDF up to 10 pages · PNG or JPEG</small>
           </div>
         </div>
       )}

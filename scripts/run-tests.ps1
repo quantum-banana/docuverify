@@ -123,6 +123,30 @@ try {
     Write-Host "Test runtime root: $testRunRoot" -ForegroundColor DarkCyan
     Write-Host 'Test runtime isolation: unique pytest and application-runtime directories verified.' -ForegroundColor DarkCyan
 
+    Invoke-VerificationStep -Name 'Windows bootstrap selection policy' -Action {
+        & (Join-Path $PSScriptRoot 'tests\test-bootstrap-selection.ps1')
+    }
+
+    Invoke-VerificationStep -Name 'Python runtime baseline' -Action {
+        if (-not (Test-PythonCandidate -FilePath $virtualEnvironmentPython)) {
+            throw 'The project .venv Python is missing or unusable. Run bootstrap-windows.ps1 first.'
+        }
+        $venvPythonCommand = [pscustomobject]@{
+            FilePath        = $virtualEnvironmentPython
+            PrefixArguments = [string[]]@()
+            Label           = 'project virtual environment'
+        }
+        $venvPythonVersion = Get-DocuVerifyPythonVersion -PythonCommand $venvPythonCommand
+        $testedPythonBaseline = Get-DocuVerifyTestedPythonBaseline
+        if (-not $venvPythonVersion.StartsWith($testedPythonBaseline + '.', [System.StringComparison]::Ordinal)) {
+            throw "The project .venv uses Python $venvPythonVersion; the tested dependency baseline requires Python $testedPythonBaseline.x. Preserve and move the mismatched environment aside, then rerun bootstrap."
+        }
+        Invoke-DocuVerifyNativeCommand -FilePath $virtualEnvironmentPython -ArgumentList @(
+            '-m', 'pip', 'check'
+        ) -FailureMessage 'Python dependency consistency check failed'
+        Write-Host "Project runtime: Python $venvPythonVersion; dependency consistency passed." -ForegroundColor Green
+    }
+
     if (Test-Path -LiteralPath $virtualEnvironmentPython -PathType Leaf) {
         Invoke-VerificationStep -Name 'Backend tests' -Action {
             # Pytest may clear --basetemp. This invocation receives a fresh,

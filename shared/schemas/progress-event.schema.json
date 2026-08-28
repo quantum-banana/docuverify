@@ -1,5 +1,43 @@
 {
   "$defs": {
+    "BoundingBox": {
+      "additionalProperties": false,
+      "description": "Candidate-page coordinates normalized to [0, 1].",
+      "properties": {
+        "height": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Width",
+          "type": "number"
+        },
+        "x": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    },
     "StageId": {
       "enum": [
         "queued",
@@ -50,15 +88,50 @@
       "title": "Job Id",
       "type": "string"
     },
+    "localized_region": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "message": {
       "title": "Message",
       "type": "string"
     },
+    "ocr_provider": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ocr Provider"
+    },
     "page_number": {
-      "const": 1,
       "default": 1,
+      "maximum": 10,
+      "minimum": 1,
       "title": "Page Number",
       "type": "integer"
+    },
+    "page_stage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StageId"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "progress": {
       "maximum": 100,
@@ -75,8 +148,9 @@
       "type": "string"
     },
     "total_pages": {
-      "const": 1,
       "default": 1,
+      "maximum": 10,
+      "minimum": 1,
       "title": "Total Pages",
       "type": "integer"
     }

@@ -20,6 +20,9 @@ from backend.app.models.contracts import (
 )
 
 
+_CONTEXT_UNSET = object()
+
+
 def utc_now() -> datetime:
     return datetime.now(UTC)
 
@@ -70,6 +73,9 @@ class JobStore:
                     progress INTEGER NOT NULL,
                     current_stage TEXT NOT NULL,
                     current_stage_message TEXT NOT NULL,
+                    current_page INTEGER NOT NULL DEFAULT 1,
+                    total_pages INTEGER NOT NULL DEFAULT 1,
+                    candidate_page_url TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     result_json TEXT,
@@ -93,6 +99,21 @@ class JobStore:
                 );
                 """
             )
+            # Phase 1 databases predate persisted page context. ALTER TABLE with
+            # constant defaults is safe for existing rows and keeps local clones
+            # upgradeable without deleting their ignored runtime database.
+            columns = {
+                str(row["name"])
+                for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+            }
+            migrations = {
+                "current_page": "current_page INTEGER NOT NULL DEFAULT 1",
+                "total_pages": "total_pages INTEGER NOT NULL DEFAULT 1",
+                "candidate_page_url": "candidate_page_url TEXT",
+            }
+            for column, definition in migrations.items():
+                if column not in columns:
+                    connection.execute(f"ALTER TABLE jobs ADD COLUMN {definition}")
 
     def _recover_interrupted_jobs(self) -> None:
         now = utc_now().isoformat()
@@ -102,7 +123,10 @@ class JobStore:
         )
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT job_id, progress FROM jobs WHERE state IN (?, ?)",
+                """
+                SELECT job_id, progress, current_page, total_pages, candidate_page_url
+                FROM jobs WHERE state IN (?, ?)
+                """,
                 (JobState.QUEUED.value, JobState.RUNNING.value),
             ).fetchall()
             connection.execute(
@@ -129,9 +153,12 @@ class JobStore:
                 stage=StageId.FAILED,
                 message=error_detail.message,
                 progress=row["progress"],
+                page_number=row["current_page"],
+                total_pages=row["total_pages"],
+                candidate_page_url=row["candidate_page_url"],
             )
 
-    def create_job(self, job_id: str) -> AnalysisJob:
+    def create_job(self, job_id: str, *, total_pages: int = 1) -> AnalysisJob:
         now = utc_now()
         job = AnalysisJob(
             job_id=job_id,
@@ -141,14 +168,16 @@ class JobStore:
             current_stage_message="Analysis queued",
             created_at=now,
             updated_at=now,
+            total_pages=total_pages,
         )
         with self._connect() as connection:
             connection.execute(
                 """
                 INSERT INTO jobs (
                     job_id, state, progress, current_stage, current_stage_message,
+                    current_page, total_pages, candidate_page_url,
                     created_at, updated_at, result_json, error_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL)
                 """,
                 (
                     job.job_id,
@@ -156,6 +185,8 @@ class JobStore:
                     job.progress,
                     job.current_stage.value,
                     job.current_stage_message,
+                    job.current_page,
+                    job.total_pages,
                     job.created_at.isoformat(),
                     job.updated_at.isoformat(),
                 ),
@@ -172,27 +203,44 @@ class JobStore:
         message: str,
         result: DocumentResult | None = None,
         error: ErrorDetail | None = None,
+        current_page: int | None = None,
+        total_pages: int | None = None,
+        candidate_page_url: Any = _CONTEXT_UNSET,
     ) -> None:
         result_json = result.model_dump_json() if result else None
         error_json = error.model_dump_json() if error else None
+        assignments = [
+            "state = ?",
+            "progress = ?",
+            "current_stage = ?",
+            "current_stage_message = ?",
+            "updated_at = ?",
+            "result_json = ?",
+            "error_json = ?",
+        ]
+        values: list[Any] = [
+            state.value,
+            progress,
+            stage.value,
+            message,
+            utc_now().isoformat(),
+            result_json,
+            error_json,
+        ]
+        if current_page is not None:
+            assignments.append("current_page = ?")
+            values.append(current_page)
+        if total_pages is not None:
+            assignments.append("total_pages = ?")
+            values.append(total_pages)
+        if candidate_page_url is not _CONTEXT_UNSET:
+            assignments.append("candidate_page_url = ?")
+            values.append(candidate_page_url)
+        values.append(job_id)
         with self._connect() as connection:
             cursor = connection.execute(
-                """
-                UPDATE jobs
-                SET state = ?, progress = ?, current_stage = ?,
-                    current_stage_message = ?, updated_at = ?, result_json = ?, error_json = ?
-                WHERE job_id = ?
-                """,
-                (
-                    state.value,
-                    progress,
-                    stage.value,
-                    message,
-                    utc_now().isoformat(),
-                    result_json,
-                    error_json,
-                    job_id,
-                ),
+                f"UPDATE jobs SET {', '.join(assignments)} WHERE job_id = ?",
+                values,
             )
             if cursor.rowcount != 1:
                 raise KeyError(job_id)
@@ -206,7 +254,7 @@ class JobStore:
             ).fetchone()
         if row is None:
             return None
-        return AnalysisJob(
+        job = AnalysisJob(
             job_id=row["job_id"],
             state=row["state"],
             progress=row["progress"],
@@ -214,6 +262,9 @@ class JobStore:
             current_stage_message=row["current_stage_message"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            current_page=row["current_page"],
+            total_pages=row["total_pages"],
+            candidate_page_url=row["candidate_page_url"],
             result=(
                 DocumentResult.model_validate_json(row["result_json"])
                 if row["result_json"]
@@ -225,6 +276,24 @@ class JobStore:
                 else None
             ),
         )
+        latest = self.get_latest_event(job.job_id)
+        if latest is not None:
+            _, event = latest
+            job = job.model_copy(
+                update={
+                    "current_page": event.page_number,
+                    "total_pages": event.total_pages,
+                    "candidate_page_url": event.candidate_page_url,
+                }
+            )
+        elif job.result is not None:
+            job = job.model_copy(
+                update={
+                    "current_page": job.result.total_page_count,
+                    "total_pages": job.result.total_page_count,
+                }
+            )
+        return job
 
     def append_event(
         self,
@@ -236,6 +305,11 @@ class JobStore:
         progress: int,
         finding_count: int = 0,
         candidate_page_url: str | None = None,
+        page_number: int = 1,
+        total_pages: int = 1,
+        page_stage: StageId | None = None,
+        ocr_provider: str | None = None,
+        localized_region: Any | None = None,
     ) -> ProgressEvent:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -249,9 +323,14 @@ class JobStore:
                 stage_id=stage,
                 message=message,
                 progress=progress,
+                page_number=page_number,
+                total_pages=total_pages,
+                page_stage=page_stage,
                 timestamp=utc_now(),
                 finding_count=finding_count,
                 candidate_page_url=candidate_page_url,
+                ocr_provider=ocr_provider,
+                localized_region=localized_region,
             )
             connection.execute(
                 """
@@ -259,6 +338,14 @@ class JobStore:
                 VALUES (?, ?, ?, ?)
                 """,
                 (job_id, event.event_id, event_type, event.model_dump_json()),
+            )
+            connection.execute(
+                """
+                UPDATE jobs
+                SET current_page = ?, total_pages = ?, candidate_page_url = ?
+                WHERE job_id = ?
+                """,
+                (page_number, total_pages, candidate_page_url, job_id),
             )
             connection.commit()
         with self._condition:

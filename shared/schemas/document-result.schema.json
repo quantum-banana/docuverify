@@ -62,6 +62,14 @@
       "title": "BoundingBox",
       "type": "object"
     },
+    "ComparisonMode": {
+      "enum": [
+        "exact",
+        "template"
+      ],
+      "title": "ComparisonMode",
+      "type": "string"
+    },
     "CoordinateTransform": {
       "additionalProperties": false,
       "properties": {
@@ -118,6 +126,73 @@
       "title": "CoordinateTransform",
       "type": "object"
     },
+    "DocumentAggregate": {
+      "additionalProperties": false,
+      "properties": {
+        "added_page_count": {
+          "minimum": 0,
+          "title": "Added Page Count",
+          "type": "integer"
+        },
+        "alignment_quality": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Alignment Quality",
+          "type": "number"
+        },
+        "confidence_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "coverage_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Coverage Score",
+          "type": "number"
+        },
+        "finding_count": {
+          "minimum": 0,
+          "title": "Finding Count",
+          "type": "integer"
+        },
+        "matched_page_count": {
+          "minimum": 0,
+          "title": "Matched Page Count",
+          "type": "integer"
+        },
+        "missing_page_count": {
+          "minimum": 0,
+          "title": "Missing Page Count",
+          "type": "integer"
+        },
+        "reordered_page_count": {
+          "minimum": 0,
+          "title": "Reordered Page Count",
+          "type": "integer"
+        },
+        "risk_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Risk Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "risk_score",
+        "confidence_score",
+        "coverage_score",
+        "alignment_quality",
+        "finding_count",
+        "matched_page_count",
+        "missing_page_count",
+        "added_page_count",
+        "reordered_page_count"
+      ],
+      "title": "DocumentAggregate",
+      "type": "object"
+    },
     "DocumentDescriptor": {
       "additionalProperties": false,
       "properties": {
@@ -135,7 +210,8 @@
           "type": "integer"
         },
         "page_count": {
-          "const": 1,
+          "maximum": 10,
+          "minimum": 1,
           "title": "Page Count",
           "type": "integer"
         },
@@ -209,6 +285,10 @@
           "title": "Page Number",
           "type": "integer"
         },
+        "region_role": {
+          "$ref": "#/$defs/RegionRole",
+          "default": "unknown"
+        },
         "risk_score": {
           "maximum": 100.0,
           "minimum": 0.0,
@@ -262,12 +342,304 @@
       "title": "Finding",
       "type": "object"
     },
+    "PageAnomalyType": {
+      "enum": [
+        "page_missing",
+        "page_added",
+        "page_reordered",
+        "page_dimension_mismatch"
+      ],
+      "title": "PageAnomalyType",
+      "type": "string"
+    },
+    "PageCorrespondence": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_page_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Page Number"
+        },
+        "confidence_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "dimension_similarity": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dimension Similarity"
+        },
+        "heading_similarity": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heading Similarity"
+        },
+        "perceptual_similarity": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Perceptual Similarity"
+        },
+        "reference_page_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Page Number"
+        },
+        "status": {
+          "$ref": "#/$defs/PageStatus"
+        }
+      },
+      "required": [
+        "status",
+        "confidence_score"
+      ],
+      "title": "PageCorrespondence",
+      "type": "object"
+    },
+    "PageOCRSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_characters": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Candidate Characters",
+          "type": "integer"
+        },
+        "candidate_confidence": {
+          "anyOf": [
+            {
+              "maximum": 100.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Confidence"
+        },
+        "candidate_device": {
+          "default": "cpu",
+          "title": "Candidate Device",
+          "type": "string"
+        },
+        "candidate_provider": {
+          "title": "Candidate Provider",
+          "type": "string"
+        },
+        "candidate_succeeded": {
+          "default": false,
+          "title": "Candidate Succeeded",
+          "type": "boolean"
+        },
+        "reference_characters": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Reference Characters",
+          "type": "integer"
+        },
+        "reference_confidence": {
+          "anyOf": [
+            {
+              "maximum": 100.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Confidence"
+        },
+        "reference_device": {
+          "default": "cpu",
+          "title": "Reference Device",
+          "type": "string"
+        },
+        "reference_provider": {
+          "title": "Reference Provider",
+          "type": "string"
+        },
+        "reference_succeeded": {
+          "default": false,
+          "title": "Reference Succeeded",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference_provider",
+        "candidate_provider"
+      ],
+      "title": "PageOCRSummary",
+      "type": "object"
+    },
+    "PageOrderAnomaly": {
+      "additionalProperties": false,
+      "properties": {
+        "anomaly_id": {
+          "title": "Anomaly Id",
+          "type": "string"
+        },
+        "anomaly_type": {
+          "$ref": "#/$defs/PageAnomalyType"
+        },
+        "candidate_page_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Page Number"
+        },
+        "confidence_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "reference_page_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Page Number"
+        },
+        "risk_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Risk Score",
+          "type": "number"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anomaly_id",
+        "anomaly_type",
+        "title",
+        "explanation",
+        "risk_score",
+        "confidence_score"
+      ],
+      "title": "PageOrderAnomaly",
+      "type": "object"
+    },
     "PageResult": {
       "additionalProperties": false,
       "properties": {
+        "alignment_quality": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Alignment Quality",
+          "type": "number"
+        },
         "candidate_image_url": {
-          "title": "Candidate Image Url",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Candidate Image Url"
+        },
+        "candidate_page_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Page Number"
+        },
+        "confidence_score": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "coverage_score": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Coverage Score",
+          "type": "number"
+        },
+        "finding_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Finding Count",
+          "type": "integer"
         },
         "findings": {
           "items": {
@@ -281,14 +653,56 @@
           "title": "Height",
           "type": "integer"
         },
+        "ocr": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PageOCRSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "page_number": {
           "minimum": 1,
           "title": "Page Number",
           "type": "integer"
         },
         "reference_image_url": {
-          "title": "Reference Image Url",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reference Image Url"
+        },
+        "reference_page_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Page Number"
+        },
+        "risk_score": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Risk Score",
+          "type": "number"
+        },
+        "status": {
+          "$ref": "#/$defs/PageStatus",
+          "default": "matched"
         },
         "width": {
           "exclusiveMinimum": 0,
@@ -305,6 +719,78 @@
         "findings"
       ],
       "title": "PageResult",
+      "type": "object"
+    },
+    "PageStatus": {
+      "enum": [
+        "matched",
+        "reordered",
+        "missing",
+        "added",
+        "failed"
+      ],
+      "title": "PageStatus",
+      "type": "string"
+    },
+    "RegionRole": {
+      "enum": [
+        "fixed",
+        "variable",
+        "unknown"
+      ],
+      "title": "RegionRole",
+      "type": "string"
+    },
+    "RegionSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "bounding_box": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "confidence_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "page_number": {
+          "minimum": 1,
+          "title": "Page Number",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/RegionRole"
+        },
+        "suggestion_id": {
+          "title": "Suggestion Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "suggestion_id",
+        "page_number",
+        "bounding_box",
+        "role",
+        "confidence_score",
+        "reason"
+      ],
+      "title": "RegionSuggestion",
       "type": "object"
     },
     "RiskLabel": {
@@ -399,11 +885,27 @@
     "candidate": {
       "$ref": "#/$defs/DocumentDescriptor"
     },
+    "candidate_page_count": {
+      "default": 1,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Candidate Page Count",
+      "type": "integer"
+    },
     "comparison_mode": {
-      "const": "exact",
-      "default": "exact",
-      "title": "Comparison Mode",
-      "type": "string"
+      "$ref": "#/$defs/ComparisonMode",
+      "default": "exact"
+    },
+    "document_aggregate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DocumentAggregate"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "finding_count": {
       "minimum": 0,
@@ -425,6 +927,20 @@
       "title": "Overall Tampering Risk",
       "type": "number"
     },
+    "page_correspondence": {
+      "items": {
+        "$ref": "#/$defs/PageCorrespondence"
+      },
+      "title": "Page Correspondence",
+      "type": "array"
+    },
+    "page_order_anomalies": {
+      "items": {
+        "$ref": "#/$defs/PageOrderAnomaly"
+      },
+      "title": "Page Order Anomalies",
+      "type": "array"
+    },
     "pages": {
       "items": {
         "$ref": "#/$defs/PageResult"
@@ -440,6 +956,20 @@
     "reference": {
       "$ref": "#/$defs/DocumentDescriptor"
     },
+    "reference_page_count": {
+      "default": 1,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Reference Page Count",
+      "type": "integer"
+    },
+    "region_suggestions": {
+      "items": {
+        "$ref": "#/$defs/RegionSuggestion"
+      },
+      "title": "Region Suggestions",
+      "type": "array"
+    },
     "risk_label": {
       "$ref": "#/$defs/RiskLabel"
     },
@@ -451,6 +981,14 @@
     },
     "text_extraction": {
       "$ref": "#/$defs/TextExtractionSummary"
+    },
+    "total_page_count": {
+      "default": 1,
+      "description": "Number of ordered review slots in pages/page_correspondence; reference and candidate physical page counts remain capped at ten each.",
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Total Page Count",
+      "type": "integer"
     }
   },
   "required": [

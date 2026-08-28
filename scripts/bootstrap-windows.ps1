@@ -1,7 +1,18 @@
 #requires -Version 5.1
 
 [CmdletBinding()]
-param()
+param(
+    [string]$PythonExecutable,
+
+    [ValidateSet('3.12', '3.13', '3.14')]
+    [string]$PythonVersion = '3.12',
+
+    [ValidateSet('auto', 'rapidocr', 'none')]
+    [string]$OcrProvider = 'auto',
+
+    [ValidateSet('cpu', 'gpu')]
+    [string]$OcrDevice = 'cpu'
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -13,9 +24,43 @@ $backendDirectory = Join-Path $projectRoot 'backend'
 $frontendDirectory = Join-Path $projectRoot 'frontend'
 $virtualEnvironmentDirectory = Join-Path $projectRoot '.venv'
 $virtualEnvironmentPython = Join-Path $virtualEnvironmentDirectory 'Scripts\python.exe'
+$testedPythonBaseline = Get-DocuVerifyTestedPythonBaseline
+$effectivePythonVersion = $PythonVersion
+$explicitPythonCommand = $null
+
+if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
+    $explicitPythonCommand = Resolve-DocuVerifyPython -PythonExecutable $PythonExecutable
+    if ($null -eq $explicitPythonCommand) {
+        throw 'The explicitly requested Python executable is missing or unusable.'
+    }
+
+    $explicitPythonVersion = Get-DocuVerifyPythonVersion -PythonCommand $explicitPythonCommand
+    if ($explicitPythonVersion -notmatch '^(\d+)\.(\d+)\.') {
+        throw "The explicitly requested Python version '$explicitPythonVersion' could not be interpreted."
+    }
+    $explicitPythonMajorMinor = $matches[1] + '.' + $matches[2]
+    if ([version]$explicitPythonMajorMinor -lt [version]'3.12') {
+        throw "Python $explicitPythonMajorMinor is incompatible with the current dependency set. Use Python $testedPythonBaseline or a separately constrained and fully tested dependency set."
+    }
+    if ($PSBoundParameters.ContainsKey('PythonVersion') -and $explicitPythonMajorMinor -ne $PythonVersion) {
+        throw "The explicit interpreter uses Python $explicitPythonMajorMinor, but -PythonVersion $PythonVersion was requested."
+    }
+    if (-not $PSBoundParameters.ContainsKey('PythonVersion')) {
+        $effectivePythonVersion = $explicitPythonMajorMinor
+    }
+}
 
 Write-Host 'Bootstrapping DocuVerify for Windows' -ForegroundColor Green
 Write-Host 'No administrator access or system-wide runtime changes are required.'
+Write-Host "Requested Python: $effectivePythonVersion; OCR provider: $OcrProvider; OCR device: $OcrDevice" -ForegroundColor Cyan
+
+if ($effectivePythonVersion -ne $testedPythonBaseline) {
+    Write-Warning "Python $effectivePythonVersion is an explicit non-baseline request. Python $testedPythonBaseline is the tested cross-laptop baseline; this bootstrap succeeds only if the complete selected dependency set installs."
+}
+
+if ($OcrDevice -eq 'gpu') {
+    throw 'GPU OCR is not enabled by the supported Phase 2 requirements. Use -OcrDevice cpu; do not change NVIDIA drivers or CUDA to force bootstrap.'
+}
 
 if (-not (Test-Path -LiteralPath $backendDirectory -PathType Container)) {
     throw 'The backend directory is missing. Run this script from a complete DocuVerify checkout.'
@@ -49,9 +94,14 @@ if (Test-Path -LiteralPath $virtualEnvironmentDirectory -PathType Container) {
     Write-Host 'Using the existing project virtual environment.' -ForegroundColor Cyan
 }
 else {
-    $basePython = Resolve-DocuVerifyPython
+    $basePython = if ($null -ne $explicitPythonCommand) {
+        $explicitPythonCommand
+    }
+    else {
+        Resolve-DocuVerifyPython -PreferredVersion $effectivePythonVersion
+    }
     if ($null -eq $basePython) {
-        throw 'No usable Python interpreter was found. Install Python 3.11 or another backend-compatible 64-bit release, then rerun bootstrap.'
+        throw "No usable Python $effectivePythonVersion interpreter was found. Install the official current-user Python $effectivePythonVersion release or pass -PythonExecutable with a matching interpreter."
     }
 
     $basePythonVersion = Get-DocuVerifyPythonVersion -PythonCommand $basePython
@@ -72,12 +122,25 @@ if (-not (Test-PythonCandidate -FilePath $venvPythonCommand.FilePath)) {
 }
 $venvPythonVersion = Get-DocuVerifyPythonVersion -PythonCommand $venvPythonCommand
 Write-Host "Project Python: $venvPythonVersion" -ForegroundColor Cyan
+if (-not $venvPythonVersion.StartsWith($effectivePythonVersion + '.', [System.StringComparison]::Ordinal)) {
+    throw "The existing .venv uses Python $venvPythonVersion, but Python $effectivePythonVersion was requested. Stop DocuVerify, move the environment aside without deleting it, and rerun bootstrap."
+}
 
 $requirementFiles = New-Object 'System.Collections.Generic.List[string]'
 $aggregateRequirements = Join-Path $backendDirectory 'requirements.txt'
 $requirementsDirectory = Join-Path $backendDirectory 'requirements'
 if (Test-Path -LiteralPath $aggregateRequirements -PathType Leaf) {
-    $requirementFiles.Add($aggregateRequirements)
+    if ($OcrProvider -eq 'none') {
+        $commonRequirements = Join-Path $requirementsDirectory 'common.txt'
+        if (-not (Test-Path -LiteralPath $commonRequirements -PathType Leaf)) {
+            throw 'The common backend requirements file is missing.'
+        }
+        $requirementFiles.Add($commonRequirements)
+        Write-Host 'Raster OCR dependency installation disabled by -OcrProvider none.' -ForegroundColor Yellow
+    }
+    else {
+        $requirementFiles.Add($aggregateRequirements)
+    }
 
     # requirements.txt is the runtime/OCR aggregate. Development dependencies
     # are intentionally separate and are mandatory for run-tests.ps1.

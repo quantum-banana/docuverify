@@ -1,10 +1,10 @@
 /**
- * Phase 1 wire contracts mirror shared/schemas and backend Pydantic models.
- * The normalized UI model follows them below. All wire-to-view conversion stays
- * in api/client.ts so contract reconciliation never leaks into components.
+ * Wire contracts mirror the backend payload while the normalized UI model
+ * stays deliberately tolerant of Phase 1 responses. All reconciliation lives
+ * in api/client.ts so components consume one stable, page-aware shape.
  */
 
-export type ComparisonMode = 'exact'
+export type ComparisonMode = 'exact' | 'template'
 
 export type WireJobState = 'queued' | 'running' | 'completed' | 'failed'
 export type RiskLabel =
@@ -13,6 +13,16 @@ export type RiskLabel =
   | 'High tampering risk'
   | 'Critical tampering risk'
 export type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical'
+export type RegionRole = 'fixed' | 'variable' | 'unknown'
+export type PageStatus =
+  | 'matched'
+  | 'missing'
+  | 'added'
+  | 'reordered'
+  | 'dimension_mismatch'
+  | 'error'
+  | 'completed'
+  | 'processing'
 
 export interface WireBoundingBox {
   x: number
@@ -39,16 +49,56 @@ export interface WireFinding {
   severity: Severity
   evidence_source: string[]
   assets: WireAssetLinks
+  region_role?: RegionRole
   supporting_measurements: Record<string, MeasurementValue>
+}
+
+export interface WireOcrSummary {
+  source?: string
+  provider?: string
+  device?: string
+  confidence?: number | null
+  status?: string
+  character_count?: number
+  reference_provider?: string
+  candidate_provider?: string
+  reference_device?: string
+  candidate_device?: string
+  reference_confidence?: number | null
+  candidate_confidence?: number | null
+  reference_characters?: number
+  candidate_characters?: number
+  reference_succeeded?: boolean
+  candidate_succeeded?: boolean
+}
+
+export interface WireRegionSuggestion {
+  suggestion_id?: string
+  page_number: number
+  role: RegionRole
+  confidence_score?: number
+  reason: string
+  label?: string | null
+  bounding_box: WireBoundingBox
 }
 
 export interface WirePageResult {
   page_number: number
-  width: number
-  height: number
-  reference_image_url: string
-  candidate_image_url: string
+  width?: number
+  height?: number
+  reference_image_url?: string | null
+  candidate_image_url?: string | null
   findings: WireFinding[]
+  status?: string
+  reference_page_number?: number | null
+  candidate_page_number?: number | null
+  risk_score?: number
+  confidence_score?: number
+  coverage_score?: number
+  alignment_quality?: number
+  finding_count?: number
+  ocr?: WireOcrSummary | null
+  region_suggestions?: WireRegionSuggestion[]
 }
 
 export interface WireCoordinateTransform {
@@ -65,7 +115,7 @@ export interface WireDocumentDescriptor {
   filename: string
   content_type: string
   sha256: string
-  page_count: 1
+  page_count: number
   width: number
   height: number
   preview_url: string
@@ -81,7 +131,7 @@ export interface WireTextExtractionSummary {
 }
 
 export interface WireDocumentResult {
-  schema_version: '1.0'
+  schema_version: string
   job_id: string
   comparison_mode: ComparisonMode
   reference: WireDocumentDescriptor
@@ -96,6 +146,13 @@ export interface WireDocumentResult {
   processing_duration_ms: number
   text_extraction: WireTextExtractionSummary
   generated_at: string
+  total_page_count?: number
+  reference_page_count?: number
+  candidate_page_count?: number
+  page_correspondence?: unknown[]
+  page_order_anomalies?: unknown[]
+  document_aggregate?: Record<string, unknown>
+  region_suggestions?: WireRegionSuggestion[]
 }
 
 export interface WireProgressEvent {
@@ -104,11 +161,15 @@ export interface WireProgressEvent {
   stage_id: StageId
   message: string
   progress: number
-  page_number: 1
-  total_pages: 1
+  page_number: number
+  total_pages: number
   timestamp: string
   finding_count: number
   candidate_page_url?: string | null
+  page_stage?: string | null
+  ocr_provider?: string | null
+  ocr_device?: string | null
+  localized_region?: WireBoundingBox | null
 }
 
 export interface WireAnalysisError {
@@ -126,7 +187,7 @@ export interface WireCreateAnalysisResponse {
 }
 
 export interface WireAnalysisJob {
-  schema_version: '1.0'
+  schema_version: string
   job_id: string
   state: WireJobState
   progress: number
@@ -135,6 +196,10 @@ export interface WireAnalysisJob {
   created_at: string
   updated_at: string
   candidate_page_url?: string | null
+  current_page?: number | null
+  total_pages?: number | null
+  page_stage?: string | null
+  ocr_provider?: string | null
   result: WireDocumentResult | null
   error: WireAnalysisError | null
 }
@@ -150,9 +215,12 @@ export type StageId =
   | 'normalizing_pages'
   | 'aligning_reference'
   | 'extracting_text'
+  | 'identifying_regions'
   | 'comparing_structure'
+  | 'comparing_typography'
   | 'localizing_differences'
   | 'scoring_evidence'
+  | 'aggregating_document'
   | 'preparing_result'
   | 'complete'
   | string
@@ -176,6 +244,7 @@ export interface Finding {
   risk_score: number
   confidence_score: number
   severity: string
+  region_role?: RegionRole
   evidence_source: string
   candidate_crop_url: string
   reference_crop_url: string
@@ -204,6 +273,29 @@ export interface DocumentDescriptor {
   transform: DocumentTransform
 }
 
+export interface OcrSummary {
+  source: string
+  provider: string
+  device: string
+  confidence_score: number | null
+  status: string
+  character_count: number
+  succeeded?: boolean
+  reference_provider?: string
+  reference_device?: string
+  reference_confidence_score?: number | null
+}
+
+export interface RegionSuggestion {
+  suggestion_id: string
+  page_number: number
+  role: RegionRole
+  confidence_score: number
+  reason: string
+  label?: string
+  bounding_box: NormalizedBoundingBox
+}
+
 export interface PageResult {
   page_number: number
   width?: number
@@ -211,6 +303,54 @@ export interface PageResult {
   candidate_image_url: string
   reference_image_url: string
   findings: Finding[]
+  status?: PageStatus | string
+  reference_page_number?: number | null
+  candidate_page_number?: number | null
+  risk_score?: number
+  confidence_score?: number
+  coverage_score?: number
+  alignment_quality?: number
+  finding_count?: number
+  ocr?: OcrSummary
+  region_suggestions?: RegionSuggestion[]
+}
+
+export interface PageCorrespondence {
+  reference_page_number: number | null
+  candidate_page_number: number | null
+  status: string
+  similarity_score: number | null
+  reason?: string
+}
+
+export interface PageOrderAnomaly {
+  anomaly_id: string
+  type: string
+  title: string
+  explanation: string
+  page_number: number | null
+  reference_page_number: number | null
+  candidate_page_number: number | null
+  severity: string
+  risk_score?: number
+  confidence_score?: number
+}
+
+export interface DocumentAggregate {
+  total_page_count: number
+  matched_page_count: number
+  reviewed_page_count: number
+  clean_page_count: number
+  anomaly_count: number
+  finding_count: number
+  highest_page_risk: number
+  risk_score?: number
+  confidence_score?: number
+  coverage_score?: number
+  alignment_quality?: number
+  missing_page_count?: number
+  added_page_count?: number
+  reordered_page_count?: number
 }
 
 export interface DocumentResult {
@@ -228,6 +368,13 @@ export interface DocumentResult {
   processing_duration_ms: number
   pages: PageResult[]
   findings: Finding[]
+  total_page_count?: number
+  reference_page_count?: number
+  candidate_page_count?: number
+  page_correspondence?: PageCorrespondence[]
+  page_order_anomalies?: PageOrderAnomaly[]
+  document_aggregate?: DocumentAggregate
+  region_suggestions?: RegionSuggestion[]
 }
 
 export interface AnalysisJobCreated {
@@ -251,6 +398,12 @@ export interface AnalysisJob {
   message: string
   finding_count: number
   candidate_page_url?: string
+  current_page?: number
+  total_pages?: number
+  page_stage?: string
+  ocr_provider?: string
+  ocr_device?: string
+  localized_region?: NormalizedBoundingBox
   result?: DocumentResult
   error?: AnalysisError
 }
@@ -266,6 +419,10 @@ export interface ProgressEvent {
   timestamp: string
   finding_count: number
   candidate_page_url?: string
+  page_stage?: string
+  ocr_provider?: string
+  ocr_device?: string
+  localized_region?: NormalizedBoundingBox
 }
 
 export interface AnalysisWatchHandlers {

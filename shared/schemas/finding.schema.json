@@ -62,6 +62,15 @@
       "title": "BoundingBox",
       "type": "object"
     },
+    "RegionRole": {
+      "enum": [
+        "fixed",
+        "variable",
+        "unknown"
+      ],
+      "title": "RegionRole",
+      "type": "string"
+    },
     "Severity": {
       "enum": [
         "info",
@@ -113,6 +122,10 @@
       "minimum": 1,
       "title": "Page Number",
       "type": "integer"
+    },
+    "region_role": {
+      "$ref": "#/$defs/RegionRole",
+      "default": "unknown"
     },
     "risk_score": {
       "maximum": 100.0,

@@ -6,6 +6,7 @@ import type {
   AnalysisJobCreated,
   AnalysisWatchHandlers,
   DocumentResult,
+  Finding,
   ProgressEvent,
 } from '../types/contracts'
 
@@ -92,6 +93,170 @@ const completedResult: DocumentResult = {
   ],
 }
 
+const pageOneFinding: Finding = {
+  finding_id: 'finding-page-1',
+  page_number: 1,
+  category: 'layout_displacement',
+  title: 'Header shifted',
+  explanation: 'The page heading moved relative to the trusted template.',
+  bounding_box: { x: 0.12, y: 0.08, width: 0.42, height: 0.07 },
+  risk_score: 41,
+  confidence_score: 89,
+  severity: 'medium',
+  evidence_source: 'Page alignment',
+  candidate_crop_url: '/assets/page-1-candidate-crop',
+  reference_crop_url: '/assets/page-1-reference-crop',
+  difference_overlay_url: '/assets/page-1-difference',
+  measurements: { displacement_px: 8 },
+}
+
+const pageTwoFinding: Finding = {
+  finding_id: 'finding-page-2',
+  page_number: 2,
+  category: 'typography_inconsistency',
+  title: 'Typography inconsistency',
+  explanation: 'The variable value has a different baseline and character weight.',
+  bounding_box: { x: 0.54, y: 0.48, width: 0.27, height: 0.09 },
+  risk_score: 88,
+  confidence_score: 94,
+  severity: 'high',
+  evidence_source: 'Raster OCR, typography geometry',
+  candidate_crop_url: '/assets/page-2-candidate-crop',
+  reference_crop_url: '/assets/page-2-reference-crop',
+  difference_overlay_url: '/assets/page-2-difference',
+  measurements: { baseline_shift_px: 6, background_edge_score: 0.72 },
+}
+
+const multiPageResult: DocumentResult = {
+  schema_version: '2.0',
+  job_id: createdJob.job_id,
+  comparison_mode: 'template',
+  overall_tampering_risk: 78,
+  risk_label: 'Critical tampering risk',
+  assessment_confidence: 91,
+  analysis_coverage: 92,
+  alignment_quality: 87,
+  finding_count: 2,
+  processing_duration_ms: 6240,
+  total_page_count: 3,
+  reference_page_count: 3,
+  candidate_page_count: 3,
+  findings: [pageOneFinding, pageTwoFinding],
+  pages: [
+    {
+      page_number: 1,
+      width: 1200,
+      height: 1697,
+      candidate_image_url: '/assets/candidate-page-1',
+      reference_image_url: '/assets/reference-page-1',
+      findings: [pageOneFinding],
+      status: 'matched',
+      risk_score: 41,
+      confidence_score: 92,
+      coverage_score: 100,
+      finding_count: 1,
+    },
+    {
+      page_number: 2,
+      width: 1200,
+      height: 1697,
+      candidate_image_url: '/assets/candidate-page-2',
+      reference_image_url: '/assets/reference-page-2',
+      findings: [pageTwoFinding],
+      status: 'reordered',
+      risk_score: 88,
+      confidence_score: 94,
+      coverage_score: 96,
+      finding_count: 1,
+      ocr: {
+        source: 'raster_ocr',
+        provider: 'RapidOCR',
+        device: 'cpu',
+        confidence_score: 93,
+        status: 'completed',
+        character_count: 144,
+      },
+      region_suggestions: [
+        {
+          suggestion_id: 'variable-name',
+          page_number: 2,
+          role: 'variable',
+          confidence_score: 91,
+          reason: 'Value follows a stable Name label.',
+          label: 'Name',
+          bounding_box: { x: 0.51, y: 0.39, width: 0.31, height: 0.07 },
+        },
+      ],
+    },
+    {
+      page_number: 3,
+      width: 1200,
+      height: 1697,
+      candidate_image_url: '',
+      reference_image_url: '/assets/reference-page-3',
+      findings: [],
+      status: 'missing',
+      risk_score: 72,
+      confidence_score: 99,
+      coverage_score: 100,
+      finding_count: 0,
+      candidate_page_number: null,
+    },
+  ],
+  region_suggestions: [
+    {
+      suggestion_id: 'variable-name',
+      page_number: 2,
+      role: 'variable',
+      confidence_score: 91,
+      reason: 'Value follows a stable Name label.',
+      label: 'Name',
+      bounding_box: { x: 0.51, y: 0.39, width: 0.31, height: 0.07 },
+    },
+  ],
+  page_order_anomalies: [
+    {
+      anomaly_id: 'reordered-2',
+      type: 'reordered',
+      title: 'Reordered page',
+      explanation: 'Candidate page 2 most closely corresponds to reference page 3.',
+      page_number: 2,
+      reference_page_number: 3,
+      candidate_page_number: 2,
+      severity: 'medium',
+    },
+    {
+      anomaly_id: 'missing-3',
+      type: 'missing',
+      title: 'Missing page',
+      explanation: 'Reference page 3 has no candidate counterpart.',
+      page_number: 3,
+      reference_page_number: 3,
+      candidate_page_number: null,
+      severity: 'high',
+    },
+    {
+      anomaly_id: 'added-4',
+      type: 'added',
+      title: 'Added page',
+      explanation: 'The candidate contains a page absent from the trusted reference.',
+      page_number: null,
+      reference_page_number: null,
+      candidate_page_number: 4,
+      severity: 'high',
+    },
+  ],
+  document_aggregate: {
+    total_page_count: 3,
+    matched_page_count: 1,
+    reviewed_page_count: 3,
+    clean_page_count: 0,
+    anomaly_count: 3,
+    finding_count: 2,
+    highest_page_risk: 88,
+  },
+}
+
 let latestHandlers: AnalysisWatchHandlers | undefined
 
 const beginDemo = async () => {
@@ -101,6 +266,13 @@ const beginDemo = async () => {
   await waitFor(() => expect(apiMocks.watchAnalysis).toHaveBeenCalledOnce())
   if (!latestHandlers) throw new Error('Analysis handlers were not registered')
   return { user, handlers: latestHandlers }
+}
+
+const completeMultiPageDemo = async () => {
+  const context = await beginDemo()
+  context.handlers.onComplete(multiPageResult)
+  await screen.findByRole('heading', { name: 'Evidence review' })
+  return context
 }
 
 describe('DocuVerify Phase 1 experience', () => {
@@ -154,6 +326,33 @@ describe('DocuVerify Phase 1 experience', () => {
       'src',
       'blob:document-preview',
     )
+  })
+
+  it('selects template mode and reports safe multi-page and OCR upload capabilities', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const modeGroup = screen.getByRole('group', { name: /comparison mode/i })
+    const exactMode = within(modeGroup).getByRole('radio', { name: /exact comparison/i })
+    const templateMode = within(modeGroup).getByRole('radio', { name: /template comparison/i })
+
+    expect(exactMode).toBeChecked()
+    expect(templateMode).not.toBeChecked()
+    await user.click(templateMode)
+    expect(templateMode).toBeChecked()
+
+    const reference = new File(['%PDF-1.7'], 'reference-multipage.pdf', { type: 'application/pdf' })
+    const candidate = new File(['candidate'], 'candidate.png', { type: 'image/png' })
+    await user.upload(screen.getByTestId('reference-input'), reference)
+    await user.upload(screen.getByTestId('candidate-input'), candidate)
+
+    const summary = screen.getByRole('region', { name: /multi-page upload summary/i })
+    expect(within(summary).getByText('Pending validation')).toBeInTheDocument()
+    expect(within(summary).getByText('1 page')).toBeInTheDocument()
+    expect(within(summary).getByText(/10-page limit/i)).toBeInTheDocument()
+    expect(within(summary).getByText(/raster ocr ready/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /start comparison/i }))
+    await waitFor(() => expect(apiMocks.createAnalysis).toHaveBeenCalledWith(reference, candidate, 'template'))
   })
 
   it('never loads an uploaded PDF in the browser and switches to the backend-safe PNG', async () => {
@@ -239,6 +438,46 @@ describe('DocuVerify Phase 1 experience', () => {
     )
   })
 
+  it('tracks the current page, OCR provider and thumbnails from page-aware progress', async () => {
+    const { handlers } = await beginDemo()
+    handlers.onProgress({
+      event_id: 'page-1-preview',
+      job_id: createdJob.job_id,
+      stage_id: 'rendering_documents',
+      message: 'Preparing page 1 of 3',
+      progress: 18,
+      page_number: 1,
+      total_pages: 3,
+      timestamp: '2026-08-28T07:30:01Z',
+      finding_count: 0,
+      candidate_page_url: '/assets/progress-page-1',
+    })
+    handlers.onProgress({
+      event_id: 'page-2-ocr',
+      job_id: createdJob.job_id,
+      stage_id: 'extracting_text',
+      page_stage: 'Raster OCR on page 2',
+      message: 'Extracting text from page 2',
+      progress: 54,
+      page_number: 2,
+      total_pages: 3,
+      timestamp: '2026-08-28T07:30:02Z',
+      finding_count: 1,
+      candidate_page_url: '/assets/progress-page-2',
+      ocr_provider: 'RapidOCR',
+      ocr_device: 'cpu',
+    })
+
+    expect(await screen.findByText(/live forensic analysis · page 2 of 3/i)).toBeInTheDocument()
+    expect(screen.getAllByText('Raster OCR on page 2')).toHaveLength(2)
+    expect(screen.getByText('RapidOCR')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: /analysis progress/i })).toHaveAttribute('aria-valuenow', '54')
+    const pageProgress = screen.getByRole('region', { name: /analysis page progress/i })
+    expect(within(pageProgress).getByRole('img', { name: /page 1 analysis thumbnail/i })).toHaveAttribute('src', '/assets/progress-page-1')
+    expect(within(pageProgress).getByRole('img', { name: /page 2 analysis thumbnail/i })).toHaveAttribute('src', '/assets/progress-page-2')
+    expect(screen.getByRole('img', { name: /questioned document/i })).toHaveAttribute('src', '/assets/progress-page-2')
+  })
+
   it('renders completed risk metrics and opens evidence details from the normalized SVG marker', async () => {
     const { user, handlers } = await beginDemo()
     handlers.onComplete(completedResult)
@@ -260,6 +499,61 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(drawer).getByText('Difference overlay')).toBeInTheDocument()
     expect(within(drawer).getByText('Changed Pixel Ratio')).toBeInTheDocument()
     expect(within(drawer).getByText(/x 0\.310 · y 0\.420/i)).toBeInTheDocument()
+  })
+
+  it('renders a risk filmstrip and keeps markers scoped to the repeatedly selected page', async () => {
+    const { user } = await completeMultiPageDemo()
+    const filmstrip = screen.getByRole('region', { name: /document pages/i })
+    expect(within(filmstrip).getAllByRole('button')).toHaveLength(5)
+    expect(screen.getByRole('img', { name: /questioned document · page 1/i })).toHaveAttribute('src', '/assets/candidate-page-1')
+    expect(within(screen.getByLabelText('1 evidence marker')).getByRole('button', { name: /header shifted/i })).toBeInTheDocument()
+
+    await user.click(within(filmstrip).getByRole('button', { name: /page 2: 88 risk, 1 finding, reordered page/i }))
+    expect(screen.getByRole('img', { name: /questioned document · page 2/i })).toHaveAttribute('src', '/assets/candidate-page-2')
+    const pageTwoOverlay = screen.getByLabelText('1 evidence marker')
+    expect(within(pageTwoOverlay).getByRole('button', { name: /typography inconsistency/i })).toBeInTheDocument()
+    expect(within(pageTwoOverlay).queryByRole('button', { name: /header shifted/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('1 suggested variable region')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /next page/i }))
+    expect(screen.getByText(/candidate page missing/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/evidence marker/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /previous page/i }))
+    expect(screen.getByRole('img', { name: /questioned document · page 2/i })).toHaveAttribute('src', '/assets/candidate-page-2')
+    expect(within(screen.getByLabelText('1 evidence marker')).getByRole('button', { name: /typography inconsistency/i })).toBeInTheDocument()
+  })
+
+  it('navigates a document finding to its page and preserves correct evidence after page switches', async () => {
+    const { user } = await completeMultiPageDemo()
+    await user.click(screen.getByRole('button', { name: /open finding on page 2: typography inconsistency/i }))
+
+    let drawer = await screen.findByRole('dialog', { name: /typography inconsistency/i })
+    expect(within(drawer).getByText('Page 2')).toBeInTheDocument()
+    expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute('src', '/assets/page-2-candidate-crop')
+    expect(screen.getByRole('img', { name: /questioned document · page 2/i })).toHaveAttribute('src', '/assets/candidate-page-2')
+    await user.click(within(drawer).getByRole('button', { name: /close evidence drawer/i }))
+
+    const filmstrip = screen.getByRole('region', { name: /document pages/i })
+    await user.click(within(filmstrip).getByRole('button', { name: /page 1: 41 risk/i }))
+    await user.click(within(filmstrip).getByRole('button', { name: /page 2: 88 risk/i }))
+    await user.click(within(screen.getByLabelText('1 evidence marker')).getByRole('button', { name: /typography inconsistency/i }))
+    drawer = await screen.findByRole('dialog', { name: /typography inconsistency/i })
+    expect(within(drawer).getByText('Page 2')).toBeInTheDocument()
+    expect(within(drawer).getByText(/different baseline and character weight/i)).toBeInTheDocument()
+  })
+
+  it('surfaces mode, aggregate, suggested-region and missing, added and reordered-page indicators', async () => {
+    await completeMultiPageDemo()
+    expect(screen.getAllByText('Template comparison').length).toBeGreaterThan(0)
+    const aggregate = screen.getByRole('region', { name: /document aggregate/i })
+    expect(within(aggregate).getByText('Reference')).toBeInTheDocument()
+    expect(within(aggregate).getAllByText('3 pages')).toHaveLength(2)
+    expect(within(aggregate).getByText('Variable regions')).toBeInTheDocument()
+
+    const anomalies = screen.getByRole('region', { name: /page anomalies/i })
+    expect(within(anomalies).getByText('Missing page')).toBeInTheDocument()
+    expect(within(anomalies).getByText('Added page')).toBeInTheDocument()
+    expect(within(anomalies).getByText('Reordered page')).toBeInTheDocument()
   })
 
   it('shows a structured failure state and a route back to upload', async () => {

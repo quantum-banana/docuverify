@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
-import type { Finding } from '../types/contracts'
+import type { Finding, NormalizedBoundingBox, RegionSuggestion } from '../types/contracts'
 import { EyeIcon, FileIcon, ScanIcon } from './Icons'
 
 interface DocumentViewerProps {
@@ -7,11 +7,16 @@ interface DocumentViewerProps {
   width?: number
   height?: number
   findings?: Finding[]
+  regionSuggestions?: RegionSuggestion[]
   selectedFindingId?: string
   onSelectFinding?: (finding: Finding) => void
   scanning?: boolean
   progress?: number
   label?: string
+  pageNumber?: number
+  totalPages?: number
+  pageStatus?: string
+  localizedRegion?: NormalizedBoundingBox
 }
 
 const activateOnKeyboard = (
@@ -30,11 +35,16 @@ export function DocumentViewer({
   width,
   height,
   findings = [],
+  regionSuggestions = [],
   selectedFindingId,
   onSelectFinding,
   scanning = false,
   progress = 0,
   label = 'Questioned document',
+  pageNumber = 1,
+  totalPages = 1,
+  pageStatus = 'matched',
+  localizedRegion,
 }: DocumentViewerProps) {
   const [imageFailed, setImageFailed] = useState(false)
   useEffect(() => setImageFailed(false), [imageUrl])
@@ -45,6 +55,8 @@ export function DocumentViewer({
   // never gets height-clamped independently of its overlay coordinate space.
   const pageMaxWidth = Math.min(510, 650 * pageRatio)
   const showDocument = Boolean(imageUrl) && !imageFailed
+  const statusLabel = pageStatus.replaceAll('_', ' ')
+  const isMissing = pageStatus === 'missing'
 
   return (
     <section className="document-shell" aria-label={`${label} viewer`}>
@@ -53,7 +65,9 @@ export function DocumentViewer({
           <span className="document-shell__dot" />
           <span>{label}</span>
         </div>
-        <span className="document-shell__page">PAGE 01 / 01</span>
+        <span className="document-shell__page">
+          PAGE {String(pageNumber).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+        </span>
       </div>
       <div className="document-stage">
         <div className="document-stage__grid" aria-hidden="true" />
@@ -68,11 +82,19 @@ export function DocumentViewer({
           ) : (
             <div className="document-placeholder" data-testid="document-placeholder">
               {scanning ? <ScanIcon className="document-placeholder__scan" /> : <FileIcon />}
-              <strong>{scanning ? 'Preparing document preview' : 'Document preview unavailable'}</strong>
+              <strong>
+                {scanning
+                  ? 'Preparing document preview'
+                  : isMissing
+                    ? 'Candidate page missing'
+                    : 'Document preview unavailable'}
+              </strong>
               <span>
                 {scanning
                   ? 'The rendered candidate page will appear when it is ready.'
-                  : 'The analysis completed without a browser preview.'}
+                  : isMissing
+                    ? 'No candidate page corresponds to this trusted reference page.'
+                    : 'The analysis completed without a browser preview.'}
               </span>
             </div>
           )}
@@ -88,6 +110,40 @@ export function DocumentViewer({
               <span className="scan-overlay__corner scan-overlay__corner--bl" />
               <span className="scan-overlay__corner scan-overlay__corner--br" />
             </div>
+          )}
+
+          {scanning && localizedRegion && (
+            <span
+              className="localized-region-preview"
+              aria-hidden="true"
+              style={{
+                left: `${localizedRegion.x * 100}%`,
+                top: `${localizedRegion.y * 100}%`,
+                width: `${localizedRegion.width * 100}%`,
+                height: `${localizedRegion.height * 100}%`,
+              }}
+            />
+          )}
+
+          {!scanning && regionSuggestions.length > 0 && (
+            <svg
+              className="suggestion-overlay"
+              viewBox="0 0 1 1"
+              preserveAspectRatio="none"
+              aria-label={`${regionSuggestions.length} suggested variable ${regionSuggestions.length === 1 ? 'region' : 'regions'}`}
+            >
+              {regionSuggestions.map((suggestion) => {
+                const { x, y, width: boxWidth, height: boxHeight } = suggestion.bounding_box
+                return (
+                  <g key={suggestion.suggestion_id} className={`suggestion-marker suggestion-marker--${suggestion.role}`}>
+                    <title>
+                      {suggestion.label || `${suggestion.role} region`}: {suggestion.reason}
+                    </title>
+                    <rect x={x} y={y} width={boxWidth} height={boxHeight} rx="0.004" />
+                  </g>
+                )
+              })}
+            </svg>
           )}
 
           {!scanning && findings.length > 0 && (
@@ -131,7 +187,11 @@ export function DocumentViewer({
       </div>
       <div className="document-shell__footer">
         <span><EyeIcon /> Candidate view</span>
-        <span>Normalized coordinates · 0—1</span>
+        <span>
+          {pageStatus === 'matched' || pageStatus === 'completed'
+            ? 'Normalized coordinates · 0—1'
+            : statusLabel}
+        </span>
       </div>
     </section>
   )

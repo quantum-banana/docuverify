@@ -101,6 +101,10 @@
           "title": "Page Number",
           "type": "integer"
         },
+        "region_role": {
+          "$ref": "#/$defs/RegionRole",
+          "default": "unknown"
+        },
         "risk_score": {
           "maximum": 100.0,
           "minimum": 0.0,
@@ -154,6 +158,105 @@
       "title": "Finding",
       "type": "object"
     },
+    "PageOCRSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_characters": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Candidate Characters",
+          "type": "integer"
+        },
+        "candidate_confidence": {
+          "anyOf": [
+            {
+              "maximum": 100.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Confidence"
+        },
+        "candidate_device": {
+          "default": "cpu",
+          "title": "Candidate Device",
+          "type": "string"
+        },
+        "candidate_provider": {
+          "title": "Candidate Provider",
+          "type": "string"
+        },
+        "candidate_succeeded": {
+          "default": false,
+          "title": "Candidate Succeeded",
+          "type": "boolean"
+        },
+        "reference_characters": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Reference Characters",
+          "type": "integer"
+        },
+        "reference_confidence": {
+          "anyOf": [
+            {
+              "maximum": 100.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Confidence"
+        },
+        "reference_device": {
+          "default": "cpu",
+          "title": "Reference Device",
+          "type": "string"
+        },
+        "reference_provider": {
+          "title": "Reference Provider",
+          "type": "string"
+        },
+        "reference_succeeded": {
+          "default": false,
+          "title": "Reference Succeeded",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference_provider",
+        "candidate_provider"
+      ],
+      "title": "PageOCRSummary",
+      "type": "object"
+    },
+    "PageStatus": {
+      "enum": [
+        "matched",
+        "reordered",
+        "missing",
+        "added",
+        "failed"
+      ],
+      "title": "PageStatus",
+      "type": "string"
+    },
+    "RegionRole": {
+      "enum": [
+        "fixed",
+        "variable",
+        "unknown"
+      ],
+      "title": "RegionRole",
+      "type": "string"
+    },
     "Severity": {
       "enum": [
         "info",
@@ -170,9 +273,56 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "alignment_quality": {
+      "default": 0.0,
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Alignment Quality",
+      "type": "number"
+    },
     "candidate_image_url": {
-      "title": "Candidate Image Url",
-      "type": "string"
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Candidate Image Url"
+    },
+    "candidate_page_number": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Page Number"
+    },
+    "confidence_score": {
+      "default": 0.0,
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Confidence Score",
+      "type": "number"
+    },
+    "coverage_score": {
+      "default": 0.0,
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Coverage Score",
+      "type": "number"
+    },
+    "finding_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Finding Count",
+      "type": "integer"
     },
     "findings": {
       "items": {
@@ -186,14 +336,56 @@
       "title": "Height",
       "type": "integer"
     },
+    "ocr": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PageOCRSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "page_number": {
       "minimum": 1,
       "title": "Page Number",
       "type": "integer"
     },
     "reference_image_url": {
-      "title": "Reference Image Url",
-      "type": "string"
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reference Image Url"
+    },
+    "reference_page_number": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Page Number"
+    },
+    "risk_score": {
+      "default": 0.0,
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Risk Score",
+      "type": "number"
+    },
+    "status": {
+      "$ref": "#/$defs/PageStatus",
+      "default": "matched"
     },
     "width": {
       "exclusiveMinimum": 0,

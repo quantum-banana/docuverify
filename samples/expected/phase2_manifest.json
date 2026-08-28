@@ -1,0 +1,318 @@
+{
+  "files": {
+    "expected/multipage_tamper_mask_page_2.png": {
+      "bytes": 2459,
+      "sha256": "0ed5dc6c0009c1bbc573f8ef8b9052c0be5d258d16a03da3b307f0ee33b9ca96"
+    },
+    "expected/template_manipulated_mask.png": {
+      "bytes": 2475,
+      "sha256": "4db68c3ef6cfea5827b2705494f9c36d3249cf4f61b9bcbd6dccf972ec6e4539"
+    },
+    "synthetic/multipage_added_candidate.pdf": {
+      "bytes": 5679,
+      "sha256": "173cd5869a60336310d5015a1696f355cda508b7a2ba4e3c659d176f48697d0e"
+    },
+    "synthetic/multipage_clean_candidate.pdf": {
+      "bytes": 4719,
+      "sha256": "2bbb81e0687b4416b810b0ee926fdf36602a5f1aa58100d90f92fdeed99c7744"
+    },
+    "synthetic/multipage_clean_candidate_page_1.png": {
+      "bytes": 93298,
+      "sha256": "d0ad7a180accd921f5798a9c155c217fc41ec13b7bcec83aada5d8152e260fdb"
+    },
+    "synthetic/multipage_clean_candidate_page_2.png": {
+      "bytes": 84126,
+      "sha256": "19558a0e525fc91f41a734ef456349383b783605e1987672a4cae4e903cb3201"
+    },
+    "synthetic/multipage_clean_candidate_page_3.png": {
+      "bytes": 93250,
+      "sha256": "286ef2ad2e59882dfaf34f569aaa022faaa5237ca84dcd4cbcd161819cb98429"
+    },
+    "synthetic/multipage_missing_candidate.pdf": {
+      "bytes": 3370,
+      "sha256": "ca61fc95fb80e031e28b9f9c846786c203862d8027ae66e005b495820ecbcddf"
+    },
+    "synthetic/multipage_reference.pdf": {
+      "bytes": 4719,
+      "sha256": "2bbb81e0687b4416b810b0ee926fdf36602a5f1aa58100d90f92fdeed99c7744"
+    },
+    "synthetic/multipage_reference_page_1.png": {
+      "bytes": 93298,
+      "sha256": "d0ad7a180accd921f5798a9c155c217fc41ec13b7bcec83aada5d8152e260fdb"
+    },
+    "synthetic/multipage_reference_page_2.png": {
+      "bytes": 84126,
+      "sha256": "19558a0e525fc91f41a734ef456349383b783605e1987672a4cae4e903cb3201"
+    },
+    "synthetic/multipage_reference_page_3.png": {
+      "bytes": 93250,
+      "sha256": "286ef2ad2e59882dfaf34f569aaa022faaa5237ca84dcd4cbcd161819cb98429"
+    },
+    "synthetic/multipage_reordered_candidate.pdf": {
+      "bytes": 4719,
+      "sha256": "b7eb3571579afbe1941845cd36eb0a3ccb337a9532ddf98a93c4839b47f1b613"
+    },
+    "synthetic/multipage_tampered_candidate.pdf": {
+      "bytes": 4715,
+      "sha256": "21d0a8050be008812e3d9914ddfdebc8964211353c1462213f0e7bfe0f326ab4"
+    },
+    "synthetic/multipage_tampered_candidate_page_1.png": {
+      "bytes": 93298,
+      "sha256": "d0ad7a180accd921f5798a9c155c217fc41ec13b7bcec83aada5d8152e260fdb"
+    },
+    "synthetic/multipage_tampered_candidate_page_2.png": {
+      "bytes": 83287,
+      "sha256": "e01c058fc093a2f8b15c951be3178ec3887629c9412ba2df42a43a91fb10ee19"
+    },
+    "synthetic/multipage_tampered_candidate_page_3.png": {
+      "bytes": 93250,
+      "sha256": "286ef2ad2e59882dfaf34f569aaa022faaa5237ca84dcd4cbcd161819cb98429"
+    },
+    "synthetic/raster_only_document.pdf": {
+      "bytes": 71163,
+      "sha256": "1960795c254b6ba060a2fb43046d038c144baadf5ad18cc7f4f2f2611f20d6da"
+    },
+    "synthetic/raster_only_document.png": {
+      "bytes": 80412,
+      "sha256": "a6d2a2e8745e2472093f4c013e3520bf11c3b0c88d3f214aca1512f7d5d62f4f"
+    },
+    "synthetic/template_legitimate_candidate.pdf": {
+      "bytes": 2214,
+      "sha256": "863280da92ee85b95b7ca6eee70b9bf0547d4a6c0602663eb4812872264b7f21"
+    },
+    "synthetic/template_legitimate_candidate_page_1.png": {
+      "bytes": 86476,
+      "sha256": "7e8d2cfb5b4ba87fbab7b0cf0ac038b51fb9f912948aa95703f85f7f18df86cd"
+    },
+    "synthetic/template_manipulated_candidate.pdf": {
+      "bytes": 2382,
+      "sha256": "eae742f0bd14bf712b95496fed4c30da3c8e08581f225b7e44fa5bd695e24984"
+    },
+    "synthetic/template_manipulated_candidate_page_1.png": {
+      "bytes": 87783,
+      "sha256": "c5938625aceade056f9a28a55aa7dc434839c37365c5946b4eeca71a745b018f"
+    },
+    "synthetic/template_reference.pdf": {
+      "bytes": 2219,
+      "sha256": "c5cccf620048657d7e3e0515d154bad2d0f92719375473ff7441a7fcdef2a5e9"
+    },
+    "synthetic/template_reference_page_1.png": {
+      "bytes": 88894,
+      "sha256": "01dc0cb8fbfd3f0765a6c637fc1499776f9abf8e244e8c6be702e641ec25d7bf"
+    }
+  },
+  "multi_page": {
+    "clean_candidate": "synthetic/multipage_clean_candidate.pdf",
+    "page_count": 3,
+    "page_sequence": [
+      "record overview",
+      "module results",
+      "completion summary"
+    ],
+    "reference": "synthetic/multipage_reference.pdf",
+    "tampered_candidate": "synthetic/multipage_tampered_candidate.pdf",
+    "tampering": {
+      "after": "REVIEW",
+      "before": "DISTINCTION",
+      "expected_categories": [
+        "text_content_change"
+      ],
+      "field": "VERIFICATION",
+      "mask": "expected/multipage_tamper_mask_page_2.png",
+      "minimum_localization_iou": 0.3,
+      "normalized_bbox": {
+        "height": 0.064133,
+        "width": 0.369748,
+        "x": 0.514286,
+        "y": 0.448931
+      },
+      "page_number": 2
+    },
+    "thresholds": {
+      "clean_max_risk": 20,
+      "tampered_min_risk": 50
+    }
+  },
+  "notice": "Every person, institution, identifier, result, logo, and seal is fictional.",
+  "page_anomalies": {
+    "added": {
+      "candidate": "synthetic/multipage_added_candidate.pdf",
+      "candidate_sequence": [
+        "record overview",
+        "module results",
+        "completion summary",
+        "added review note"
+      ],
+      "expected_category": "page_added"
+    },
+    "missing": {
+      "candidate": "synthetic/multipage_missing_candidate.pdf",
+      "candidate_sequence": [
+        "record overview",
+        "completion summary"
+      ],
+      "expected_category": "page_missing"
+    },
+    "reordered": {
+      "candidate": "synthetic/multipage_reordered_candidate.pdf",
+      "candidate_sequence": [
+        "record overview",
+        "completion summary",
+        "module results"
+      ],
+      "expected_category": "page_reordered"
+    }
+  },
+  "phase1_regression": {
+    "manifest": "expected/manifest.json",
+    "minimum_localization_iou": 0.3
+  },
+  "raster_ocr": {
+    "approximate_box_minimum_iou": 0.08,
+    "expected_tokens": [
+      {
+        "normalized_bbox": {
+          "height": 0.017778,
+          "width": 0.037736,
+          "x": 0.061321,
+          "y": 0.061667
+        },
+        "text": "DV"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.023889,
+          "width": 0.149371,
+          "x": 0.176887,
+          "y": 0.038889
+        },
+        "text": "ORBITAL"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.023889,
+          "width": 0.154874,
+          "x": 0.448113,
+          "y": 0.038889
+        },
+        "text": "ARCHIVE"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.018333,
+          "width": 0.075472,
+          "x": 0.397013,
+          "y": 0.289444
+        },
+        "text": "NOVA"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.019444,
+          "width": 0.07783,
+          "x": 0.496069,
+          "y": 0.289444
+        },
+        "text": "QUILL"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.019444,
+          "width": 0.137579,
+          "x": 0.397013,
+          "y": 0.381111
+        },
+        "text": "QVX-7319"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.018333,
+          "width": 0.164308,
+          "x": 0.397013,
+          "y": 0.472778
+        },
+        "text": "2042-06-17"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.018333,
+          "width": 0.168239,
+          "x": 0.397013,
+          "y": 0.564444
+        },
+        "text": "DISTINCTION"
+      },
+      {
+        "normalized_bbox": {
+          "height": 0.011111,
+          "width": 0.087264,
+          "x": 0.664308,
+          "y": 0.750556
+        },
+        "text": "SYNTHETIC"
+      }
+    ],
+    "minimum_token_matches": 6,
+    "no_embedded_text": true,
+    "pdf": "synthetic/raster_only_document.pdf",
+    "png": "synthetic/raster_only_document.png"
+  },
+  "render": {
+    "height": 1800,
+    "longest_dimension": 1800,
+    "width": 1272
+  },
+  "schema_version": "2.0",
+  "synthetic": true,
+  "template": {
+    "legitimate": {
+      "expected_behavior": "informational_variable_value_changes",
+      "maximum_tampering_risk": 35
+    },
+    "legitimate_candidate": "synthetic/template_legitimate_candidate.pdf",
+    "manipulated": {
+      "expected_categories": [
+        "typography_inconsistency",
+        "background_compositing"
+      ],
+      "field": "RESULT",
+      "mask": "expected/template_manipulated_mask.png",
+      "minimum_localization_iou": 0.3,
+      "minimum_tampering_risk": 50,
+      "normalized_bbox": {
+        "height": 0.070071,
+        "width": 0.460504,
+        "x": 0.423529,
+        "y": 0.529691
+      }
+    },
+    "manipulated_candidate": "synthetic/template_manipulated_candidate.pdf",
+    "reference": "synthetic/template_reference.pdf",
+    "variable_fields": [
+      {
+        "label": "name",
+        "legitimate": "LYRA QUILL",
+        "reference": "ARIA NOVA",
+        "role": "variable"
+      },
+      {
+        "label": "identifier",
+        "legitimate": "LGX-2042-042",
+        "reference": "LGX-2042-017",
+        "role": "variable"
+      },
+      {
+        "label": "date",
+        "legitimate": "21 JUNE 2042",
+        "reference": "17 JUNE 2042",
+        "role": "variable"
+      },
+      {
+        "label": "result",
+        "legitimate": "MERIT",
+        "reference": "DISTINCTION",
+        "role": "variable"
+      }
+    ]
+  }
+}

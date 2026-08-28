@@ -1,145 +1,167 @@
 # DocuVerify handoff
 
-## Current phase and status
+## Current phase and release state
 
-**Phase:** Phase 1 - four-hour demonstrable vertical slice<br>
-**Status:** **PASS**<br>
-**Architectural review:** **PASSED**<br>
-**Base/parent commit:** NONE - the approved Phase 1 commit is the repository's first commit<br>
-**Release state:** Approved for the first commit and planned annotated tag `phase-1-4h-demo`; GitHub remote setup remains pending.
+**Phase:** Phase 2 - eight-hour credible multi-page analyser<br>
+**Candidate status:** **`PASS_ON_4060_PENDING_RTX5060` - UNRELEASED**<br>
+**Local branch:** `phase-2-work`<br>
+**Base commit:** `ee2ad3ca7defe1010ac1d3f6be39bd5eee205392`<br>
+**Released baseline:** Phase 1 tag `phase-1-4h-demo` on the same commit<br>
+**Remote:** private `origin` at `https://github.com/quantum-banana/docuverify.git`; `origin/main` points to the approved Phase 1 commit<br>
+**Phase 2 commit/tag/push:** none
 
-Phase 1 passed its same-machine automated and isolated live verification. The application started through the Windows run script, required API capabilities responded, the complete test script exited 0, the clean result was substantially below the tampered result, and two consecutive demo runs were stable. The browser automation backend was unavailable, so screenshots and manual browser-console inspection are explicitly not claimed; UI behavior is covered by the passing frontend tests.
+Phase 1 is already committed, tagged, and synchronized to the private remote. Phase 2 exists only as intentional working-tree changes on the local branch. The final RTX 4060 gate passed, but that result does not authorize merging to `main`, moving the Phase 1 tag, creating a Phase 2 tag, or pushing.
 
-## Verified implementation
+Development and the complete Phase 2 candidate gate occurred on the RTX 4060 laptop. A separate RTX 5060 smoke passed the released Phase 1 baseline and established Python 3.12 portability. **RTX 5060 Phase 2-specific OCR and multi-page validation remain pending.** Phase 2 is not final release-ready.
 
-- Local Git repository on `main`, approved for its first Phase 1 commit
-- Idempotent Windows diagnostics, bootstrap, local-run, and consolidated-test scripts
-- FastAPI/Pydantic API for health, safe diagnostics, validated uploads, bundled demo, durable jobs/events, and registered assets
-- One-page PDF/image rendering, bounded alignment, embedded-PDF text extraction, visual difference localization, deterministic scoring, and evidence PNGs
-- Real 10-stage backend progress lifecycle delivered through replayable SSE
-- React/TypeScript/Vite interface for upload/demo, progress, risk results, normalized SVG markers, and evidence details
-- Deterministic fictional reference, clean candidate, tampered candidate, expected region, and tamper mask
-- Shared schemas and corresponding backend/frontend contracts
-- Ignored local SQLite/runtime storage with configurable periodic retention cleanup and restart recovery
-
-## Machine and environment
+## Environment
 
 - Windows 11 Home Single Language, x64, build 10.0.26200
-- AMD Ryzen 9 8945HS w/ Radeon 780M Graphics, 16 logical CPUs
-- 15.23 GiB observed RAM; nominal/supplied capacity is 16 GB
-- Drive E: 100 GiB total with approximately 77.9 GiB free at final verification
+- AMD Ryzen 9 8945HS, 16 logical processors, nominal 16 GB RAM
 - NVIDIA GeForce RTX 4060 Laptop GPU, 8188 MiB
 - NVIDIA driver 610.62; driver-reported CUDA compatibility 13.3
-- Python 3.14.6
-- Node.js 24.15.0; npm 11.12.1 through `npm.cmd`
-- Git 2.54.0.windows.1
-- GitHub CLI unavailable; remote creation and authentication were not attempted
+- Available Python lines observed: 3.11, 3.12, and 3.14
+- Primary supported project runtime: Python 3.12.10
+- Preserved Phase 1 environment: `.venv-phase1-py314`, Python 3.14.6
+- Preserved pre-correction environment: `.venv-phase2-py311`, Python 3.11.9
+- Node.js 24.15.0 and npm 11.12.1 through `npm.cmd`
+- Raster OCR: RapidOCR 3.9.2 with ONNX Runtime 1.29.0, CPU
+- GPU OCR: not attempted and not claimed
 
-The driver CUDA value is not evidence that a CUDA toolkit or GPU-enabled OCR library is installed. An **RTX 5060 smoke test is still required** on separate hardware.
+Python 3.12 is the tested cross-laptop baseline. The current dependency set is not compatible with Python 3.11, so merely having Python 3.11 installed is not a support claim. Bootstrap selection priority is an explicit user override, then Python 3.12; another version may be used only after the complete dependency set is proven compatible. Python 3.14 remains installed and its environment was moved aside, not deleted, but it is not selected automatically for Phase 2 OCR. No recoverable virtual-environment backup, NVIDIA driver, system CUDA toolkit, global file association, or global Python installation was removed.
 
-## Active OCR provider and device
+## Phase 2 implementation candidate
 
-- Provider: `pymupdf_embedded_text`
-- Execution device: `cpu`
-- Raster OCR capability: `false`
-- GPU detected by backend diagnostics: `true`
-- Raster/no-text fallback: real visual comparison without claiming OCR
+- Accepts each PDF upload containing 1 through 10 physical pages and single-page PNG/JPEG images.
+- Rejects PDFs above 10 physical pages, corrupt/encrypted PDFs, unsupported input, and unusable empty pages.
+- Produces as many as 20 ordered review slots when correspondence must represent both missing reference pages and added candidate pages; this does not raise either upload's 10-page limit.
+- Processes document pages sequentially by default with page-aware stage/progress events.
+- Preserves Phase 1 exact comparison while adding template comparison.
+- Represents fixed, variable, and unknown region roles.
+- Suggests variable fields from stable labels and normalized OCR/layout geometry.
+- Treats a consistent template value change as informational/allowed instead of automatically high risk.
+- Retains typography, baseline, spacing, alignment, background, color, texture, and compositing checks for variable fields.
+- Uses embedded PDF text when reliable and cached raster OCR for image-only pages.
+- Continues visual analysis after OCR failure and lowers coverage instead of inventing OCR evidence or increasing risk solely because OCR is missing.
+- Estimates page correspondence and exposes matched, missing, added, reordered, and dimension-mismatch states.
+- Produces per-page risk, confidence, coverage, findings, OCR status, images, crops, and overlays plus a deterministic document aggregate.
+- Adds page filmstrip/navigation, page risk badges, page-specific markers, finding-to-page navigation, anomaly indicators, and variable-region visualization.
 
-## Commands
+## Exact and template behavior
 
-From the repository root:
+In **Exact** mode, the candidate is expected to closely match the trusted reference. Page count/order, dimensions, text, values, layout, logos/seals, visual structure, metadata where available, OCR, and inserted/removed content can contribute evidence.
+
+In **Template** mode, stable labels and layout are treated as fixed while suggested value regions may vary. A name, identifier, date, result, grade, mark, or score can change without dominating tampering risk when its appearance remains consistent. A pasted background or conspicuous type/baseline/spacing change remains suspicious even inside a variable field.
+
+Automatic suggestions are heuristics, not general document understanding. Raster evidence does not claim exact font-family identification.
+
+## OCR capability and failure semantics
+
+- Born-digital PDF text provider: PyMuPDF embedded extraction when reliable
+- Raster provider: cached RapidOCR/ONNX Runtime
+- Device: CPU
+- Provider initialization: reused across pages and analyses within the process
+- Model files: package/cache data, not repository fixtures
+- Failure behavior: visual pipeline continues, provider reports failure, page/document coverage falls, risk is not raised merely because OCR is unavailable
+
+The deterministic raster-only PDF contains one page image and zero embedded text. Tested first on Python 3.12.10, the final direct OCR run returned 17 words and all 9 expected token/box matches with normalized boxes, mean confidence `0.997524705882353`, cold call `2.210 s`, warm call `0.771 s`, and initialization count `1`. Working set changed from `81.64 MiB` before OCR to `209.66 MiB` after the cold call and `172.66 MiB` after the warm call. These are local fixture observations, not general benchmarks.
+
+## Deterministic fictional fixtures
+
+Phase 1 files and their recorded hashes remain unchanged. Phase 2 adds:
+
+- three-page reference and byte-identical clean candidate;
+- three-page candidate changed only on page 2, with expected region and mask;
+- missing-page, added-page, and reordered-page candidates;
+- template reference, legitimate-variable candidate, and manipulated-variable candidate with expected region/mask;
+- raster-only PNG/PDF with known OCR tokens and approximate normalized boxes.
+
+All people, institutions, identifiers, results, logos, and seals are fictional. No internet document was collected.
+
+The Phase 2 manifest SHA-256 is `3bb69928ea82896e7cd751500c396576176c67a5cbc7d50e8db452f03b409a50`. A full generator rerun left the manifest and all 25 recorded Phase 2 artifact hashes identical.
+
+## Final RTX 4060 verification evidence
+
+| Check | Current evidence |
+| --- | --- |
+| Phase 1 released baseline | Commit/tag/remote synchronization completed before Phase 2 |
+| Python 3.12 runtime baseline | Tested across the RTX 4060 and RTX 5060 laptops; Python 3.11 is not claimed for the current dependencies |
+| Bootstrap selection regression | PASS; real host with Python 3.11.9 and 3.12.10 selected Python 3.12.10 automatically |
+| Consolidated backend suite | 81 passed in 36.25 seconds |
+| Frontend suite | 14 passed in 2.52 seconds |
+| TypeScript typecheck | PASS |
+| Vite production build | PASS; 435 modules in 1.90 seconds; CSS 45.84 kB (10.07 kB gzip), JavaScript 379.26 kB (118.96 kB gzip) |
+| Phase 1 golden localization | IoU `0.3745511831`, improved from `0.2201` and above the `0.30` target |
+| Three-page page-2 localization | IoU `0.5584561077`; evidence remains on page 2 |
+| Fixture determinism | Phase 2 manifest identical and all 25 file hashes identical after rerun |
+| Phase 1 fixture integrity | All six Phase 1 hashes unchanged |
+| Raster fixture structure | One image, zero embedded PDF text |
+| API/Phase 1 smoke | Health/diagnostics passed; clean risk `0`; tampered risk `86.3`; IoU `0.3745`; first/warm tampered analysis `1251/565 ms` |
+| Multi-page smoke | Clean risk `0`; page-2 tampered risk `85.3`, IoU `0.5585`; missing `82`; added `78`; reordered `70.4` |
+| Template smoke | Exact legitimate `92.9`; template legitimate `15.0` with four variable suggestions; manipulated `81` with background-compositing evidence |
+| Raster OCR invariant | Zero embedded characters; 17 words; 9 expected token/box matches; normalized boxes; confidence `0.997524705882353`; RapidOCR CPU initialization count `1` |
+| Raster OCR timing | Cold `2.210 s`; warm `0.771 s` |
+| Repository checks | PASS; no Phase 2 commit, tag, push, or merge |
+
+The final RTX 4060 Phase 1 smoke took `1.275 s` wall for the first tampered run, `0.498 s` for clean, and `0.633 s` for the warm tampered run. The three-page clean and tampered smokes took `1.233 s` and `1.288 s` wall respectively. Analysis-reported durations were `1251`, `459`, `565`, `1158`, and `1218 ms` in the same order.
+
+A fresh Python 3.12 server workload on the RTX 4060 host began at working set/private memory `86.08/558.25 MiB`. After the single-page tampered job it was `217.64/769.80 MiB`; after three-page clean and tampered jobs it was `219.59/773.44 MiB` and `217.95/772.02 MiB`. The cold full raster job took `2887 ms`; five subsequent warm jobs took `1787`, `1742`, `1803`, `1786`, and `1781 ms`. Their working-set tail stayed between `307.55` and `308.46 MiB`, a `0.91 MiB` range, with no uncontrolled growth. GPU OCR was not attempted, so VRAM before/after is `N/A`.
+
+## Confirmed RTX 5060 Phase 1 portability evidence
+
+The separate RTX 5060 smoke used Python 3.12.10 and completed the released Phase 1 project successfully:
+
+| Check | Confirmed evidence |
+| --- | --- |
+| Backend tests | 34 passed |
+| Frontend tests | 8 passed |
+| Production build | PASS |
+| Clean / tampered risk | `0` / `93.6` |
+| Golden localization | IoU `0.2201` |
+| Observed processing time | Approximately `0.4-0.6 s` |
+| Repository state after smoke | Clean |
+| Hardware | NVIDIA RTX 5060, 8 GB VRAM |
+| CUDA observation | Driver-reported compatibility 13.3; no system CUDA toolkit installed |
+| Phase 1 execution path | CPU/OpenCV/PyMuPDF |
+
+This evidence closes the RTX 5060 Phase 1 portability check only. It does not claim RapidOCR, multi-page, template-mode, or other Phase 2 acceptance on that laptop. Raster OCR must be tested first on Python 3.12 with CPU OCR available as the mandatory fallback. GPU OCR may be attempted only through a supported provider/runtime combination; installing or modifying the system CUDA toolkit is out of scope.
+
+## Browser verification boundary
+
+The Phase 2 frontend includes automated coverage for mode selection, multi-page progress, filmstrip rendering, page switching, page-specific markers, finding navigation, evidence details, and anomaly presentation. The in-app browser backend was unavailable in this environment.
+
+The browser skill found zero browser instances. Therefore browser verification was unavailable, screenshot paths are `NONE`, and no manual click-through or browser-console result is claimed. This remains an explicit tooling boundary if a reviewer requires manual browser evidence.
+
+## Local commands
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\diagnose-windows.ps1
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-windows.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-windows.ps1 -PythonVersion 3.12 -OcrProvider auto -OcrDevice cpu
     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-local.ps1
     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-tests.ps1
 
 Local URLs default to frontend `http://127.0.0.1:5173`, backend `http://127.0.0.1:8000`, health `/api/v1/health`, diagnostics `/api/v1/diagnostics`, and API docs `/api/docs`.
 
-## Exact automated results
-
-| Check | Result |
-| --- | --- |
-| Windows diagnostics | PASS, exit 0 |
-| Consolidated test script | PASS twice consecutively, exit 0 on both runs |
-| Backend tests | 34 passed in 10.34 seconds; 34 passed in 10.16 seconds |
-| Backend warnings | 189 FastAPI/Python 3.14 deprecation warnings; non-failing |
-| Frontend tests | 2 files/8 tests passed in 1.94 seconds; repeated in 1.88 seconds |
-| TypeScript typecheck | PASS on both runs |
-| Vite production build | PASS twice with Vite 7.3.6; 435 modules transformed; built in 1.69 and 1.70 seconds |
-| Production output | HTML 0.60 kB (gzip 0.36 kB), CSS 34.58 kB (gzip 8.19 kB), JavaScript 357.56 kB (gzip 113.62 kB) |
-| PDF preview security regression | PASS; raw PDFs never enter a browser parser, and the placeholder remains until a backend PNG is available |
-| PowerShell syntax parse | PASS for all scripts |
-
-Each consolidated test invocation uses a fresh current-user-owned root beneath `%TEMP%\docuverify-tests`, with separate pytest and application-runtime children named by process ID and a random GUID. This avoids collisions across Windows execution identities and concurrent runs, does not depend on the inaccessible legacy `backend/runtime/pytest-temp` directory, and requires no administrator access. Production runtime behavior is unchanged.
-
-## Retention and restart behavior
-
-- `DOCUVERIFY_RETENTION_HOURS` controls job age and `DOCUVERIFY_CLEANUP_INTERVAL_SECONDS` controls the periodic sweep (defaults: 24 hours and 300 seconds).
-- Lifespan startup performs interrupted-job recovery and an immediate retention sweep, then starts periodic cleanup.
-- Importing the module or constructing an app/store initializes required storage but does not recover queued/running jobs; recovery is deliberately deferred to lifespan startup so schema tools and app inspection cannot mutate live job state.
-- Cleanup selects only terminal completed/failed jobs older than the cutoff. Queued/running jobs are never retention-deleted.
-- Cleanup is filesystem-first. The SQLite job/event/asset rows are removed only after the job directory is gone.
-- A locked or partially removable Windows directory leaves its database record intact, allowing the next periodic sweep to retry safely.
-
-## Exact isolated live smoke results
-
-| Run | Tampering risk | Findings | Pipeline time | Wall time | Localization | Events |
-| --- | ---: | ---: | ---: | ---: | --- | ---: |
-| Tampered demo 1 | 93.6 | 1 | 1,990 ms | 2.042 s | Expected region IoU 0.2201 | 10 stages |
-| Clean comparison | 0 | 0 | 358 ms | 0.402 s | No suspicious region | Completed |
-| Tampered demo 2 | 93.6 | 1 | 438 ms | 0.540 s | Stable finding | 10 stages |
-
-This final-tree smoke ran through the frontend proxy. The health endpoint returned `ok`. Diagnostics returned backend ready with GPU detected, `pymupdf_embedded_text`, CPU execution, and raster OCR false. The tampered pipeline produced a browser-safe evidence PNG. Clean risk was substantially lower than tampered risk, and the repeated tampered risk/finding count were stable. Backend access-log inspection showed only expected 200/202 responses and no errors.
-
-Peak RAM and peak VRAM were not measured.
-
-## UI/browser verification boundary
-
-- Marker interaction, evidence drawer details, backend-progress updates, completed results, and visible error behavior passed automated frontend tests.
-- PDF uploads remain behind a placeholder until the backend returns a safe PNG; the frontend does not create a PDF object URL or invoke a browser PDF parser. This behavior has an automated regression test.
-- The complete application started through `run-local.ps1`.
-- An in-app browser session was attempted, but no browser backend was connected.
-- No screenshot was captured.
-- No manual browser-console inspection result is claimed.
-
-The missing browser backend is a tooling limitation, not a product failure for this checkpoint because the relevant UI behaviors have automated coverage and the live backend pipeline was independently exercised.
-
-## Major decisions
-
-- The product reports **Tampering risk**, **Assessment confidence**, and **Analysis coverage**. It does not claim a percentage is fake, that a document is definitely forged, or that it is legally authentic.
-- Multi-page files are rejected explicitly; Phase 1 never silently analyzes only the first page.
-- The synthetic demo traverses the same job and forensic pipeline as uploaded pairs.
-- Backend events are the authority for stage completion. The frontend reconnects and polls but does not invent progress.
-- Findings use normalized candidate-page coordinates so SVG evidence remains aligned while resizing.
-- Runtime files are local and ignored. Assets use job/asset identifiers rather than arbitrary paths.
-- GPU OCR was not forced. Embedded PDF text and visual comparison provide a reliable CPU path.
-- PowerShell invokes `npm.cmd` to avoid the blocked npm PowerShell shim.
-- Python discovery executes candidates and supports the current per-user install-manager layout without recording a personal path.
-
 ## Known limitations
 
-- One page and exact trusted-reference comparison only
-- No raster OCR provider; visual comparison remains active
-- Simultaneous backend instances sharing one runtime directory are unsupported because Phase 1 has no cross-process job-store coordination
-- In-process jobs are intended for a local checkpoint, not distributed load
-- Retention cleanup is local, terminal-job-only, and retry-based; it is not a user-facing records manager
-- No DocuVault, external collection, handwriting/signature enrollment, blockchain, accounts, payments, deployment, or custom model training
-- Scores are evidence-guided risk, not identity, provenance, or legal authentication
-- Python 3.14 currently produces non-failing FastAPI deprecation warnings
-- Python 3.14 compatibility with future OCR libraries must be resolved before raster/GPU OCR integration in Phase 2
-- Current golden-fixture localization IoU is 0.2201 and should be improved in Phase 2
-- No screenshot/manual browser-console artifact was available
-- RTX 5060 compatibility remains untested
+- Phase 2 passed the RTX 4060 acceptance gate but remains an unreleased local candidate.
+- RTX 5060 Phase 1 portability passed; Phase 2-specific OCR and multi-page validation remain pending.
+- OCR is verified on CPU only; CPU raster OCR is mandatory, and GPU OCR was not attempted.
+- OCR quality depends on language, resolution, orientation, and scan quality.
+- Page correspondence can be ambiguous when pages are visually/textually near-identical.
+- Variable-region suggestions are heuristic.
+- Maximum input is 10 PDF pages; images are single-page.
+- Processing is sequential and local, not a distributed workload system.
+- Multiple backend processes must not share one runtime directory.
+- No manual browser screenshots or console inspection are available.
+- Scores are evidence-guided investigative indicators, not legal authenticity probabilities.
 
-## Security and repository state
+## Deferred roadmap
 
-- `.env`, virtual environments, `node_modules`, runtime databases, uploaded inputs, evidence, logs, caches, model weights, and local analysis artifacts are ignored.
-- Synthetic fixtures are fictional and intentional repository inputs.
-- Targeted secret-pattern inspection found no committed credential material.
-- Phase 1 passed architectural review and is approved for the repository's first commit and annotated tag `phase-1-4h-demo`.
-- GitHub remote setup and pushing remain pending because `gh` is unavailable; no deployment or Phase 2 work is included.
+- DocuVault remains Phase 3.
+- Signature and handwriting enrollment/analysis remain Phase 4.
+- Blockchain remains Phase 6.
+- Accounts, public verification APIs, cloud deployment, custom model training, H100 processing, and unlimited OCR remain out of scope.
 
 ## Recommended next action
 
-**READY FOR REMOTE SETUP AFTER COMMIT AND TAG.** The approved root commit and `phase-1-4h-demo` tag capture Phase 1. A later remote-setup instruction may configure and push them. Phase 2 can then address multi-page contracts, improved localization, per-page scheduling/navigation, and pluggable raster/GPU OCR after Python compatibility is confirmed.
+Review the uncommitted Phase 2 diff as a candidate while keeping the RTX 5060 boundary explicit: Phase 1 passed there, while Phase 2-specific validation remains pending. Do not commit, tag, push, merge, or start Phase 3 as part of this handoff. The candidate is ready for Phase 2 review, not final release.

@@ -13,6 +13,8 @@ secrets/
 
 # Python environments and caches
 .venv/
+.venv-phase1-*/
+.venv-phase2-*/
 venv/
 env/
 __pycache__/

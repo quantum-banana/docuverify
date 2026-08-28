@@ -123,7 +123,7 @@ catch {
 $nvidiaCommand = Get-Command nvidia-smi.exe -CommandType Application -ErrorAction SilentlyContinue
 $gpuDetected = $false
 if ($null -eq $nvidiaCommand) {
-    Write-DiagnosticLine -Label 'NVIDIA GPU' -Value 'not detected (optional for Phase 1)'
+    Write-DiagnosticLine -Label 'NVIDIA GPU' -Value 'not detected (optional for the verified CPU configuration)'
 }
 else {
     try {
@@ -152,6 +152,8 @@ else {
 }
 
 Write-DiagnosticSection -Title 'Toolchain'
+$testedPythonBaseline = Get-DocuVerifyTestedPythonBaseline
+Write-DiagnosticLine -Label 'Tested Python baseline' -Value "Python $testedPythonBaseline.x (cross-laptop baseline)"
 $gitCommand = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue
 if ($null -eq $gitCommand) {
     Write-DiagnosticLine -Label 'Git' -Value 'missing (repository tooling unavailable; runtime can still start)'
@@ -184,14 +186,37 @@ else {
     }
 }
 
-$pythonCommand = Resolve-DocuVerifyPython -IncludeProjectVenv
+$pythonCommand = $null
+$projectVirtualEnvironment = Join-Path $projectRoot '.venv'
+$projectVirtualEnvironmentPython = Join-Path $projectVirtualEnvironment 'Scripts\python.exe'
+if (Test-Path -LiteralPath $projectVirtualEnvironment -PathType Container) {
+    if (Test-PythonCandidate -FilePath $projectVirtualEnvironmentPython) {
+        $pythonCommand = [pscustomobject]@{
+            FilePath        = $projectVirtualEnvironmentPython
+            PrefixArguments = [string[]]@()
+            Label           = 'project virtual environment'
+        }
+    }
+    else {
+        Write-DiagnosticLine -Label 'Python' -Value 'project virtual environment is incomplete or unusable'
+        $requiredFailures.Add('The existing project .venv is incomplete or unusable; preserve it, move it aside manually, and rerun bootstrap.')
+    }
+}
+else {
+    $pythonCommand = Resolve-DocuVerifyPython -PreferredVersion $testedPythonBaseline
+}
 if ($null -eq $pythonCommand) {
-    Write-DiagnosticLine -Label 'Python' -Value 'no usable interpreter found'
-    $requiredFailures.Add('A runnable Python interpreter is required.')
+    if (-not (Test-Path -LiteralPath $projectVirtualEnvironment -PathType Container)) {
+        Write-DiagnosticLine -Label 'Python' -Value "no usable Python $testedPythonBaseline interpreter found"
+        $requiredFailures.Add("A runnable Python $testedPythonBaseline interpreter is required by the current dependency baseline.")
+    }
 }
 else {
     $pythonVersion = Get-DocuVerifyPythonVersion -PythonCommand $pythonCommand
     Write-DiagnosticLine -Label 'Python' -Value "$pythonVersion via $($pythonCommand.Label); path suppressed"
+    if (-not $pythonVersion.StartsWith($testedPythonBaseline + '.', [System.StringComparison]::Ordinal)) {
+        $requiredFailures.Add("The project runtime uses Python $pythonVersion; Python $testedPythonBaseline.x is required by the tested dependency baseline.")
+    }
 }
 
 $nodeCommand = Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue
@@ -258,7 +283,7 @@ else {
         Write-DiagnosticLine -Label 'Backend imports' -Value 'dependencies not fully installed; run bootstrap-windows.ps1'
     }
 
-    $ocrModules = @('pytesseract', 'easyocr', 'onnxruntime', 'paddleocr', 'rapidocr_onnxruntime')
+    $ocrModules = @('rapidocr', 'onnxruntime')
     $availableOcrModules = @($ocrModules | Where-Object { Test-PythonImport -PythonCommand $pythonCommand -ModuleName $_ })
     $tesseractCommand = Get-Command tesseract.exe -CommandType Application -ErrorAction SilentlyContinue
     if ($availableOcrModules.Count -gt 0) {
@@ -271,22 +296,35 @@ else {
 
     $embeddedPdfTextAvailable = Test-PythonImport -PythonCommand $pythonCommand -ModuleName 'fitz'
     if ($embeddedPdfTextAvailable) {
-        Write-DiagnosticLine -Label 'OCR/text fallback' -Value 'PyMuPDF embedded PDF text plus visual-only raster comparison'
+        Write-DiagnosticLine -Label 'OCR/text fallback' -Value 'PyMuPDF embedded text with RapidOCR raster fallback'
     }
     else {
         Write-DiagnosticLine -Label 'OCR/text fallback' -Value 'visual comparison only until PyMuPDF is installed'
     }
 }
 
-$configuredOcrProvider = Get-SafeConfigurationValue -Name 'DOCUVERIFY_OCR_PROVIDER' -DefaultValue 'auto'
-$configuredOcrDevice = Get-SafeConfigurationValue -Name 'DOCUVERIFY_OCR_DEVICE' -DefaultValue 'cpu'
+$configuredOcrProvider = (Get-SafeConfigurationValue -Name 'DOCUVERIFY_OCR_PROVIDER' -DefaultValue 'auto').ToLowerInvariant()
+$configuredOcrDevice = (Get-SafeConfigurationValue -Name 'DOCUVERIFY_OCR_DEVICE' -DefaultValue 'cpu').ToLowerInvariant()
+$supportedOcrProviders = @('auto', 'rapidocr', 'none')
+if ($configuredOcrProvider -notin $supportedOcrProviders) {
+    $requiredFailures.Add('DOCUVERIFY_OCR_PROVIDER must be one of: auto, none, rapidocr.')
+}
+if ($configuredOcrDevice -ne 'cpu') {
+    $requiredFailures.Add('DOCUVERIFY_OCR_DEVICE must be cpu for the verified Phase 2 runtime.')
+}
 Write-DiagnosticLine -Label 'OCR provider setting' -Value $configuredOcrProvider
 Write-DiagnosticLine -Label 'Effective text provider' -Value $(if ($embeddedPdfTextAvailable) { 'pymupdf_embedded_text' } else { 'unavailable until backend dependencies are installed' })
-Write-DiagnosticLine -Label 'Raster OCR capability' -Value 'false (visual comparison remains available)'
+$rapidOcrAvailable = ($null -ne $pythonCommand) -and
+    (Test-PythonImport -PythonCommand $pythonCommand -ModuleName 'rapidocr') -and
+    (Test-PythonImport -PythonCommand $pythonCommand -ModuleName 'onnxruntime')
+$rasterOcrEnabled = $rapidOcrAvailable -and
+    ($configuredOcrProvider -in @('auto', 'rapidocr')) -and
+    ($configuredOcrDevice -eq 'cpu')
+Write-DiagnosticLine -Label 'Raster OCR capability' -Value $(if ($rasterOcrEnabled) { 'true (RapidOCR with ONNX Runtime)' } else { 'false (disabled, unavailable, or unsupported configuration; visual comparison remains available)' })
 Write-DiagnosticLine -Label 'OCR execution device' -Value $configuredOcrDevice
 Write-DiagnosticLine -Label 'Visual comparison device' -Value 'CPU (OpenCV/NumPy)'
 if ($gpuDetected) {
-    Write-DiagnosticLine -Label 'GPU execution note' -Value 'GPU detected; Phase 1 does not assume GPU OCR from driver compatibility alone'
+    Write-DiagnosticLine -Label 'GPU execution note' -Value 'GPU detected; Phase 2 OCR remains CPU unless a separately verified provider is installed'
 }
 
 Write-DiagnosticSection -Title 'Result'

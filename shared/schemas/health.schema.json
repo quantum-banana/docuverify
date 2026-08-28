@@ -15,6 +15,11 @@
           "title": "Image Rendering",
           "type": "boolean"
         },
+        "multi_page": {
+          "default": true,
+          "title": "Multi Page",
+          "type": "boolean"
+        },
         "pdf_rendering": {
           "title": "Pdf Rendering",
           "type": "boolean"
@@ -25,6 +30,11 @@
         },
         "sse": {
           "title": "Sse",
+          "type": "boolean"
+        },
+        "template_comparison": {
+          "default": true,
+          "title": "Template Comparison",
           "type": "boolean"
         },
         "uploads": {

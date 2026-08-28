@@ -5,13 +5,19 @@ import type {
   AnalysisState,
   AnalysisWatchHandlers,
   ComparisonMode,
+  DocumentAggregate,
   DocumentDescriptor,
   DocumentResult,
   Finding,
   MeasurementValue,
   NormalizedBoundingBox,
+  OcrSummary,
+  PageCorrespondence,
+  PageOrderAnomaly,
   PageResult,
   ProgressEvent,
+  RegionRole,
+  RegionSuggestion,
 } from '../types/contracts'
 
 const configuredBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
@@ -41,6 +47,21 @@ const asScore = (value: unknown): number => {
   const score = asNumber(value)
   return clamp(score > 0 && score <= 1 ? score * 100 : score)
 }
+
+const asOptionalPageNumber = (value: unknown): number | null => {
+  if (value === undefined || value === null || value === '') return null
+  const pageNumber = Math.round(asNumber(value))
+  return pageNumber >= 1 ? pageNumber : null
+}
+
+const normalizeIdentifier = (value: unknown, fallback = ''): string =>
+  asString(value, fallback).trim().toLowerCase().replace(/[\s-]+/g, '_')
+
+const humanizeIdentifier = (value: string): string =>
+  value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+
+const parseComparisonMode = (value: unknown): ComparisonMode =>
+  normalizeIdentifier(value) === 'template' ? 'template' : 'exact'
 
 const assetUrl = (value: unknown): string => {
   const url = asString(value)
@@ -107,6 +128,172 @@ const parseDocumentDescriptor = (value: unknown): DocumentDescriptor | undefined
   }
 }
 
+const parseOcrSummary = (value: unknown, fallback?: Record<string, unknown>): OcrSummary | undefined => {
+  const ocr = isRecord(value) ? value : {}
+  const context = fallback ?? {}
+  const providerValue = pick(ocr, 'provider', 'ocr_provider', 'candidate_provider') ??
+    pick(context, 'ocr_provider')
+  const referenceProviderValue = pick(ocr, 'reference_provider')
+  const sourceValue = pick(ocr, 'source', 'text_source', 'extraction_source') ??
+    pick(context, 'ocr_source', 'text_source', 'extraction_source')
+  const deviceValue = pick(ocr, 'device', 'execution_device', 'ocr_device', 'candidate_device') ??
+    pick(context, 'ocr_device', 'execution_device')
+  const referenceDeviceValue = pick(ocr, 'reference_device')
+  const confidenceValue = pick(
+    ocr,
+    'confidence_score',
+    'confidence',
+    'ocr_confidence',
+    'candidate_confidence',
+  ) ??
+    pick(context, 'ocr_confidence', 'ocr_confidence_score')
+  const referenceConfidenceValue = pick(ocr, 'reference_confidence')
+  const statusValue = pick(ocr, 'status', 'state', 'ocr_status') ?? pick(context, 'ocr_status')
+  const succeededValue = pick(ocr, 'succeeded', 'candidate_succeeded')
+  const charactersValue = pick(
+    ocr,
+    'character_count',
+    'characters',
+    'text_characters',
+    'candidate_characters',
+  ) ??
+    pick(context, 'ocr_character_count', 'text_characters')
+
+  if (
+    providerValue === undefined && sourceValue === undefined && deviceValue === undefined &&
+    confidenceValue === undefined && statusValue === undefined && charactersValue === undefined
+  ) return undefined
+
+  return {
+    source: asString(
+      sourceValue,
+      asString(providerValue).includes('embedded') ? 'embedded_text' : 'raster_ocr',
+    ),
+    provider: asString(providerValue, 'unavailable'),
+    device: asString(deviceValue, 'unknown'),
+    confidence_score: confidenceValue === undefined || confidenceValue === null
+      ? null
+      : asScore(confidenceValue),
+    status: asString(
+      statusValue,
+      typeof succeededValue === 'boolean' && !succeededValue ? 'failed' : 'completed',
+    ),
+    character_count: Math.max(0, Math.round(asNumber(charactersValue))),
+    succeeded: typeof succeededValue === 'boolean'
+      ? succeededValue
+      : normalizeIdentifier(statusValue, 'completed') !== 'failed',
+    reference_provider: asString(referenceProviderValue) || undefined,
+    reference_device: asString(referenceDeviceValue) || undefined,
+    reference_confidence_score: referenceConfidenceValue === undefined || referenceConfidenceValue === null
+      ? undefined
+      : asScore(referenceConfidenceValue),
+  }
+}
+
+const parseRegionRole = (value: unknown): RegionRole => {
+  const role = normalizeIdentifier(value, 'unknown')
+  if (role === 'fixed' || role === 'variable') return role
+  return 'unknown'
+}
+
+const parseRegionSuggestion = (
+  value: unknown,
+  index: number,
+  fallbackPageNumber = 1,
+): RegionSuggestion => {
+  const suggestion = isRecord(value) ? value : {}
+  const pageNumber = asOptionalPageNumber(pick(suggestion, 'page_number', 'page')) ?? fallbackPageNumber
+  return {
+    suggestion_id: asString(
+      pick(suggestion, 'suggestion_id', 'region_id', 'id'),
+      `suggestion-${pageNumber}-${index + 1}`,
+    ),
+    page_number: pageNumber,
+    role: parseRegionRole(pick(suggestion, 'role', 'region_role')),
+    confidence_score: asScore(pick(suggestion, 'confidence_score', 'confidence')),
+    reason: asString(
+      pick(suggestion, 'reason', 'explanation'),
+      'Suggested from stable label and field geometry.',
+    ),
+    label: asString(pick(suggestion, 'label', 'field_label', 'name')) || undefined,
+    bounding_box: parseBoundingBox(
+      pick(suggestion, 'bounding_box', 'normalized_bbox', 'bbox', 'region'),
+    ),
+  }
+}
+
+const normalizePageStatus = (value: unknown): string => {
+  const status = normalizeIdentifier(value, 'matched')
+  const aliases: Record<string, string> = {
+    ok: 'matched',
+    match: 'matched',
+    complete: 'completed',
+    missing_page: 'missing',
+    page_missing: 'missing',
+    added_page: 'added',
+    page_added: 'added',
+    reordered_page: 'reordered',
+    page_reordered: 'reordered',
+    page_dimension_mismatch: 'dimension_mismatch',
+    dimensions_mismatch: 'dimension_mismatch',
+  }
+  return aliases[status] ?? status
+}
+
+const parsePageCorrespondence = (value: unknown): PageCorrespondence => {
+  const correspondence = isRecord(value) ? value : {}
+  return {
+    reference_page_number: asOptionalPageNumber(
+      pick(correspondence, 'reference_page_number', 'reference_page', 'reference_index'),
+    ),
+    candidate_page_number: asOptionalPageNumber(
+      pick(correspondence, 'candidate_page_number', 'candidate_page', 'candidate_index'),
+    ),
+    status: normalizePageStatus(
+      typeof value === 'string' ? value : pick(correspondence, 'status', 'type', 'match_status'),
+    ),
+    similarity_score: pick(correspondence, 'similarity_score', 'similarity', 'score', 'confidence_score') === undefined
+      ? null
+      : asScore(pick(correspondence, 'similarity_score', 'similarity', 'score', 'confidence_score')),
+    reason: asString(pick(correspondence, 'reason', 'explanation')) || undefined,
+  }
+}
+
+const parsePageAnomaly = (value: unknown, index: number): PageOrderAnomaly => {
+  const anomaly = isRecord(value) ? value : {}
+  const rawType = typeof value === 'string'
+    ? value
+    : pick(anomaly, 'type', 'anomaly_type', 'category', 'status')
+  const type = normalizePageStatus(rawType || 'page_anomaly')
+  const referencePageNumber = asOptionalPageNumber(
+    pick(anomaly, 'reference_page_number', 'reference_page'),
+  )
+  const candidatePageNumber = asOptionalPageNumber(
+    pick(anomaly, 'candidate_page_number', 'candidate_page'),
+  )
+  const pageNumber = asOptionalPageNumber(pick(anomaly, 'page_number', 'page')) ??
+    (type === 'missing' ? referencePageNumber : candidatePageNumber ?? referencePageNumber)
+  const risk = asScore(pick(anomaly, 'risk_score', 'risk'))
+  return {
+    anomaly_id: asString(pick(anomaly, 'anomaly_id', 'finding_id', 'id'), `page-anomaly-${index + 1}`),
+    type,
+    title: asString(anomaly.title, humanizeIdentifier(type)),
+    explanation: asString(
+      pick(anomaly, 'explanation', 'description', 'reason'),
+      'The candidate page sequence differs from the trusted reference.',
+    ),
+    page_number: pageNumber,
+    reference_page_number: referencePageNumber,
+    candidate_page_number: candidatePageNumber,
+    severity: asString(
+      anomaly.severity,
+      risk >= 75 ? 'critical' : risk >= 50 ? 'high' : type === 'reordered' ? 'medium' : 'high',
+    ),
+    risk_score: risk,
+    confidence_score: asScore(pick(anomaly, 'confidence_score', 'confidence')),
+  }
+}
+
 export const parseFinding = (value: unknown, index = 0): Finding => {
   const finding = isRecord(value) ? value : {}
   const assets = isRecord(finding.assets) ? finding.assets : finding
@@ -126,6 +313,7 @@ export const parseFinding = (value: unknown, index = 0): Finding => {
     risk_score: asScore(pick(finding, 'risk_score', 'risk')),
     confidence_score: asScore(pick(finding, 'confidence_score', 'confidence')),
     severity: asString(finding.severity, 'review'),
+    region_role: parseRegionRole(pick(finding, 'region_role', 'role')),
     evidence_source: Array.isArray(evidence)
       ? evidence.map((item) => asString(item)).filter(Boolean).join(', ')
       : asString(evidence, 'Visual comparison'),
@@ -142,32 +330,83 @@ const parsePage = (value: unknown, fallbackFindings: Finding[], index: number): 
   const page = isRecord(value) ? value : {}
   const pageNumber = Math.max(1, asNumber(pick(page, 'page_number', 'page'), index + 1))
   const pageFindings = Array.isArray(page.findings)
-    ? page.findings.map((finding, findingIndex) => parseFinding(finding, findingIndex))
+    ? page.findings.map((finding, findingIndex) => {
+        const parsed = parseFinding(finding, findingIndex)
+        const rawFinding = isRecord(finding) ? finding : {}
+        return pick(rawFinding, 'page_number', 'page') === undefined
+          ? { ...parsed, page_number: pageNumber }
+          : parsed
+      })
     : fallbackFindings.filter((finding) => finding.page_number === pageNumber)
+  const candidateImageUrl = assetUrl(
+    pick(page, 'candidate_image_url', 'candidate_page_url', 'candidate_preview_url', 'preview_url', 'image_url'),
+  )
+  const referenceImageUrl = assetUrl(
+    pick(page, 'reference_image_url', 'reference_page_url', 'reference_preview_url'),
+  )
+  const rawSuggestions = pick(
+    page,
+    'region_suggestions',
+    'suggested_regions',
+    'suggested_variable_regions',
+    'variable_region_suggestions',
+  )
+  const regionSuggestions = Array.isArray(rawSuggestions)
+    ? rawSuggestions.map((suggestion, suggestionIndex) =>
+        parseRegionSuggestion(suggestion, suggestionIndex, pageNumber))
+    : []
+  const derivedRisk = pageFindings.reduce((highest, finding) => Math.max(highest, finding.risk_score), 0)
+  const status = normalizePageStatus(pick(page, 'status', 'page_status', 'match_status'))
+  const referencePageValue = page.reference_page_number !== undefined
+    ? page.reference_page_number
+    : page.reference_page
+  const candidatePageValue = page.candidate_page_number !== undefined
+    ? page.candidate_page_number
+    : page.candidate_page
   return {
     page_number: pageNumber,
     width: page.width === undefined ? undefined : asNumber(page.width),
     height: page.height === undefined ? undefined : asNumber(page.height),
-    candidate_image_url: assetUrl(
-      pick(page, 'candidate_image_url', 'candidate_page_url', 'preview_url', 'image_url'),
-    ),
-    reference_image_url: assetUrl(pick(page, 'reference_image_url', 'reference_page_url')),
+    candidate_image_url: candidateImageUrl,
+    reference_image_url: referenceImageUrl,
     findings: pageFindings,
+    status,
+    reference_page_number: referencePageValue === undefined
+      ? (status === 'added' ? null : pageNumber)
+      : asOptionalPageNumber(referencePageValue),
+    candidate_page_number: candidatePageValue === undefined
+      ? (status === 'missing' ? null : pageNumber)
+      : asOptionalPageNumber(candidatePageValue),
+    risk_score: asScore(
+      pick(page, 'risk_score', 'page_risk', 'tampering_risk', 'overall_tampering_risk') ?? derivedRisk,
+    ),
+    confidence_score: asScore(
+      pick(page, 'confidence_score', 'page_confidence', 'assessment_confidence', 'confidence'),
+    ),
+    coverage_score: asScore(
+      pick(page, 'coverage_score', 'page_coverage', 'analysis_coverage', 'coverage'),
+    ),
+    alignment_quality: asScore(pick(page, 'alignment_quality', 'page_alignment_quality')),
+    finding_count: Math.max(0, Math.round(asNumber(page.finding_count, pageFindings.length))),
+    ocr: parseOcrSummary(pick(page, 'ocr', 'ocr_summary', 'text_extraction'), page),
+    region_suggestions: regionSuggestions,
   }
 }
 
 export const parseDocumentResult = (value: unknown, fallbackJobId = ''): DocumentResult => {
   const result = isRecord(value) ? value : {}
   const metrics = isRecord(result.metrics) ? result.metrics : result
+  const reference = parseDocumentDescriptor(result.reference)
+  const candidate = parseDocumentDescriptor(result.candidate)
   const topLevelFindings = Array.isArray(result.findings)
     ? result.findings.map((finding, index) => parseFinding(finding, index))
     : []
-  const pages = Array.isArray(result.pages)
-    ? result.pages.map((page, index) => parsePage(page, topLevelFindings, index))
+  const rawPages = pick(result, 'pages', 'page_results')
+  const pages = Array.isArray(rawPages)
+    ? rawPages.map((page, index) => parsePage(page, topLevelFindings, index))
     : []
-  const findings = topLevelFindings.length
-    ? topLevelFindings
-    : pages.flatMap((page) => page.findings)
+  const nestedFindings = pages.flatMap((page) => page.findings)
+  const findings = topLevelFindings.length ? topLevelFindings : nestedFindings
 
   if (!pages.length) {
     pages.push({
@@ -177,15 +416,172 @@ export const parseDocumentResult = (value: unknown, fallbackJobId = ''): Documen
       ),
       reference_image_url: assetUrl(pick(result, 'reference_image_url', 'reference_page_url')),
       findings,
+      status: 'matched',
+      reference_page_number: 1,
+      candidate_page_number: 1,
+      risk_score: findings.reduce((highest, finding) => Math.max(highest, finding.risk_score), 0),
+      confidence_score: asScore(pick(metrics, 'assessment_confidence', 'confidence')),
+      coverage_score: asScore(pick(metrics, 'analysis_coverage', 'coverage')),
+      alignment_quality: asScore(metrics.alignment_quality),
+      finding_count: findings.length,
+      region_suggestions: [],
     })
+  }
+
+  const rawTopLevelSuggestions = pick(
+    result,
+    'region_suggestions',
+    'suggested_regions',
+    'suggested_variable_regions',
+    'variable_region_suggestions',
+  )
+  const topLevelSuggestions = Array.isArray(rawTopLevelSuggestions)
+    ? rawTopLevelSuggestions.map((suggestion, index) => parseRegionSuggestion(suggestion, index))
+    : []
+  const suggestionMap = new Map<string, RegionSuggestion>()
+  for (const suggestion of [
+    ...topLevelSuggestions,
+    ...pages.flatMap((page) => page.region_suggestions ?? []),
+  ]) suggestionMap.set(suggestion.suggestion_id, suggestion)
+  const regionSuggestions = [...suggestionMap.values()]
+
+  const rawCorrespondence = pick(result, 'page_correspondence', 'page_matches', 'correspondence')
+  const pageCorrespondence = Array.isArray(rawCorrespondence)
+    ? rawCorrespondence.map(parsePageCorrespondence)
+    : pages.map((page) => ({
+        reference_page_number: page.reference_page_number ?? null,
+        candidate_page_number: page.candidate_page_number ?? null,
+        status: page.status ?? 'matched',
+        similarity_score: null,
+      }))
+
+  const rawAnomalies = pick(result, 'page_order_anomalies', 'page_anomalies', 'order_anomalies')
+  const explicitAnomalies = Array.isArray(rawAnomalies)
+    ? rawAnomalies.map(parsePageAnomaly).map((anomaly) => {
+        const reviewPage = pages.find((page) => {
+          if (page.status !== anomaly.type) return false
+          if (anomaly.type === 'missing') {
+            return page.reference_page_number === anomaly.reference_page_number
+          }
+          if (anomaly.type === 'added') {
+            return page.candidate_page_number === anomaly.candidate_page_number
+          }
+          return page.reference_page_number === anomaly.reference_page_number &&
+            page.candidate_page_number === anomaly.candidate_page_number
+        })
+        return reviewPage ? { ...anomaly, page_number: reviewPage.page_number } : anomaly
+      })
+    : []
+  const explicitKeys = new Set(
+    explicitAnomalies.map((anomaly) => `${anomaly.type}:${anomaly.page_number ?? ''}`),
+  )
+  const derivedAnomalies = pages
+    .filter((page) => !['matched', 'completed', 'processing'].includes(page.status ?? 'matched'))
+    .filter((page) => !explicitKeys.has(`${page.status}:${page.page_number}`))
+    .map((page, index): PageOrderAnomaly => {
+      const status = page.status ?? 'page_anomaly'
+      return {
+        anomaly_id: `page-status-${page.page_number}-${index + 1}`,
+        type: status,
+        title: status === 'dimension_mismatch'
+          ? 'Page dimension mismatch'
+          : `${humanizeIdentifier(status)} page`,
+        explanation: 'The page does not have a normal one-to-one match with the trusted reference.',
+        page_number: page.page_number,
+        reference_page_number: page.reference_page_number ?? null,
+        candidate_page_number: page.candidate_page_number ?? null,
+        severity: status === 'reordered' ? 'medium' : 'high',
+      }
+    })
+  const pageOrderAnomalies = [...explicitAnomalies, ...derivedAnomalies]
+
+  const referencePageCount = Math.max(
+    1,
+    Math.round(asNumber(
+      pick(result, 'reference_page_count', 'reference_pages'),
+      reference?.page_count ?? 1,
+    )),
+  )
+  const candidatePageCount = Math.max(
+    1,
+    Math.round(asNumber(
+      pick(result, 'candidate_page_count', 'candidate_pages'),
+      candidate?.page_count ?? 1,
+    )),
+  )
+  const totalPageCount = Math.max(
+    1,
+    pages.length,
+    referencePageCount,
+    candidatePageCount,
+    Math.round(asNumber(pick(result, 'total_page_count', 'total_pages', 'page_count'))),
+  )
+  const rawAggregateValue = pick(result, 'document_aggregate', 'aggregate', 'document_summary')
+  const rawAggregate = isRecord(rawAggregateValue) ? rawAggregateValue : {}
+  const reviewedPages = pages.filter((page) =>
+    (page.finding_count ?? page.findings.length) > 0 ||
+    (page.risk_score ?? 0) >= 25 ||
+    !['matched', 'completed'].includes(page.status ?? 'matched'))
+  const cleanPages = pages.filter((page) =>
+    (page.finding_count ?? page.findings.length) === 0 &&
+    (page.risk_score ?? 0) < 25 &&
+    ['matched', 'completed'].includes(page.status ?? 'matched'))
+  const missingPageCount = Math.max(0, Math.round(asNumber(
+    pick(rawAggregate, 'missing_page_count', 'missing_pages'),
+    pages.filter((page) => page.status === 'missing').length,
+  )))
+  const addedPageCount = Math.max(0, Math.round(asNumber(
+    pick(rawAggregate, 'added_page_count', 'added_pages'),
+    pages.filter((page) => page.status === 'added').length,
+  )))
+  const reorderedPageCount = Math.max(0, Math.round(asNumber(
+    pick(rawAggregate, 'reordered_page_count', 'reordered_pages'),
+    pages.filter((page) => page.status === 'reordered').length,
+  )))
+  const documentAggregate: DocumentAggregate = {
+    total_page_count: Math.max(
+      1,
+      Math.round(asNumber(pick(rawAggregate, 'total_page_count', 'total_pages'), totalPageCount)),
+    ),
+    matched_page_count: Math.max(0, Math.round(asNumber(
+      pick(rawAggregate, 'matched_page_count', 'matched_pages'),
+      pages.filter((page) => ['matched', 'completed'].includes(page.status ?? 'matched')).length,
+    ))),
+    reviewed_page_count: Math.max(0, Math.round(asNumber(
+      pick(rawAggregate, 'reviewed_page_count', 'pages_requiring_review', 'suspicious_page_count'),
+      Math.max(reviewedPages.length, missingPageCount + addedPageCount + reorderedPageCount),
+    ))),
+    clean_page_count: Math.max(0, Math.round(asNumber(
+      pick(rawAggregate, 'clean_page_count', 'clean_pages'),
+      cleanPages.length,
+    ))),
+    anomaly_count: Math.max(0, Math.round(asNumber(
+      pick(rawAggregate, 'anomaly_count', 'page_anomaly_count'),
+      Math.max(pageOrderAnomalies.length, missingPageCount + addedPageCount + reorderedPageCount),
+    ))),
+    finding_count: Math.max(0, Math.round(asNumber(
+      pick(rawAggregate, 'finding_count', 'total_findings'),
+      findings.length,
+    ))),
+    highest_page_risk: asScore(
+      pick(rawAggregate, 'highest_page_risk', 'max_page_risk') ??
+        pages.reduce((highest, page) => Math.max(highest, page.risk_score ?? 0), 0),
+    ),
+    risk_score: asScore(pick(rawAggregate, 'risk_score', 'overall_tampering_risk')),
+    confidence_score: asScore(pick(rawAggregate, 'confidence_score', 'assessment_confidence')),
+    coverage_score: asScore(pick(rawAggregate, 'coverage_score', 'analysis_coverage')),
+    alignment_quality: asScore(rawAggregate.alignment_quality),
+    missing_page_count: missingPageCount,
+    added_page_count: addedPageCount,
+    reordered_page_count: reorderedPageCount,
   }
 
   return {
     schema_version: asString(result.schema_version, '1.0'),
     job_id: asString(pick(result, 'job_id', 'analysis_id'), fallbackJobId),
-    comparison_mode: asString(result.comparison_mode, 'exact') as ComparisonMode,
-    reference: parseDocumentDescriptor(result.reference),
-    candidate: parseDocumentDescriptor(result.candidate),
+    comparison_mode: parseComparisonMode(result.comparison_mode),
+    reference,
+    candidate,
     overall_tampering_risk: asScore(
       pick(metrics, 'overall_tampering_risk', 'tampering_risk', 'risk_score'),
     ),
@@ -203,6 +599,13 @@ export const parseDocumentResult = (value: unknown, fallbackJobId = ''): Documen
     ),
     pages,
     findings,
+    total_page_count: totalPageCount,
+    reference_page_count: referencePageCount,
+    candidate_page_count: candidatePageCount,
+    page_correspondence: pageCorrespondence,
+    page_order_anomalies: pageOrderAnomalies,
+    document_aggregate: documentAggregate,
+    region_suggestions: regionSuggestions,
   }
 }
 
@@ -242,6 +645,14 @@ const parseJob = (value: unknown, fallbackJobId: string): AnalysisJob => {
     candidate_page_url: assetUrl(
       pick(job, 'candidate_page_url', 'candidate_image_url', 'preview_url'),
     ) || undefined,
+    current_page: asOptionalPageNumber(pick(job, 'current_page', 'page_number')) ?? undefined,
+    total_pages: asOptionalPageNumber(pick(job, 'total_pages', 'total_page_count')) ?? undefined,
+    page_stage: asString(pick(job, 'page_stage', 'current_page_stage')) || undefined,
+    ocr_provider: asString(pick(job, 'ocr_provider', 'current_ocr_provider')) || undefined,
+    ocr_device: asString(pick(job, 'ocr_device', 'execution_device')) || undefined,
+    localized_region: pick(job, 'localized_region', 'region') === undefined
+      ? undefined
+      : parseBoundingBox(pick(job, 'localized_region', 'region')),
     result,
     error: job.error === undefined && state !== 'failed' ? undefined : parseError(job.error),
   }
@@ -255,13 +666,19 @@ const parseProgressEvent = (value: unknown, fallbackJobId: string): ProgressEven
     stage_id: asString(pick(event, 'stage_id', 'current_stage', 'stage'), 'processing'),
     message: asString(pick(event, 'message', 'stage_message'), 'Analysing document'),
     progress: clamp(asNumber(event.progress)),
-    page_number: Math.max(1, asNumber(event.page_number, 1)),
-    total_pages: Math.max(1, asNumber(event.total_pages, 1)),
+    page_number: Math.max(1, asNumber(pick(event, 'page_number', 'current_page'), 1)),
+    total_pages: Math.max(1, asNumber(pick(event, 'total_pages', 'total_page_count'), 1)),
     timestamp: asString(event.timestamp, new Date().toISOString()),
     finding_count: Math.max(0, asNumber(pick(event, 'finding_count', 'current_finding_count'))),
     candidate_page_url: assetUrl(
-      pick(event, 'candidate_page_url', 'candidate_image_url', 'preview_url'),
+      pick(event, 'candidate_page_url', 'candidate_image_url', 'thumbnail_url', 'preview_url'),
     ) || undefined,
+    page_stage: asString(pick(event, 'page_stage', 'current_page_stage')) || undefined,
+    ocr_provider: asString(pick(event, 'ocr_provider', 'text_provider')) || undefined,
+    ocr_device: asString(pick(event, 'ocr_device', 'execution_device')) || undefined,
+    localized_region: pick(event, 'localized_region', 'region', 'bounding_box') === undefined
+      ? undefined
+      : parseBoundingBox(pick(event, 'localized_region', 'region', 'bounding_box')),
   }
 }
 
@@ -387,11 +804,15 @@ export const watchAnalysis = (
           stage_id: job.current_stage,
           message: job.message || 'Analysing document',
           progress: job.progress,
-          page_number: 1,
-          total_pages: 1,
+          page_number: job.current_page ?? 1,
+          total_pages: job.total_pages ?? 1,
           timestamp: new Date().toISOString(),
           finding_count: job.finding_count,
           candidate_page_url: job.candidate_page_url,
+          page_stage: job.page_stage,
+          ocr_provider: job.ocr_provider,
+          ocr_device: job.ocr_device,
+          localized_region: job.localized_region,
         })
       }
       if (job.state === 'completed') {

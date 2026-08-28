@@ -84,6 +84,9 @@ export function EvidenceDrawer({ finding, index, onClose }: EvidenceDrawerProps)
                   {finding.severity}
                 </span>
                 <span>{humanize(finding.category)}</span>
+                {finding.region_role && finding.region_role !== 'unknown' && (
+                  <span>{humanize(finding.region_role)} region</span>
+                )}
                 <span>Page {finding.page_number}</span>
               </div>
 
