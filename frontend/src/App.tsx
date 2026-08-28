@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
 } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { createAnalysis, runDemo, watchAnalysis } from './api/client'
@@ -16,7 +15,6 @@ import {
   CheckIcon,
   ChevronIcon,
   FileIcon,
-  LockIcon,
   RefreshIcon,
   ScanIcon,
   ShieldIcon,
@@ -39,78 +37,18 @@ import type {
 type Screen = 'upload' | 'analysis' | 'complete' | 'error'
 type PagePreviewMap = Record<number, string>
 
-const stages: Array<{ id: StageId; label: string }> = [
-  { id: 'validating_uploads', label: 'Validate files' },
-  { id: 'rendering_documents', label: 'Render page' },
-  { id: 'normalizing_pages', label: 'Normalize' },
-  { id: 'extracting_text', label: 'Extract / OCR' },
-  { id: 'aligning_reference', label: 'Align reference' },
-  { id: 'identifying_regions', label: 'Map field roles' },
-  { id: 'comparing_structure', label: 'Compare structure' },
-  { id: 'comparing_typography', label: 'Inspect typography' },
-  { id: 'localizing_differences', label: 'Localize evidence' },
-  { id: 'scoring_evidence', label: 'Score page' },
-  { id: 'aggregating_document', label: 'Aggregate document' },
-  { id: 'preparing_result', label: 'Prepare result' },
-]
-
-const stageCopy: Record<string, { title: string; description: string }> = {
-  queued: {
-    title: 'Preparing the documents',
-    description: 'The analysis is queued and will begin locally in a moment.',
-  },
-  validating_uploads: {
-    title: 'Validating both documents',
-    description: 'Checking file integrity, content type and the ten-page processing boundary.',
-  },
-  rendering_documents: {
-    title: 'Rendering document pages',
-    description: 'Creating browser-safe page images for precise visual inspection.',
-  },
-  normalizing_pages: {
-    title: 'Normalizing the current page',
-    description: 'Matching scale, orientation and colour space without hiding evidence.',
-  },
-  extracting_text: {
-    title: 'Extracting text and labels',
-    description: 'Using embedded text when reliable and raster OCR when a page is image-only.',
-  },
-  aligning_reference: {
-    title: 'Aligning with the trusted reference',
-    description: 'Registering corresponding pages so matching content occupies the same coordinates.',
-  },
-  identifying_regions: {
-    title: 'Identifying fixed and variable fields',
-    description: 'Separating stable labels from values that may legitimately vary in template mode.',
-  },
-  comparing_structure: {
-    title: 'Comparing document structure',
-    description: 'Inspecting layout, edges and pixels for meaningful changes.',
-  },
-  comparing_typography: {
-    title: 'Comparing typography and compositing',
-    description: 'Checking character appearance, baselines, spacing and background integrity.',
-  },
-  localizing_differences: {
-    title: 'Localizing suspicious differences',
-    description: 'Grouping visual and text signals into explainable candidate regions.',
-  },
-  scoring_evidence: {
-    title: 'Scoring page evidence',
-    description: 'Keeping tampering risk, confidence and analysis coverage distinct.',
-  },
-  aggregating_document: {
-    title: 'Aggregating document risk',
-    description: 'Combining page evidence without allowing clean pages to erase a strong finding.',
-  },
-  preparing_result: {
-    title: 'Preparing the result',
-    description: 'Generating evidence crops, overlays and normalized page markers.',
-  },
-  complete: {
-    title: 'Analysis complete',
-    description: 'The page-aware evidence package is ready for review.',
-  },
+const conciseStageLabel = (stageId: StageId): string => {
+  if (['queued', 'validating_uploads', 'rendering_documents', 'normalizing_pages'].includes(stageId)) {
+    return 'Preparing'
+  }
+  if (stageId === 'extracting_text') return 'Reading'
+  if (stageId === 'aligning_reference') return 'Aligning'
+  if (['identifying_regions', 'comparing_structure', 'comparing_typography'].includes(stageId)) {
+    return 'Comparing'
+  }
+  if (['localizing_differences', 'scoring_evidence'].includes(stageId)) return 'Locating evidence'
+  if (['aggregating_document', 'preparing_result', 'complete'].includes(stageId)) return 'Finalizing'
+  return 'Preparing'
 }
 
 const initialProgress: ProgressEvent = {
@@ -125,16 +63,14 @@ const initialProgress: ProgressEvent = {
   finding_count: 0,
 }
 
-const modeDescription: Record<ComparisonMode, { title: string; short: string; detail: string }> = {
+const modeDescription: Record<ComparisonMode, { title: string; detail: string }> = {
   exact: {
-    title: 'Exact comparison',
-    short: 'Exact document mode',
-    detail: 'Every page, field and visual region is expected to match closely.',
+    title: 'Exact',
+    detail: 'Every page and field should match.',
   },
   template: {
-    title: 'Template comparison',
-    short: 'Template-aware mode',
-    detail: 'Variable values may change; fixed labels, typography and compositing are still inspected.',
+    title: 'Template',
+    detail: 'Expected field values may vary.',
   },
 }
 
@@ -161,8 +97,6 @@ const riskTone = (risk: number): 'low' | 'moderate' | 'high' | 'critical' => {
   return 'low'
 }
 
-const currentStageIndex = (stageId: StageId): number => stages.findIndex((stage) => stage.id === stageId)
-
 const pageRisk = (page: PageResult): number =>
   page.risk_score ?? page.findings.reduce((highest, finding) => Math.max(highest, finding.risk_score), 0)
 
@@ -186,23 +120,16 @@ const statusTitle = (status: string): string => {
 const isPdf = (file: File): boolean =>
   file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
 
-const uploadPageSummary = (file: File | null): { value: string; detail: string } => {
-  if (!file) return { value: 'Not selected', detail: 'Choose a PDF or image' }
-  if (isPdf(file)) return { value: 'Pending validation', detail: 'Local engine reports 1–10 pages' }
-  return { value: '1 page', detail: 'Raster image document' }
-}
-
 function AppHeader({ quiet = false }: { quiet?: boolean }) {
   return (
     <header className={`site-header${quiet ? ' site-header--quiet' : ''}`}>
-      <button className="brand" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+      <button className="brand" type="button" onClick={() => window.scrollTo({ top: 0 })}>
         <span className="brand__mark"><ShieldIcon /></span>
-        <span>DOCU<span>VERIFY</span></span>
+        <span>DOCU<strong>VERIFY</strong></span>
       </button>
       <div className="header-context">
-        <span className="header-context__line" />
-        <span>Phase 02</span>
-        <span className="local-badge"><span /> Local analysis</span>
+        <span>Document verification</span>
+        <span className="local-badge"><span /> Ready</span>
       </div>
     </header>
   )
@@ -231,108 +158,26 @@ function UploadScreen({
 }) {
   const reduceMotion = useReducedMotion()
   const ready = Boolean(reference && candidate)
-  const referenceSummary = uploadPageSummary(reference)
-  const candidateSummary = uploadPageSummary(candidate)
 
   return (
     <motion.main
-      className="landing"
+      className="upload-layout"
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: reduceMotion ? 0 : 0.45 }}
     >
-      <section className="landing-hero">
-        <div className="landing-hero__copy">
-          <div className="eyebrow-row">
-            <span className="eyebrow"><span className="eyebrow__pulse" /> Explainable document forensics</span>
-            <span className="eyebrow-number">02 / MULTI-PAGE</span>
-          </div>
-          <h1>
-            Upload the document.<br />
-            See the <em>evidence.</em><br />
-            Trust what can be explained.
-          </h1>
-          <p>
-            Compare up to ten pages against a trusted reference. DocuVerify follows each page,
-            reads raster documents locally and keeps every finding tied to its evidence.
-          </p>
-          <div className="hero-proof">
-            <span><CheckIcon /> Page-aware comparison</span>
-            <span><CheckIcon /> Local raster OCR</span>
-            <span><CheckIcon /> No cloud upload</span>
-          </div>
-        </div>
-
-        <div className="landing-hero__motif" aria-hidden="true">
-          <div className="motif-document motif-document--back" />
-          <div className="motif-document">
-            <span className="motif-document__crest"><ShieldIcon /></span>
-            <span className="motif-document__line motif-document__line--short" />
-            <span className="motif-document__line" />
-            <span className="motif-document__line" />
-            <span className="motif-document__target" />
-            <span className="motif-document__scan" />
-          </div>
-          <span className="motif-label motif-label--one">ALIGN</span>
-          <span className="motif-label motif-label--two">INSPECT</span>
-          <span className="motif-coordinate motif-coordinate--one">PAGE 02 / 03</span>
-          <span className="motif-coordinate motif-coordinate--two">OCR / LOCAL</span>
-        </div>
+      <section className="upload-intro">
+        <span className="section-kicker">Document comparison</span>
+        <h1>Verify a document</h1>
+        <p>Compare a questioned document with a trusted reference.</p>
       </section>
 
       <section className="upload-workbench" aria-labelledby="upload-title">
         <div className="workbench-header">
           <div>
-            <span className="eyebrow">Trusted-reference verification</span>
-            <h2 id="upload-title">Compare two documents</h2>
+            <span className="section-kicker">Comparison setup</span>
+            <h2 id="upload-title">Documents</h2>
           </div>
-          <div className="mode-state"><span /> {modeDescription[comparisonMode].short}</div>
-        </div>
-
-        <div className="dropzone-grid">
-          <FileDropzone
-            id="reference"
-            eyebrow="Trusted reference"
-            title="Choose the known-good document"
-            description="Drop the document you trust here, or browse"
-            file={reference}
-            onFile={onReference}
-            tone="reference"
-          />
-          <div className="compare-bridge" aria-hidden="true"><span>VS</span></div>
-          <FileDropzone
-            id="candidate"
-            eyebrow="Questioned document"
-            title="Choose the document to inspect"
-            description="Drop the candidate document here, or browse"
-            file={candidate}
-            onFile={onCandidate}
-            tone="candidate"
-          />
-        </div>
-
-        <section className="upload-capabilities" aria-label="Multi-page upload summary">
-          <div className="upload-summary-card">
-            <span>Reference pages</span>
-            <strong>{referenceSummary.value}</strong>
-            <small>{referenceSummary.detail}</small>
-          </div>
-          <div className="upload-summary-card">
-            <span>Candidate pages</span>
-            <strong>{candidateSummary.value}</strong>
-            <small>{candidateSummary.detail}</small>
-          </div>
-          <div className="upload-summary-card upload-summary-card--limit">
-            <FileIcon />
-            <div><strong>10-page limit</strong><small>PDFs process sequentially to bound memory</small></div>
-          </div>
-          <div className="upload-summary-card upload-summary-card--ocr">
-            <ScanIcon />
-            <div><strong>Raster OCR ready</strong><small>Embedded text preferred · CPU OCR fallback</small></div>
-          </div>
-        </section>
-
-        <div className="comparison-row">
           <fieldset className="mode-selector" aria-label="Comparison mode">
             <legend className="visually-hidden">Choose a comparison mode</legend>
             {(['exact', 'template'] as const).map((mode) => (
@@ -344,33 +189,56 @@ function UploadScreen({
                   checked={comparisonMode === mode}
                   onChange={() => onMode(mode)}
                 />
-                <span className="mode-option__radio"><span /></span>
-                <span>
+                <span className="mode-option__copy">
                   <strong>{modeDescription[mode].title}</strong>
                   <small>{modeDescription[mode].detail}</small>
                 </span>
-                <span className="mode-option__tag">{comparisonMode === mode ? 'ACTIVE' : 'AVAILABLE'}</span>
               </label>
             ))}
           </fieldset>
+        </div>
+
+        <div className="dropzone-grid">
+          <FileDropzone
+            id="reference"
+            eyebrow="Trusted reference"
+            title="Add the known-good file"
+            description="Drop a file here or choose from this device"
+            file={reference}
+            onFile={onReference}
+            tone="reference"
+          />
+          <div className="compare-bridge" aria-hidden="true"><span>→</span></div>
+          <FileDropzone
+            id="candidate"
+            eyebrow="Questioned document"
+            title="Add the file to verify"
+            description="Drop a file here or choose from this device"
+            file={candidate}
+            onFile={onCandidate}
+            tone="candidate"
+          />
+        </div>
+
+        <div className="comparison-row">
+          <span className="format-note">PDF, PNG or JPEG</span>
           <div className="action-group">
             <button className="button button--ghost" type="button" onClick={onDemo} disabled={submitting}>
-              <SparkIcon /> {submitting ? 'Starting…' : 'Run synthetic demo'}
+              <SparkIcon /> {submitting ? 'Starting…' : 'Try demo'}
             </button>
             <button className="button button--primary" type="button" onClick={onStart} disabled={!ready || submitting}>
-              {submitting ? 'Preparing…' : 'Start comparison'} <ArrowIcon />
+              {submitting ? 'Preparing…' : 'Analyze document'} <ArrowIcon />
             </button>
           </div>
         </div>
 
-        <div className="privacy-note">
-          <LockIcon />
+        <details className="analysis-details upload-details">
+          <summary>Analysis details</summary>
           <div>
-            <strong>Private by design</strong>
-            <span>Documents are processed by the local backend and retained only for the configured cleanup window.</span>
+            <p>PDFs may contain up to 10 pages. Embedded text is used when available; local raster OCR is used when needed.</p>
+            <p>Files are processed by the local service and retained only for the configured cleanup window.</p>
           </div>
-          <span className="privacy-note__stamp">LOCALHOST / TLS NOT REQUIRED</span>
-        </div>
+        </details>
       </section>
     </motion.main>
   )
@@ -391,40 +259,61 @@ function ConnectionBadge({ state }: { state: ConnectionState }) {
   )
 }
 
-function AnalysisPageStrip({
-  currentPage,
+function ScannerPaper({
+  imageUrl,
+  pageNumber,
   totalPages,
-  pagePreviews,
+  localizedRegion,
 }: {
-  currentPage: number
+  imageUrl?: string
+  pageNumber: number
   totalPages: number
-  pagePreviews: PagePreviewMap
+  localizedRegion?: ProgressEvent['localized_region']
 }) {
   return (
-    <section className="analysis-page-strip" aria-label="Analysis page progress">
-      <div className="panel-label"><span>Document pages</span><small>SEQUENTIAL</small></div>
-      <div className="analysis-page-strip__list" role="list">
-        {Array.from({ length: Math.min(10, Math.max(1, totalPages)) }, (_, index) => index + 1).map((pageNumber) => {
-          const preview = pagePreviews[pageNumber]
-          const state = pageNumber < currentPage ? 'complete' : pageNumber === currentPage ? 'current' : 'pending'
-          return (
-            <div className={`analysis-page-thumb is-${state}`} role="listitem" key={pageNumber}>
-              <div className="analysis-page-thumb__media">
-                {preview ? (
-                  <img src={preview} alt={`Page ${pageNumber} analysis thumbnail`} />
-                ) : (
-                  <span>{String(pageNumber).padStart(2, '0')}</span>
-                )}
-              </div>
-              <div>
-                <strong>Page {pageNumber}</strong>
-                <small>{state}</small>
-              </div>
-              {state === 'complete' && <CheckIcon />}
-              {state === 'current' && <span className="analysis-page-thumb__pulse" />}
+    <section className="scanner-card" aria-label="Questioned document viewer">
+      <div className="scanner-card__header">
+        <span>Questioned document</span>
+        <span>Page {pageNumber} / {totalPages}</span>
+      </div>
+      <div className="scanner-stage">
+        <div className="scanner-frame" aria-hidden="true" />
+        <div className="scanner-paper">
+          {imageUrl ? (
+            <img src={imageUrl} alt="Questioned document" />
+          ) : (
+            <div className="scanner-paper__placeholder" data-testid="document-placeholder" aria-hidden="true">
+              <svg viewBox="0 0 420 594" focusable="false">
+                <rect x="54" y="58" width="98" height="14" rx="7" />
+                <rect x="54" y="91" width="286" height="6" rx="3" />
+                <rect x="54" y="109" width="238" height="6" rx="3" />
+                <rect x="54" y="157" width="312" height="8" rx="4" />
+                <rect x="54" y="181" width="280" height="8" rx="4" />
+                <rect x="54" y="205" width="304" height="8" rx="4" />
+                <rect x="54" y="263" width="132" height="64" rx="8" />
+                <rect x="207" y="263" width="159" height="8" rx="4" />
+                <rect x="207" y="287" width="137" height="8" rx="4" />
+                <rect x="207" y="311" width="151" height="8" rx="4" />
+                <rect x="54" y="389" width="312" height="8" rx="4" />
+                <rect x="54" y="413" width="260" height="8" rx="4" />
+                <rect x="54" y="437" width="294" height="8" rx="4" />
+              </svg>
             </div>
-          )
-        })}
+          )}
+          <div className="scanner-sweep" aria-hidden="true"><span /></div>
+          {localizedRegion && (
+            <span
+              className="localized-region-preview"
+              aria-hidden="true"
+              style={{
+                left: `${localizedRegion.x * 100}%`,
+                top: `${localizedRegion.y * 100}%`,
+                width: `${localizedRegion.width * 100}%`,
+                height: `${localizedRegion.height * 100}%`,
+              }}
+            />
+          )}
+        </div>
       </div>
     </section>
   )
@@ -444,18 +333,10 @@ function AnalysisScreen({
   jobId: string
 }) {
   const reduceMotion = useReducedMotion()
-  const copy = stageCopy[progress.stage_id] ?? {
-    title: progress.message || 'Analysing document',
-    description: 'The local forensic pipeline is processing the current page stage.',
-  }
-  const activeIndex = currentStageIndex(progress.stage_id)
   const currentPage = Math.min(progress.total_pages, Math.max(1, progress.page_number))
   const currentPreview = progress.candidate_page_url || pagePreviews[currentPage] ||
     (currentPage === 1 ? candidatePreview : undefined)
-  const visiblePreviews = candidatePreview && !pagePreviews[1]
-    ? { ...pagePreviews, 1: candidatePreview }
-    : pagePreviews
-  const pageStage = progress.page_stage || copy.title
+  const stageLabel = conciseStageLabel(progress.stage_id)
 
   return (
     <motion.main
@@ -466,39 +347,33 @@ function AnalysisScreen({
     >
       <div className="analysis-titlebar">
         <div>
-          <span className="eyebrow">Live forensic analysis · Page {currentPage} of {progress.total_pages}</span>
-          <h1>{copy.title}</h1>
-          <p>{progress.message || copy.description}</p>
+          <span className="section-kicker">Analysis in progress</span>
+          <h1>Scanning page {currentPage} of {progress.total_pages}</h1>
         </div>
-        <div className="analysis-titlebar__status">
-          <ConnectionBadge state={connection} />
-          <span className="job-reference">JOB {jobId ? jobId.slice(0, 8).toUpperCase() : 'PENDING'}</span>
-        </div>
+        <span className="analysis-percentage">{Math.round(progress.progress)}%</span>
       </div>
 
-      <AnalysisPageStrip
-        currentPage={currentPage}
-        totalPages={progress.total_pages}
-        pagePreviews={visiblePreviews}
-      />
-
       <div className="analysis-grid">
-        <DocumentViewer
+        <ScannerPaper
           imageUrl={currentPreview}
-          scanning
-          progress={progress.progress}
           pageNumber={currentPage}
           totalPages={progress.total_pages}
-          pageStatus="processing"
           localizedRegion={progress.localized_region}
         />
 
         <aside className="analysis-sidebar">
           <section className="progress-panel">
-            <div className="progress-panel__top">
-              <span>Document progress</span>
-              <strong>{Math.round(progress.progress)}<small>%</small></strong>
+            <div className="scan-stage-label">
+              <span className="scan-stage-label__icon"><ScanIcon /></span>
+              <div>
+                <span>Current stage</span>
+                <strong>{stageLabel}</strong>
+              </div>
             </div>
+            <p className="visually-hidden" aria-live="polite" aria-atomic="true">
+              {stageLabel}. Scanning page {currentPage} of {progress.total_pages}. {Math.round(progress.progress)} percent complete.
+              {progress.finding_count > 0 ? ` ${progress.finding_count} ${progress.finding_count === 1 ? 'finding' : 'findings'}.` : ''}
+            </p>
             <div
               className="progress-track"
               role="progressbar"
@@ -513,43 +388,23 @@ function AnalysisScreen({
                 transition={{ duration: reduceMotion ? 0 : 0.35 }}
               />
             </div>
-            <div className="page-progress-facts">
-              <span><small>Current page</small><strong>{currentPage} / {progress.total_pages}</strong></span>
-              <span><small>Page stage</small><strong>{pageStage}</strong></span>
-              <span><small>Text engine</small><strong>{progress.ocr_provider || 'Detecting source'}</strong></span>
-            </div>
-            <div className="current-stage-card">
-              <span className="current-stage-card__icon"><ScanIcon /></span>
-              <div>
-                <span>Current stage</span>
-                <strong>{pageStage}</strong>
-                <p>{copy.description}</p>
-              </div>
+            <div className="progress-caption">
+              <span>{Math.round(progress.progress)}% complete</span>
+              {progress.finding_count > 0 && (
+                <span>{progress.finding_count} {progress.finding_count === 1 ? 'finding' : 'findings'}</span>
+              )}
             </div>
           </section>
 
-          <section className="pipeline-panel">
-            <div className="panel-label"><span>Forensic pipeline</span><small>PAGE {String(currentPage).padStart(2, '0')}</small></div>
-            <ol className="pipeline-list">
-              {stages.map((stage, index) => {
-                const isComplete = activeIndex > index || progress.stage_id === 'complete'
-                const isActive = activeIndex === index
-                return (
-                  <li key={stage.id} className={`${isComplete ? 'is-complete' : ''}${isActive ? ' is-active' : ''}`}>
-                    <span className="pipeline-list__marker">{isComplete ? <CheckIcon /> : String(index + 1).padStart(2, '0')}</span>
-                    <span>{stage.label}</span>
-                    {isActive && <span className="pipeline-list__activity"><i /><i /><i /></span>}
-                  </li>
-                )
-              })}
-            </ol>
-          </section>
-
-          <section className="evidence-counter">
-            <span>Evidence localized</span>
-            <strong>{String(progress.finding_count).padStart(2, '0')}</strong>
-            <small>Finding count updates from real backend page events.</small>
-          </section>
+          <details className="analysis-details progress-details">
+            <summary>Analysis details</summary>
+            <dl>
+              <div><dt>Connection</dt><dd><ConnectionBadge state={connection} /></dd></div>
+              <div><dt>Job</dt><dd>{jobId ? jobId.slice(0, 8).toUpperCase() : 'Pending'}</dd></div>
+              <div><dt>Page event</dt><dd>{progress.page_stage || progress.message || progress.stage_id}</dd></div>
+              <div><dt>Text engine</dt><dd>{progress.ocr_provider || 'Detecting source'}{progress.ocr_device ? ` · ${progress.ocr_device.toUpperCase()}` : ''}</dd></div>
+            </dl>
+          </details>
         </aside>
       </div>
     </motion.main>
@@ -670,59 +525,33 @@ function ResultScreen({
     >
       <div className="result-titlebar">
         <div>
-          <span className="eyebrow"><CheckIcon /> Analysis complete · {modeDescription[result.comparison_mode].title}</span>
+          <span className="section-kicker"><CheckIcon /> Analysis complete · {modeDescription[result.comparison_mode].title}</span>
           <h1>Evidence review</h1>
-          <p>Move between pages or select any finding to open its page-specific evidence.</p>
         </div>
         <div className="result-actions">
           <button className="button button--ghost button--compact" type="button" onClick={onReset}>
-            Analyse another pair
+            New comparison
           </button>
           <button className="button button--secondary button--compact" type="button" onClick={onDemoAgain}>
-            <RefreshIcon /> Demo again
+            <RefreshIcon /> Run demo
           </button>
         </div>
       </div>
 
       <section className={`risk-summary risk-summary--${tone}`} aria-label="Analysis assessment">
-        <div className="risk-gauge" style={{ '--risk': `${result.overall_tampering_risk * 3.6}deg` } as CSSProperties}>
-          <div>
-            <strong>{Math.round(result.overall_tampering_risk)}</strong>
-            <span>/ 100</span>
-          </div>
+        <div className="risk-score">
+          <span>Risk</span>
+          <strong>{Math.round(result.overall_tampering_risk)}</strong>
+          <small>/100</small>
         </div>
         <div className="risk-summary__copy">
-          <span>Document tampering risk</span>
           <h2>{result.risk_label}</h2>
-          <p>
-            {result.finding_count
-              ? `${result.finding_count} ${result.finding_count === 1 ? 'region differs' : 'regions differ'} across ${totalPages} ${totalPages === 1 ? 'page' : 'pages'} and should be reviewed.`
-              : `No meaningful altered regions were localized across ${totalPages} ${totalPages === 1 ? 'page' : 'pages'}.`}
-          </p>
+          <p>{result.finding_count} {result.finding_count === 1 ? 'finding' : 'findings'} · {modeDescription[result.comparison_mode].title}</p>
         </div>
         <div className="risk-metrics">
-          <Metric label="Assessment confidence" value={result.assessment_confidence} />
-          <Metric label="Analysis coverage" value={result.analysis_coverage} />
-          <Metric label="Alignment quality" value={result.alignment_quality} />
-          <Metric label="Processing time" value={result.processing_duration_ms} displayValue={formatDuration(result.processing_duration_ms)} />
+          <Metric label="Confidence" value={result.assessment_confidence} />
+          <Metric label="Coverage" value={result.analysis_coverage} />
         </div>
-      </section>
-
-      <section className="result-context" aria-label="Document aggregate">
-        <article className="mode-summary">
-          <span className="mode-summary__icon"><ShieldIcon /></span>
-          <div>
-            <small>Comparison mode</small>
-            <strong>{modeDescription[result.comparison_mode].title}</strong>
-            <p>{modeDescription[result.comparison_mode].detail}</p>
-          </div>
-        </article>
-        <article className="document-aggregate">
-          <span><small>Reference</small><strong>{referencePages} {referencePages === 1 ? 'page' : 'pages'}</strong></span>
-          <span><small>Candidate</small><strong>{candidatePages} {candidatePages === 1 ? 'page' : 'pages'}</strong></span>
-          <span><small>Review pages</small><strong>{aggregate?.reviewed_page_count ?? pages.filter((page) => pageFindingCount(page) > 0).length}</strong></span>
-          <span><small>Variable regions</small><strong>{result.region_suggestions?.length ?? 0}</strong></span>
-        </article>
       </section>
 
       <PageAnomalySummary anomalies={anomalies} />
@@ -730,7 +559,7 @@ function ResultScreen({
       <section className="page-filmstrip" aria-label="Document pages">
         <div className="page-filmstrip__heading">
           <div>
-            <span className="eyebrow">Page filmstrip</span>
+            <span className="section-kicker">Pages</span>
             <h2>Page {selectedPage?.page_number ?? 1} of {totalPages}</h2>
           </div>
           <div className="page-navigation">
@@ -792,17 +621,12 @@ function ResultScreen({
 
       <div className="selected-page-summary" aria-label="Selected page assessment">
         <div>
-          <span className="eyebrow">Selected-page assessment</span>
+          <span>Selected page</span>
           <strong>Page {selectedPage?.page_number ?? 1}</strong>
         </div>
-        <span className={`risk-chip risk-chip--${selectedTone}`}>{Math.round(selectedRisk)} risk</span>
+        <span className={`risk-chip risk-chip--${selectedTone}`}>Risk {Math.round(selectedRisk)}</span>
         <span>{currentPageFindings.length} {currentPageFindings.length === 1 ? 'finding' : 'findings'}</span>
         <span>{statusTitle(selectedPage?.status ?? 'matched')}</span>
-        <span>
-          {selectedPage?.ocr?.provider
-            ? `Text · ${selectedPage.ocr.provider}${selectedPage.ocr.succeeded === false ? ' (failed)' : ''}`
-            : 'Text source · visual / embedded'}
-        </span>
         {suggestions.length > 0 && <span className="variable-region-key"><i /> {suggestions.length} suggested variable {suggestions.length === 1 ? 'region' : 'regions'}</span>}
       </div>
 
@@ -838,11 +662,8 @@ function ResultScreen({
 
         <aside className="findings-panel">
           <div className="findings-panel__heading">
-            <div>
-              <span className="eyebrow">Document evidence</span>
-              <h2>{result.finding_count} {result.finding_count === 1 ? 'finding' : 'findings'}</h2>
-            </div>
-            <span className={`risk-chip risk-chip--${tone}`}>{tone}</span>
+            <h2>Findings</h2>
+            <span>{result.finding_count} total</span>
           </div>
           {allFindings.length ? (
             <div className="finding-list">
@@ -851,7 +672,7 @@ function ResultScreen({
                   type="button"
                   key={finding.finding_id}
                   className={`finding-card${selectedFinding?.finding_id === finding.finding_id ? ' is-selected' : ''}${finding.page_number === selectedPage?.page_number ? ' is-on-page' : ''}`}
-                  aria-label={`Open finding on page ${finding.page_number}: ${finding.title}`}
+                  aria-label={`View evidence on page ${finding.page_number}: ${finding.title}`}
                   onClick={() => selectFinding(finding)}
                 >
                   <span className="finding-card__index">{String(index + 1).padStart(2, '0')}</span>
@@ -863,6 +684,7 @@ function ResultScreen({
                       <i>Page {finding.page_number}</i>
                       <i>{Math.round(finding.confidence_score)}% confidence</i>
                     </span>
+                    <span className="finding-card__action">View evidence</span>
                   </span>
                   <ChevronIcon className="finding-card__chevron" />
                 </button>
@@ -871,16 +693,35 @@ function ResultScreen({
           ) : (
             <div className="empty-findings">
               <CheckIcon />
-              <strong>No localized differences</strong>
-              <p>The comparison did not produce evidence regions above the reporting threshold.</p>
+              <strong>No findings</strong>
+              <p>No reportable differences found.</p>
             </div>
           )}
           <div className="result-integrity-note">
             <ShieldIcon />
-            <p><strong>Explainable assessment</strong><span>Scores indicate forensic risk, not a legal authenticity judgment.</span></p>
+            <p>Investigative indicator—not proof of authenticity</p>
           </div>
         </aside>
       </div>
+
+      <details className="analysis-details result-details">
+        <summary>Analysis details</summary>
+        <div className="result-context" aria-label="Document aggregate">
+          <dl>
+            <div><dt>Mode</dt><dd>{modeDescription[result.comparison_mode].title} — {modeDescription[result.comparison_mode].detail}</dd></div>
+            <div><dt>Trusted reference</dt><dd>{referencePages} {referencePages === 1 ? 'page' : 'pages'}</dd></div>
+            <div><dt>Questioned document</dt><dd>{candidatePages} {candidatePages === 1 ? 'page' : 'pages'}</dd></div>
+            <div><dt>Review pages</dt><dd>{aggregate?.reviewed_page_count ?? pages.filter((page) => pageFindingCount(page) > 0).length}</dd></div>
+            <div><dt>Variable regions</dt><dd>{result.region_suggestions?.length ?? 0}</dd></div>
+            <div><dt>Alignment</dt><dd>{Math.round(result.alignment_quality)}%</dd></div>
+            <div><dt>Processing time</dt><dd>{formatDuration(result.processing_duration_ms)}</dd></div>
+            <div><dt>Selected-page text</dt><dd>{selectedPage?.ocr?.provider
+              ? `${selectedPage.ocr.provider}${selectedPage.ocr.device ? ` · ${selectedPage.ocr.device.toUpperCase()}` : ''}${selectedPage.ocr.succeeded === false ? ' · failed' : ''}`
+              : 'Visual or embedded text'}</dd></div>
+            <div><dt>Evidence coordinates</dt><dd>Normalized 0–1</dd></div>
+          </dl>
+        </div>
+      </details>
     </motion.main>
   )
 }
@@ -890,14 +731,16 @@ function ErrorScreen({ error, onReset, onRetryDemo }: { error: AnalysisError; on
     <main className="error-layout" role="alert">
       <div className="error-card">
         <span className="error-card__icon"><AlertIcon /></span>
-        <span className="eyebrow">Analysis interrupted</span>
-        <h1>We couldn’t complete this comparison.</h1>
+        <h1>Analysis couldn’t be completed</h1>
         <p>{error.message}</p>
-        <code>{error.code}</code>
         <div className="error-card__actions">
-          <button type="button" className="button button--primary" onClick={onReset}>Return to upload</button>
-          <button type="button" className="button button--ghost" onClick={onRetryDemo}><RefreshIcon /> Try synthetic demo</button>
+          <button type="button" className="button button--primary" onClick={onReset}>Back to upload</button>
+          <button type="button" className="button button--ghost" onClick={onRetryDemo}><RefreshIcon /> Try demo</button>
         </div>
+        <details className="analysis-details">
+          <summary>Analysis details</summary>
+          <code>{error.code}</code>
+        </details>
       </div>
     </main>
   )
@@ -1042,8 +885,6 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="ambient ambient--one" aria-hidden="true" />
-      <div className="ambient ambient--two" aria-hidden="true" />
       <AppHeader quiet={screen !== 'upload'} />
       <AnimatePresence mode="wait">
         {screen === 'upload' && (
@@ -1092,10 +933,6 @@ export default function App() {
         candidateEvidenceAvailable={candidateEvidenceAvailable}
         referenceEvidenceAvailable={referenceEvidenceAvailable}
       />
-      <footer className="site-footer">
-        <span>DOCUVERIFY / PHASE 02</span>
-        <span>Page-aware evidence-led comparison</span>
-      </footer>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import type { Finding, NormalizedBoundingBox, RegionSuggestion } from '../types/contracts'
-import { EyeIcon, FileIcon, ScanIcon } from './Icons'
+import { FileIcon, ScanIcon } from './Icons'
 
 interface DocumentViewerProps {
   imageUrl?: string
@@ -11,7 +11,6 @@ interface DocumentViewerProps {
   selectedFindingId?: string
   onSelectFinding?: (finding: Finding) => void
   scanning?: boolean
-  progress?: number
   label?: string
   pageNumber?: number | null
   totalPages?: number
@@ -41,7 +40,6 @@ export function DocumentViewer({
   selectedFindingId,
   onSelectFinding,
   scanning = false,
-  progress = 0,
   label = 'Questioned document',
   pageNumber = 1,
   totalPages = 1,
@@ -62,13 +60,10 @@ export function DocumentViewer({
   const isMissing = pageMissing || inferredMissing
   const showDocument = Boolean(imageUrl) && !imageFailed && !isMissing
   const showCandidateOverlays = side === 'candidate' && showDocument
-  const statusLabel = pageStatus.replaceAll('_', ' ')
   const missingTitle = side === 'candidate' ? 'Candidate page missing' : 'Reference page missing'
   const missingDescription = side === 'candidate'
     ? 'No candidate page corresponds to this trusted reference page.'
     : 'No trusted reference page corresponds to this candidate page.'
-  const viewLabel = side === 'candidate' ? 'Candidate view' : 'Reference view'
-
   return (
     <section className="document-shell" aria-label={`${label} viewer`}>
       <div className="document-shell__bar">
@@ -95,10 +90,10 @@ export function DocumentViewer({
               {scanning ? <ScanIcon className="document-placeholder__scan" /> : <FileIcon />}
               <strong>
                 {scanning
-                  ? 'Preparing document preview'
+                  ? 'Preparing preview'
                   : isMissing
                     ? missingTitle
-                    : 'Document preview unavailable'}
+                    : 'Preview unavailable'}
               </strong>
               <span>
                 {scanning
@@ -113,7 +108,7 @@ export function DocumentViewer({
           {scanning && (
             <div className="scan-overlay" aria-hidden="true">
               <div className="scan-overlay__wash" />
-              <div className="scan-overlay__line" style={{ top: `${Math.max(5, Math.min(95, progress))}%` }}>
+              <div className="scan-overlay__line">
                 <span />
               </div>
               <span className="scan-overlay__corner scan-overlay__corner--tl" />
@@ -173,7 +168,7 @@ export function DocumentViewer({
                     className={`finding-marker${selected ? ' is-selected' : ''}`}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Open evidence ${index + 1}: ${finding.title}`}
+                    aria-label={`View evidence ${index + 1}: ${finding.title}`}
                     onClick={() => onSelectFinding?.(finding)}
                     onKeyDown={(event) => activateOnKeyboard(event, finding, onSelectFinding)}
                   >
@@ -195,14 +190,6 @@ export function DocumentViewer({
             </svg>
           )}
         </div>
-      </div>
-      <div className="document-shell__footer">
-        <span><EyeIcon /> {viewLabel}</span>
-        <span>
-          {pageStatus === 'matched' || pageStatus === 'completed'
-            ? 'Normalized coordinates · 0—1'
-            : statusLabel}
-        </span>
       </div>
     </section>
   )

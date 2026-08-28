@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { CloseIcon, FileIcon, UploadIcon } from './Icons'
 
 interface FileDropzoneProps {
@@ -30,12 +30,6 @@ export function FileDropzone({
   const [dragging, setDragging] = useState(false)
 
   const choose = () => inputRef.current?.click()
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      choose()
-    }
-  }
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onFile(event.target.files?.[0] ?? null)
     event.target.value = ''
@@ -50,8 +44,6 @@ export function FileDropzone({
   return (
     <div
       className={`dropzone dropzone--${tone}${dragging ? ' is-dragging' : ''}${file ? ' has-file' : ''}`}
-      onClick={choose}
-      onKeyDown={onKeyDown}
       onDragEnter={(event) => {
         event.preventDefault()
         setDragging(true)
@@ -61,9 +53,6 @@ export function FileDropzone({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
       }}
       onDrop={handleDrop}
-      role="button"
-      tabIndex={0}
-      aria-label={`${eyebrow}: ${file ? file.name : 'choose a file'}`}
     >
       <input
         ref={inputRef}
@@ -86,7 +75,7 @@ export function FileDropzone({
             <strong>{file.name}</strong>
             <small>
               {formatBytes(file.size)} · {file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-                ? 'Page count verified locally'
+                ? 'Pages pending'
                 : '1 page · Ready'}
             </small>
           </span>
@@ -94,23 +83,24 @@ export function FileDropzone({
             type="button"
             className="icon-button"
             aria-label={`Remove ${file.name}`}
-            onClick={(event) => {
-              event.stopPropagation()
-              onFile(null)
-            }}
+            onClick={() => onFile(null)}
           >
             <CloseIcon />
           </button>
         </div>
       ) : (
-        <div className="dropzone__empty">
+        <button
+          type="button"
+          className="dropzone__empty"
+          aria-label={`${eyebrow}: choose a file`}
+          onClick={choose}
+        >
           <span className="dropzone__icon"><UploadIcon /></span>
-          <div>
+          <span>
             <strong>{title}</strong>
-            <p>{description}</p>
-            <small>PDF up to 10 pages · PNG or JPEG</small>
-          </div>
-        </div>
+            <span className="dropzone__description">{description}</span>
+          </span>
+        </button>
       )}
     </div>
   )

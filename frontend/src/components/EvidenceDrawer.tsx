@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import type { Finding } from '../types/contracts'
 import { CloseIcon, EyeIcon } from './Icons'
@@ -46,24 +46,75 @@ export function EvidenceDrawer({
   referenceEvidenceAvailable = true,
 }: EvidenceDrawerProps) {
   const reduceMotion = useReducedMotion()
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const drawerOpenRef = useRef(false)
+  const onCloseRef = useRef(onClose)
 
   useEffect(() => {
-    if (!finding) return undefined
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  const restoreFocus = () => {
+    const target = returnFocusRef.current
+    returnFocusRef.current = null
+    drawerOpenRef.current = false
+    if (target?.isConnected) target.focus()
+  }
+
+  useEffect(() => {
+    if (!finding) {
+      if (drawerOpenRef.current) restoreFocus()
+      return undefined
     }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [finding, onClose])
+
+    if (!drawerOpenRef.current) {
+      returnFocusRef.current = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+      drawerOpenRef.current = true
+    }
+    closeButtonRef.current?.focus()
+
+    const manageDialogKeyboard = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        onCloseRef.current()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+      ) ?? []).filter((element) => !element.hasAttribute('hidden'))
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', manageDialogKeyboard)
+    return () => window.removeEventListener('keydown', manageDialogKeyboard)
+  }, [finding])
+
+  useEffect(() => () => {
+    if (drawerOpenRef.current) restoreFocus()
+  }, [])
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={restoreFocus}>
       {finding && (
         <>
           <motion.button
             type="button"
             className="drawer-scrim"
-            aria-label="Close evidence details"
+            aria-label="Close evidence"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -71,6 +122,7 @@ export function EvidenceDrawer({
             transition={{ duration: reduceMotion ? 0 : 0.18 }}
           />
           <motion.aside
+            ref={drawerRef}
             className="evidence-drawer"
             role="dialog"
             aria-modal="true"
@@ -82,10 +134,16 @@ export function EvidenceDrawer({
           >
             <div className="evidence-drawer__header">
               <div>
-                <span className="eyebrow">Evidence {String(index + 1).padStart(2, '0')}</span>
+                <span className="eyebrow">Finding {String(index + 1).padStart(2, '0')}</span>
                 <h2 id="evidence-title">{finding.title}</h2>
               </div>
-              <button type="button" className="icon-button" aria-label="Close evidence drawer" onClick={onClose}>
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className="icon-button"
+                aria-label="Close evidence"
+                onClick={onClose}
+              >
                 <CloseIcon />
               </button>
             </div>
@@ -95,24 +153,19 @@ export function EvidenceDrawer({
                 <span className={`severity severity--${finding.severity.toLowerCase()}`}>
                   {finding.severity}
                 </span>
-                <span>{humanize(finding.category)}</span>
-                {finding.region_role && finding.region_role !== 'unknown' && (
-                  <span>{humanize(finding.region_role)} region</span>
-                )}
                 <span>Page {finding.page_number}</span>
               </div>
 
               <p className="evidence-explanation">{finding.explanation}</p>
 
               <div className="evidence-scores">
-                <div><span>Tampering risk</span><strong>{Math.round(finding.risk_score)}<small>/100</small></strong></div>
+                <div><span>Risk</span><strong>{Math.round(finding.risk_score)}<small>/100</small></strong></div>
                 <div><span>Confidence</span><strong>{Math.round(finding.confidence_score)}<small>%</small></strong></div>
               </div>
 
               <section className="evidence-section">
                 <div className="section-heading">
                   <span>Visual evidence</span>
-                  <small>{finding.evidence_source}</small>
                 </div>
                 <div className="evidence-images">
                   <EvidenceImage
@@ -129,9 +182,14 @@ export function EvidenceDrawer({
                 </div>
               </section>
 
-              <section className="evidence-section">
-                <div className="section-heading"><span>Supporting measurements</span></div>
+              <details className="analysis-details evidence-details">
+                <summary>Analysis details</summary>
                 <dl className="measurement-list">
+                  <div><dt>Category</dt><dd>{humanize(finding.category)}</dd></div>
+                  {finding.region_role && finding.region_role !== 'unknown' && (
+                    <div><dt>Region role</dt><dd>{humanize(finding.region_role)}</dd></div>
+                  )}
+                  <div><dt>Evidence source</dt><dd>{finding.evidence_source}</dd></div>
                   {Object.entries(finding.measurements).length ? (
                     Object.entries(finding.measurements).map(([key, value]) => (
                       <div key={key}>
@@ -139,9 +197,7 @@ export function EvidenceDrawer({
                         <dd>{formatMeasurement(value)}</dd>
                       </div>
                     ))
-                  ) : (
-                    <div><dt>Evidence source</dt><dd>{finding.evidence_source}</dd></div>
-                  )}
+                  ) : null}
                   <div>
                     <dt>Normalized region</dt>
                     <dd>
@@ -150,7 +206,7 @@ export function EvidenceDrawer({
                     </dd>
                   </div>
                 </dl>
-              </section>
+              </details>
             </div>
           </motion.aside>
         </>

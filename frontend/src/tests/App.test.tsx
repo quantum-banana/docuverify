@@ -493,7 +493,7 @@ let latestHandlers: AnalysisWatchHandlers | undefined
 const beginDemo = async () => {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('button', { name: /run synthetic demo/i }))
+  await user.click(screen.getByRole('button', { name: /try demo/i }))
   await waitFor(() => expect(apiMocks.watchAnalysis).toHaveBeenCalledOnce())
   if (!latestHandlers) throw new Error('Analysis handlers were not registered')
   return { user, handlers: latestHandlers }
@@ -535,13 +535,21 @@ describe('DocuVerify Phase 1 experience', () => {
   it('renders the initial upload state and keeps comparison disabled until both files exist', () => {
     render(<App />)
 
-    expect(screen.getByText(/upload the document\./i)).toBeInTheDocument()
-    expect(screen.getByText(/trust what can be explained/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /verify a document/i })).toBeInTheDocument()
+    expect(screen.getByText(/compare a questioned document with a trusted reference/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /trusted reference: choose a file/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /questioned document: choose a file/i })).toBeInTheDocument()
-    expect(screen.getByText('Exact comparison')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /start comparison/i })).toBeDisabled()
-    expect(screen.getByText(/private by design/i)).toBeInTheDocument()
+    expect(screen.getByText('Exact')).toBeInTheDocument()
+    expect(screen.getByText('Template')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /analyze document/i })).toBeDisabled()
+
+    const detailsSummary = screen.getByText('Analysis details')
+    const details = detailsSummary.closest('details')
+    expect(details).not.toHaveAttribute('open')
+    expect(screen.queryByText(/compare up to ten pages against a trusted reference/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^page-aware comparison$/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^local raster ocr$/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^no cloud upload$/i)).not.toBeInTheDocument()
   })
 
   it('accepts both files and starts an exact-document upload comparison', async () => {
@@ -553,25 +561,25 @@ describe('DocuVerify Phase 1 experience', () => {
     await user.upload(screen.getByTestId('reference-input'), reference)
     await user.upload(screen.getByTestId('candidate-input'), candidate)
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledWith(candidate))
-    const start = screen.getByRole('button', { name: /start comparison/i })
+    const start = screen.getByRole('button', { name: /analyze document/i })
     expect(start).toBeEnabled()
     await user.click(start)
 
     await waitFor(() => expect(apiMocks.createAnalysis).toHaveBeenCalledWith(reference, candidate, 'exact'))
     expect(apiMocks.watchAnalysis).toHaveBeenCalledWith(createdJob, expect.any(Object))
-    expect(screen.getByText(/live forensic analysis/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /scanning page 1 of 1/i })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /questioned document/i })).toHaveAttribute(
       'src',
       'blob:document-preview',
     )
   })
 
-  it('selects template mode and reports safe multi-page and OCR upload capabilities', async () => {
+  it('selects template mode and exposes consolidated upload details', async () => {
     const user = userEvent.setup()
     render(<App />)
     const modeGroup = screen.getByRole('group', { name: /comparison mode/i })
-    const exactMode = within(modeGroup).getByRole('radio', { name: /exact comparison/i })
-    const templateMode = within(modeGroup).getByRole('radio', { name: /template comparison/i })
+    const exactMode = within(modeGroup).getByRole('radio', { name: /^exact\b/i })
+    const templateMode = within(modeGroup).getByRole('radio', { name: /^template\b/i })
 
     expect(exactMode).toBeChecked()
     expect(templateMode).not.toBeChecked()
@@ -583,13 +591,19 @@ describe('DocuVerify Phase 1 experience', () => {
     await user.upload(screen.getByTestId('reference-input'), reference)
     await user.upload(screen.getByTestId('candidate-input'), candidate)
 
-    const summary = screen.getByRole('region', { name: /multi-page upload summary/i })
-    expect(within(summary).getByText('Pending validation')).toBeInTheDocument()
-    expect(within(summary).getByText('1 page')).toBeInTheDocument()
-    expect(within(summary).getByText(/10-page limit/i)).toBeInTheDocument()
-    expect(within(summary).getByText(/raster ocr ready/i)).toBeInTheDocument()
+    expect(screen.getByText(/Pages pending/)).toBeInTheDocument()
+    expect(screen.getByText(/1 page · ready/i)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /start comparison/i }))
+    const detailsSummary = screen.getByText('Analysis details')
+    const details = detailsSummary.closest('details')
+    expect(details).not.toHaveAttribute('open')
+    await user.click(detailsSummary)
+    expect(details).toHaveAttribute('open')
+    expect(within(details as HTMLElement).getByText(/pdfs may contain up to 10 pages/i)).toBeInTheDocument()
+    expect(within(details as HTMLElement).getByText(/local raster ocr is used when needed/i)).toBeInTheDocument()
+    expect(within(details as HTMLElement).getByText(/processed by the local service/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /analyze document/i }))
     await waitFor(() => expect(apiMocks.createAnalysis).toHaveBeenCalledWith(reference, candidate, 'template'))
   })
 
@@ -603,7 +617,7 @@ describe('DocuVerify Phase 1 experience', () => {
     await user.upload(screen.getByTestId('candidate-input'), candidate)
     expect(URL.createObjectURL).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole('button', { name: /start comparison/i }))
+    await user.click(screen.getByRole('button', { name: /analyze document/i }))
     await waitFor(() => expect(apiMocks.watchAnalysis).toHaveBeenCalledOnce())
     expect(screen.getByTestId('document-placeholder')).toBeInTheDocument()
     expect(container.querySelector('object')).not.toBeInTheDocument()
@@ -632,7 +646,7 @@ describe('DocuVerify Phase 1 experience', () => {
   })
 
   it('initiates the bundled demo and reflects a real progress event', async () => {
-    const { handlers } = await beginDemo()
+    const { user, handlers } = await beginDemo()
     expect(apiMocks.runDemo).toHaveBeenCalledOnce()
 
     handlers.onProgress({
@@ -665,19 +679,30 @@ describe('DocuVerify Phase 1 experience', () => {
     }
     handlers.onProgress(progress)
 
-    expect(await screen.findByRole('heading', { name: /localizing suspicious differences/i })).toBeInTheDocument()
-    expect(screen.getByText('Localized two candidate regions')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /scanning page 1 of 1/i })).toBeInTheDocument()
+    expect(screen.getByText('Locating evidence')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: /analysis progress/i })).toHaveAttribute('aria-valuenow', '68')
-    expect(screen.getByText('02')).toBeInTheDocument()
-    expect(screen.getByText(/live connection/i)).toBeInTheDocument()
+    expect(screen.getByText('68% complete')).toBeInTheDocument()
+    expect(screen.getByText('2 findings')).toBeInTheDocument()
+    expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(
+      /locating evidence\. scanning page 1 of 1\. 68 percent complete\. 2 findings\./i,
+    )
+
+    const detailsSummary = screen.getByText('Analysis details')
+    const details = detailsSummary.closest('details')
+    expect(details).not.toHaveAttribute('open')
+    await user.click(detailsSummary)
+    expect(details).toHaveAttribute('open')
+    expect(within(details as HTMLElement).getByText('Localized two candidate regions')).toBeInTheDocument()
+    expect(within(details as HTMLElement).getByText(/live connection/i)).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /questioned document/i })).toHaveAttribute(
       'src',
       '/api/v1/analyses/job-12345678/assets/candidate-page',
     )
   })
 
-  it('tracks the current page, OCR provider and thumbnails from page-aware progress', async () => {
-    const { handlers } = await beginDemo()
+  it('tracks the current page and keeps OCR event details behind disclosure', async () => {
+    const { user, handlers } = await beginDemo()
     handlers.onProgress({
       event_id: 'page-1-preview',
       job_id: createdJob.job_id,
@@ -706,13 +731,24 @@ describe('DocuVerify Phase 1 experience', () => {
       ocr_device: 'cpu',
     })
 
-    expect(await screen.findByText(/live forensic analysis · page 2 of 3/i)).toBeInTheDocument()
-    expect(screen.getAllByText('Raster OCR on page 2')).toHaveLength(2)
-    expect(screen.getByText('RapidOCR')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /scanning page 2 of 3/i })).toBeInTheDocument()
+    expect(screen.getByText('Reading')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: /analysis progress/i })).toHaveAttribute('aria-valuenow', '54')
-    const pageProgress = screen.getByRole('region', { name: /analysis page progress/i })
-    expect(within(pageProgress).getByRole('img', { name: /page 1 analysis thumbnail/i })).toHaveAttribute('src', '/assets/progress-page-1')
-    expect(within(pageProgress).getByRole('img', { name: /page 2 analysis thumbnail/i })).toHaveAttribute('src', '/assets/progress-page-2')
+    expect(screen.getByText('54% complete')).toBeInTheDocument()
+    expect(screen.getByText('1 finding')).toBeInTheDocument()
+    expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(
+      /reading\. scanning page 2 of 3\. 54 percent complete\. 1 finding\./i,
+    )
+    expect(screen.queryByRole('region', { name: /analysis page progress/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /page 1 analysis thumbnail/i })).not.toBeInTheDocument()
+
+    const detailsSummary = screen.getByText('Analysis details')
+    const details = detailsSummary.closest('details')
+    expect(details).not.toHaveAttribute('open')
+    await user.click(detailsSummary)
+    expect(details).toHaveAttribute('open')
+    expect(within(details as HTMLElement).getByText('Raster OCR on page 2')).toBeInTheDocument()
+    expect(within(details as HTMLElement).getByText(/RapidOCR · CPU/i)).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /questioned document/i })).toHaveAttribute('src', '/assets/progress-page-2')
   })
 
@@ -721,13 +757,20 @@ describe('DocuVerify Phase 1 experience', () => {
     handlers.onComplete(completedResult)
 
     expect(await screen.findByRole('heading', { name: 'Evidence review' })).toBeInTheDocument()
+    expect(screen.getByText(/analysis complete · exact/i)).toBeInTheDocument()
     expect(screen.getByText('Critical tampering risk')).toBeInTheDocument()
-    expect(screen.getByText('Assessment confidence')).toBeInTheDocument()
-    expect(screen.getByText('Analysis coverage')).toBeInTheDocument()
-    expect(screen.getByText('1.8 s')).toBeInTheDocument()
+    expect(screen.getByText('Confidence')).toBeInTheDocument()
+    expect(screen.getByText('Coverage')).toBeInTheDocument()
+
+    const resultDetailsSummary = screen.getByText('Analysis details')
+    const resultDetails = resultDetailsSummary.closest('details')
+    expect(resultDetails).not.toHaveAttribute('open')
+    await user.click(resultDetailsSummary)
+    expect(resultDetails).toHaveAttribute('open')
+    expect(within(resultDetails as HTMLElement).getByText('1.8 s')).toBeInTheDocument()
 
     const overlay = screen.getByLabelText('1 evidence marker')
-    const marker = within(overlay).getByRole('button', { name: /open evidence 1: changed result field/i })
+    const marker = within(overlay).getByRole('button', { name: /view evidence 1: changed result field/i })
     await user.click(marker)
 
     const drawer = await screen.findByRole('dialog', { name: /changed result field/i })
@@ -735,6 +778,11 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(drawer).getByText('Questioned')).toBeInTheDocument()
     expect(within(drawer).getByText('Trusted reference')).toBeInTheDocument()
     expect(within(drawer).getByText('Difference overlay')).toBeInTheDocument()
+    const evidenceDetailsSummary = within(drawer).getByText('Analysis details')
+    const evidenceDetails = evidenceDetailsSummary.closest('details')
+    expect(evidenceDetails).not.toHaveAttribute('open')
+    await user.click(evidenceDetailsSummary)
+    expect(evidenceDetails).toHaveAttribute('open')
     expect(within(drawer).getByText('Changed Pixel Ratio')).toBeInTheDocument()
     expect(within(drawer).getByText(/x 0\.310 · y 0\.420/i)).toBeInTheDocument()
   })
@@ -763,13 +811,17 @@ describe('DocuVerify Phase 1 experience', () => {
 
   it('navigates a document finding to its page and preserves correct evidence after page switches', async () => {
     const { user } = await completeMultiPageDemo()
-    await user.click(screen.getByRole('button', { name: /open finding on page 2: typography inconsistency/i }))
+    const findingTrigger = screen.getByRole('button', { name: /view evidence on page 2: typography inconsistency/i })
+    await user.click(findingTrigger)
 
     let drawer = await screen.findByRole('dialog', { name: /typography inconsistency/i })
     expect(within(drawer).getByText('Page 2')).toBeInTheDocument()
     expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute('src', '/assets/page-2-candidate-crop')
     expect(screen.getByRole('img', { name: /questioned document · page 2/i })).toHaveAttribute('src', '/assets/candidate-page-2')
-    await user.click(within(drawer).getByRole('button', { name: /close evidence drawer/i }))
+    const closeEvidence = within(drawer).getByRole('button', { name: /close evidence/i })
+    expect(closeEvidence).toHaveFocus()
+    await user.click(closeEvidence)
+    await waitFor(() => expect(findingTrigger).toHaveFocus())
 
     const filmstrip = screen.getByRole('region', { name: /document pages/i })
     await user.click(within(filmstrip).getByRole('button', { name: /page 1: 41 risk/i }))
@@ -781,10 +833,18 @@ describe('DocuVerify Phase 1 experience', () => {
   })
 
   it('surfaces mode, aggregate, suggested-region and missing, added and reordered-page indicators', async () => {
-    await completeMultiPageDemo()
-    expect(screen.getAllByText('Template comparison').length).toBeGreaterThan(0)
-    const aggregate = screen.getByRole('region', { name: /document aggregate/i })
-    expect(within(aggregate).getByText('Reference')).toBeInTheDocument()
+    const { user } = await completeMultiPageDemo()
+    expect(screen.getByText(/analysis complete · template/i)).toBeInTheDocument()
+
+    const detailsSummary = screen.getByText('Analysis details')
+    const details = detailsSummary.closest('details')
+    expect(details).not.toHaveAttribute('open')
+    await user.click(detailsSummary)
+    expect(details).toHaveAttribute('open')
+    const aggregate = document.querySelector<HTMLElement>('[aria-label="Document aggregate"]')
+    expect(aggregate).not.toBeNull()
+    if (!aggregate) throw new Error('Document aggregate was not rendered')
+    expect(within(aggregate).getByText('Trusted reference')).toBeInTheDocument()
     expect(within(aggregate).getAllByText('3 pages')).toHaveLength(2)
     expect(within(aggregate).getByText('Variable regions')).toBeInTheDocument()
 
@@ -812,7 +872,7 @@ describe('DocuVerify Phase 1 experience', () => {
       '/assets/reference-page-2',
     )
 
-    const missingFinding = screen.getByRole('button', { name: /open finding on page 2: page missing/i })
+    const missingFinding = screen.getByRole('button', { name: /view evidence on page 2: page missing/i })
     expect(missingFinding).toBeInTheDocument()
     await user.click(missingFinding)
     const drawer = await screen.findByRole('dialog', { name: /page missing/i })
@@ -823,7 +883,7 @@ describe('DocuVerify Phase 1 experience', () => {
       '/assets/reference-page-2',
     )
     expect(within(drawer).queryByText('/assets/invalid-missing-candidate-crop')).not.toBeInTheDocument()
-    await user.click(within(drawer).getByRole('button', { name: /close evidence drawer/i }))
+    await user.click(within(drawer).getByRole('button', { name: /close evidence/i }))
 
     await user.click(screen.getByRole('button', { name: /previous page/i }))
     expect(screen.getByRole('img', { name: /questioned document · page 1/i })).toHaveAttribute(
@@ -862,7 +922,7 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(referenceViewer).queryByRole('img')).not.toBeInTheDocument()
     expect(within(referenceViewer).queryByLabelText(/evidence marker/i)).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /open finding on page 2: page added/i }))
+    await user.click(screen.getByRole('button', { name: /view evidence on page 2: page added/i }))
     const drawer = await screen.findByRole('dialog', { name: /page added/i })
     expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute(
       'src',
@@ -903,7 +963,8 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/normal-candidate-page-2')
     expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/normal-reference-page-2')
     const marker = within(candidateViewer).getByRole('button', { name: /typography inconsistency/i })
-    await user.click(marker)
+    marker.focus()
+    await user.keyboard('{Enter}')
     const drawer = await screen.findByRole('dialog', { name: /typography inconsistency/i })
     expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute('src', '/assets/page-2-candidate-crop')
     expect(within(drawer).getByRole('img', { name: /trusted reference for selected finding/i })).toHaveAttribute('src', '/assets/page-2-reference-crop')
@@ -912,8 +973,10 @@ describe('DocuVerify Phase 1 experience', () => {
 
   it('preserves the legitimate template result and its four variable regions', async () => {
     await completeResultDemo(templateLegitimateResult)
-    expect(screen.getAllByText('Template comparison').length).toBeGreaterThan(0)
-    expect(within(screen.getByRole('region', { name: /analysis assessment/i })).getByText('15')).toBeInTheDocument()
+    expect(screen.getByText(/analysis complete · template/i)).toBeInTheDocument()
+    const assessment = screen.getByRole('region', { name: /analysis assessment/i })
+    expect(within(assessment).getByText('Risk')).toBeInTheDocument()
+    expect(within(assessment).getByText('15')).toBeInTheDocument()
     const candidateViewer = screen.getByRole('region', { name: /questioned document · page 1 viewer/i })
     const referenceViewer = screen.getByRole('region', { name: /trusted reference · page 1 viewer/i })
     expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-legitimate-candidate')
@@ -924,7 +987,9 @@ describe('DocuVerify Phase 1 experience', () => {
 
   it('preserves manipulated template markers and evidence', async () => {
     const { user } = await completeResultDemo(templateManipulatedResult)
-    expect(within(screen.getByRole('region', { name: /analysis assessment/i })).getByText('81')).toBeInTheDocument()
+    const assessment = screen.getByRole('region', { name: /analysis assessment/i })
+    expect(within(assessment).getByText('Risk')).toBeInTheDocument()
+    expect(within(assessment).getByText('81')).toBeInTheDocument()
     const candidateViewer = screen.getByRole('region', { name: /questioned document · page 1 viewer/i })
     expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-manipulated-candidate')
     await user.click(within(candidateViewer).getByRole('button', { name: /background compositing detected/i }))
@@ -940,8 +1005,13 @@ describe('DocuVerify Phase 1 experience', () => {
 
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByText(/questioned pdf could not be rendered/i)).toBeInTheDocument()
+    const detailsSummary = within(alert).getByText('Analysis details')
+    const details = detailsSummary.closest('details')
+    expect(details).not.toHaveAttribute('open')
+    await user.click(detailsSummary)
+    expect(details).toHaveAttribute('open')
     expect(within(alert).getByText('render_failed')).toBeInTheDocument()
-    await user.click(within(alert).getByRole('button', { name: /return to upload/i }))
-    expect(screen.getByRole('heading', { name: /compare two documents/i })).toBeInTheDocument()
+    await user.click(within(alert).getByRole('button', { name: /back to upload/i }))
+    expect(screen.getByRole('heading', { name: /verify a document/i })).toBeInTheDocument()
   })
 })
