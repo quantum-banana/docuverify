@@ -30,13 +30,17 @@ from backend.app.models.contracts import (
     AnalysisJob,
     AssetLinks,
     BoundingBox,
+    CheckStatus,
+    CodeAssessment,
     ComparisonMode,
     CreateAnalysisResponse,
     DocumentAggregate,
     DocumentDescriptor,
     DocumentResult,
+    DigitalSignatureAssessment,
     ErrorDetail,
     Finding,
+    InvestigativeAssessment,
     JobState,
     PageAnomalyType,
     PageCorrespondence,
@@ -44,8 +48,11 @@ from backend.app.models.contracts import (
     PageOrderAnomaly,
     PageResult,
     PageStatus,
+    PdfSignatureStatus,
     ProfileMatchSummary,
     ReferenceProfileAssessment,
+    LogicalConsistencyAssessment,
+    MetadataAssessment,
     RegionRole,
     RegionSuggestion,
     StageId,
@@ -54,6 +61,11 @@ from backend.app.models.contracts import (
 from backend.app.services import documents
 from backend.app.services.documents import RenderedDocument, TextExtraction, ValidatedUpload
 from backend.app.services.metadata import MetadataChange, compare_document_metadata
+from backend.app.services.assessment import build_investigative_assessment
+from backend.app.services.digital_signatures import inspect_pdf_signatures
+from backend.app.services.logical_rules import evaluate_logical_rules, extract_profile_fields
+from backend.app.services.metadata_forensics import inspect_metadata
+from backend.app.services.qr_codes import analyze_codes
 
 
 LOGGER = logging.getLogger(__name__)
@@ -705,11 +717,89 @@ class AnalysisManager:
             )
             del reference_image, candidate_image, alignment, differences
 
+        selected_profile = (
+            profile_search.selected.profile
+            if profile_search is not None and profile_search.selected is not None
+            else None
+        )
+        profile_fields = (
+            extract_profile_fields(selected_profile, candidate_pages)
+            if selected_profile is not None
+            else {}
+        )
         self._stage(
             job_id,
-            StageId.PREPARING_RESULT,
-            "Aggregating document risk",
+            StageId.DECODING_CODES,
+            "Detecting and decoding local QR/barcode evidence",
             94,
+            page_number=min(total_pages, max(1, len(pages))),
+            total_pages=total_pages,
+            finding_count=cumulative_findings,
+        )
+        code_assessment, qr_fields = analyze_codes(
+            candidate_pages, selected_profile, profile_fields
+        )
+        self._stage(
+            job_id,
+            StageId.CHECKING_DIGITAL_SIGNATURES,
+            "Checking PDF signatures against the explicit local trust store",
+            95,
+            page_number=min(total_pages, max(1, len(pages))),
+            total_pages=total_pages,
+            finding_count=cumulative_findings,
+        )
+        digital_signature = inspect_pdf_signatures(
+            candidate, self.settings.trust_store_path
+        )
+        self._stage(
+            job_id,
+            StageId.INSPECTING_METADATA,
+            "Inspecting metadata and revision provenance indicators",
+            96,
+            page_number=min(total_pages, max(1, len(pages))),
+            total_pages=total_pages,
+            finding_count=cumulative_findings,
+        )
+        metadata_assessment = inspect_metadata(candidate)
+        self._stage(
+            job_id,
+            StageId.VALIDATING_FIELD_CONSISTENCY,
+            "Validating profile-driven field consistency",
+            97,
+            page_number=min(total_pages, max(1, len(pages))),
+            total_pages=total_pages,
+            finding_count=cumulative_findings,
+        )
+        logical_consistency = evaluate_logical_rules(
+            selected_profile,
+            candidate_pages,
+            fields=profile_fields,
+            qr_fields=qr_fields,
+        )
+        extension_findings = self._build_extension_findings(
+            job_id=job_id,
+            assets_dir=assets_dir,
+            pages=pages,
+            candidate_pages=candidate_pages,
+            profile_search=profile_search,
+            digital=digital_signature,
+            codes=code_assessment,
+            metadata=metadata_assessment,
+            logical=logical_consistency,
+        )
+        if pages and extension_findings:
+            pages[0].findings.extend(extension_findings)
+            pages[0].findings.sort(
+                key=lambda finding: (-finding.risk_score, finding.finding_id)
+            )
+            pages[0].finding_count = len(pages[0].findings)
+            cumulative_findings += len(extension_findings)
+
+        self._stage(
+            job_id,
+            StageId.AGGREGATING_EVIDENCE,
+            "Aggregating independent evidence dimensions",
+            99,
             page_number=min(total_pages, max(1, len(pages))),
             total_pages=total_pages,
             finding_count=cumulative_findings,
@@ -731,6 +821,10 @@ class AnalysisManager:
             similarities=similarities,
             duration_ms=round((time.perf_counter() - started) * 1000),
             profile_search=profile_search,
+            digital_signature=digital_signature,
+            code_assessment=code_assessment,
+            metadata_assessment=metadata_assessment,
+            logical_consistency=logical_consistency,
         )
         (job_dir / "analysis-metadata.json").write_text(
             json.dumps(
@@ -821,6 +915,254 @@ class AnalysisManager:
             saved = job_dir / "inputs" / f"{role}{upload.extension}"
             if not saved.is_file() or saved.read_bytes() != upload.data:
                 raise RuntimeError(f"Saved {role} input failed integrity verification")
+
+    def _build_extension_findings(
+        self,
+        *,
+        job_id: str,
+        assets_dir: Path,
+        pages: list[PageResult],
+        candidate_pages: list[_PreparedPage],
+        profile_search: ProfileSearchResult | None,
+        digital: DigitalSignatureAssessment,
+        codes: CodeAssessment,
+        metadata: MetadataAssessment,
+        logical: LogicalConsistencyAssessment,
+    ) -> list[Finding]:
+        if not pages or not candidate_pages:
+            return []
+        specs: list[
+            tuple[str, str, str, BoundingBox, float, float, list[str], dict[str, Any]]
+        ] = []
+        whole_page = BoundingBox(x=0.0, y=0.0, width=1.0, height=1.0)
+        if profile_search is not None and profile_search.selected is not None:
+            selected = profile_search.selected
+            if selected.score < 52.0:
+                specs.append(
+                    (
+                        "profile_mismatch",
+                        "Weak trusted-profile match",
+                        "Issuer, headings, layout and profile descriptors did not provide a moderate match. The closest profile is shown only as context.",
+                        whole_page,
+                        42.0,
+                        78.0,
+                        ["docuvault_profile_match"],
+                        {"profile_match_score": selected.score},
+                    )
+                )
+            if selected.strength.tier == "Closest available profile":
+                specs.append(
+                    (
+                        "limited_trusted_reference_strength",
+                        "Limited trusted-reference strength",
+                        selected.strength.rationale,
+                        whole_page,
+                        0.0,
+                        95.0,
+                        ["docuvault_trust_policy"],
+                        {
+                            "profile_match_score": selected.score,
+                            "provenance_assurance": selected.strength.provenance,
+                            "applicability": selected.strength.applicability,
+                        },
+                    )
+                )
+        for check in digital.checks:
+            if check.status not in {PdfSignatureStatus.INVALID, PdfSignatureStatus.MODIFIED}:
+                continue
+            category = (
+                "signed_content_modified"
+                if check.status is PdfSignatureStatus.MODIFIED
+                else "digital_signature_invalid"
+            )
+            title = (
+                "Signed content modified"
+                if check.status is PdfSignatureStatus.MODIFIED
+                else "Digital signature invalid"
+            )
+            specs.append(
+                (
+                    category,
+                    title,
+                    check.explanation,
+                    whole_page,
+                    98.0 if check.status is PdfSignatureStatus.MODIFIED else 95.0,
+                    96.0,
+                    ["pyhanko_signature_validation", "explicit_local_trust_store"],
+                    {
+                        "signature_index": check.signature_index,
+                        "incremental_updates": check.incremental_updates,
+                        "cryptographically_intact": check.cryptographically_intact,
+                    },
+                )
+            )
+        for result in codes.results:
+            if result.structure_valid is not False and result.visible_fields_consistent is not False:
+                continue
+            specs.append(
+                (
+                    "qr_payload_mismatch",
+                    "QR payload mismatch",
+                    "The locally decoded payload disagrees with the selected profile structure or reliably extracted visible fields.",
+                    result.bounding_box or whole_page,
+                    86.0,
+                    result.confidence_score,
+                    [result.decoder, "visible_field_consistency"],
+                    {
+                        "payload_structure_valid": result.structure_valid,
+                        "visible_fields_consistent": result.visible_fields_consistent,
+                        "cryptographic_verification_available": result.cryptographic_verification_available,
+                    },
+                )
+            )
+        if codes.status is CheckStatus.FAILED and not codes.results:
+            specs.append(
+                (
+                    "qr_expected_missing",
+                    "Expected QR code missing",
+                    codes.explanation,
+                    whole_page,
+                    62.0,
+                    82.0,
+                    ["opencv_qrcode_detector", "profile_expectation"],
+                    {"expected": codes.expected, "detected_count": 0},
+                )
+            )
+        for indicator in metadata.indicators:
+            if indicator.status is not CheckStatus.FAILED:
+                continue
+            specs.append(
+                (
+                    "metadata_timeline_inconsistency",
+                    "Metadata timeline inconsistency",
+                    indicator.explanation,
+                    whole_page,
+                    65.0,
+                    indicator.confidence_score,
+                    ["document_metadata"],
+                    dict(indicator.supporting_measurements),
+                )
+            )
+        for rule in logical.results:
+            if rule.status is not CheckStatus.FAILED:
+                continue
+            specs.append(
+                (
+                    "logical_field_inconsistency",
+                    "Logical field inconsistency",
+                    rule.explanation,
+                    whole_page,
+                    72.0,
+                    rule.confidence_score,
+                    ["profile_rule_engine"],
+                    {"rule_id": rule.rule_id, "rule_version": rule.rule_version},
+                )
+            )
+
+        return [
+            self._write_extension_finding(
+                job_id=job_id,
+                assets_dir=assets_dir,
+                candidate_page=candidate_pages[0],
+                index=index,
+                category=category,
+                title=title,
+                explanation=explanation,
+                bounding_box=bounding_box,
+                risk=risk,
+                confidence=confidence,
+                evidence_source=evidence_source,
+                measurements=measurements,
+            )
+            for index, (
+                category,
+                title,
+                explanation,
+                bounding_box,
+                risk,
+                confidence,
+                evidence_source,
+                measurements,
+            ) in enumerate(specs[:12], start=1)
+        ]
+
+    def _write_extension_finding(
+        self,
+        *,
+        job_id: str,
+        assets_dir: Path,
+        candidate_page: _PreparedPage,
+        index: int,
+        category: str,
+        title: str,
+        explanation: str,
+        bounding_box: BoundingBox,
+        risk: float,
+        confidence: float,
+        evidence_source: list[str],
+        measurements: dict[str, Any],
+    ) -> Finding:
+        image = _read_page_image(candidate_page.image_path)
+        height, width = image.shape[:2]
+        x0 = max(0, min(width - 1, round(bounding_box.x * width)))
+        y0 = max(0, min(height - 1, round(bounding_box.y * height)))
+        x1 = max(x0 + 1, min(width, round((bounding_box.x + bounding_box.width) * width)))
+        y1 = max(y0 + 1, min(height, round((bounding_box.y + bounding_box.height) * height)))
+        candidate_crop = image[y0:y1, x0:x1].copy()
+        diagnostic = np.full_like(candidate_crop, 246)
+        overlay = candidate_crop.copy()
+        tint = np.zeros_like(overlay)
+        tint[:, :] = (30, 45, 225)
+        overlay = cv2.addWeighted(overlay, 0.78, tint, 0.22, 0)
+        cv2.rectangle(
+            overlay,
+            (1, 1),
+            (max(1, overlay.shape[1] - 2), max(1, overlay.shape[0] - 2)),
+            (20, 35, 230),
+            max(2, round(min(overlay.shape[:2]) * 0.018)),
+        )
+        label = category.replace("_", " ").upper()[:32]
+        cv2.putText(
+            diagnostic,
+            label,
+            (8, min(max(18, diagnostic.shape[0] // 2), max(18, diagnostic.shape[0] - 5))),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            max(0.35, min(0.8, diagnostic.shape[1] / 620)),
+            (40, 40, 40),
+            1,
+            cv2.LINE_AA,
+        )
+        finding_id = f"assessment-{index:03d}-{category}"
+        asset_ids = (
+            f"{finding_id}-candidate",
+            f"{finding_id}-reference",
+            f"{finding_id}-overlay",
+        )
+        for asset_id, asset in zip(
+            asset_ids, (candidate_crop, diagnostic, overlay), strict=True
+        ):
+            path = assets_dir / f"{asset_id}.png"
+            documents.write_png(path, asset)
+            self.store.register_asset(job_id, asset_id, path)
+        return Finding(
+            finding_id=finding_id,
+            page_number=1,
+            category=category,
+            title=title,
+            explanation=explanation,
+            bounding_box=bounding_box,
+            risk_score=risk,
+            confidence_score=confidence,
+            severity=severity(risk),
+            evidence_source=evidence_source,
+            assets=AssetLinks(
+                candidate_crop_url=_asset_url(job_id, asset_ids[0]),
+                reference_crop_url=_asset_url(job_id, asset_ids[1]),
+                difference_overlay_url=_asset_url(job_id, asset_ids[2]),
+            ),
+            region_role=RegionRole.UNKNOWN,
+            supporting_measurements=measurements,
+        )
 
     def _build_findings(
         self,
@@ -1289,6 +1631,10 @@ class AnalysisManager:
         similarities: list[float],
         duration_ms: int,
         profile_search: ProfileSearchResult | None = None,
+        digital_signature: DigitalSignatureAssessment | None = None,
+        code_assessment: CodeAssessment | None = None,
+        metadata_assessment: MetadataAssessment | None = None,
+        logical_consistency: LogicalConsistencyAssessment | None = None,
     ) -> DocumentResult:
         reference_first, candidate_first = reference_pages[0], candidate_pages[0]
         reference_descriptor = DocumentDescriptor(
@@ -1310,6 +1656,25 @@ class AnalysisManager:
             height=candidate_first.height,
             preview_url=_asset_url(job_id, candidate_first.asset_id),
             transform=candidate_first.transform,
+        )
+        reference_assessment = _reference_profile_assessment(
+            comparison_mode, profile_search
+        )
+        investigative_assessment: InvestigativeAssessment = build_investigative_assessment(
+            visual_risk=aggregate.risk_score,
+            visual_findings=sum(
+                1
+                for page in pages
+                for finding in page.findings
+                if finding.evidence_source
+                and any(source in {"pixel_difference", "edge_difference", "text_difference", "page_correspondence"} for source in finding.evidence_source)
+            ),
+            coverage=aggregate.coverage_score,
+            reference=reference_assessment,
+            digital=digital_signature,
+            codes=code_assessment,
+            metadata=metadata_assessment,
+            logical=logical_consistency,
         )
         return DocumentResult(
             job_id=job_id,
@@ -1361,9 +1726,12 @@ class AnalysisManager:
                     else None
                 ),
             ),
-            reference_profile=_reference_profile_assessment(
-                comparison_mode, profile_search
-            ),
+            reference_profile=reference_assessment,
+            digital_signature=digital_signature,
+            codes=code_assessment,
+            metadata_assessment=metadata_assessment,
+            logical_consistency=logical_consistency,
+            investigative_assessment=investigative_assessment,
             generated_at=datetime.now(UTC),
         )
 

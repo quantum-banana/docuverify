@@ -18,7 +18,11 @@ EXPECTED_STAGES = [
     "comparing_structure",
     "localizing_differences",
     "scoring_evidence",
-    "preparing_result",
+    "decoding_codes",
+    "checking_digital_signatures",
+    "inspecting_metadata",
+    "validating_field_consistency",
+    "aggregating_evidence",
     "complete",
 ]
 
@@ -172,6 +176,9 @@ def test_negative_last_event_id_is_rejected_before_cursor_merge(
 def test_reconnect_after_terminal_event_closes_cleanly(client: TestClient) -> None:
     created = client.post("/api/v1/demo/reference").json()
     wait_for_completion(client, created["status_url"])
-    response = client.get(created["events_url"], headers={"Last-Event-ID": "10"})
+    terminal_id = _parse_sse(client.get(created["events_url"]).text)[-1]["id"]
+    response = client.get(
+        created["events_url"], headers={"Last-Event-ID": str(terminal_id)}
+    )
     assert response.status_code == 200
     assert response.text == ""
