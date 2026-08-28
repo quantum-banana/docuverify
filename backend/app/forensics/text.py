@@ -63,6 +63,13 @@ _VARIABLE_LABEL_PATTERNS: tuple[tuple[str, ...], ...] = (
     ("student", "id"),
     ("issue", "date"),
     ("date",),
+    ("date", "of", "birth"),
+    ("birth", "date"),
+    ("dob",),
+    ("address",),
+    ("portrait",),
+    ("photo",),
+    ("qr", "code"),
     ("result",),
     ("grade",),
     ("mark",),
@@ -80,6 +87,58 @@ def _token(word: TextWord) -> str:
     return re.sub(r"\W+", "", word.text, flags=re.UNICODE).casefold()
 
 
+def _split_mixed_label_value_words(
+    words: tuple[TextWord, ...],
+) -> tuple[TextWord, ...]:
+    """Split conservative ``Label: value`` OCR blocks into semantic words.
+
+    Raster OCR providers sometimes return an entire field as one word.  Keeping
+    that block intact makes a changed value look like a changed fixed label.  A
+    split is made only for a recognized field label and an explicit separator;
+    arbitrary OCR text is left untouched.
+    """
+
+    expanded: list[TextWord] = []
+    for word in words:
+        match = re.fullmatch(
+            r"\s*(?P<label>[\w ]{2,36}?)\s*(?P<separator>:|#|\||[–—]|-(?=\s))\s*"
+            r"(?P<value>\S.*)",
+            word.text,
+            flags=re.UNICODE,
+        )
+        if match is None:
+            expanded.append(word)
+            continue
+        label_text = match.group("label").strip()
+        label_tokens = [
+            token.casefold()
+            for token in re.findall(r"\w+", label_text, flags=re.UNICODE)
+        ]
+        matched_label = _matching_label(label_tokens)
+        if matched_label is None or matched_label != " ".join(label_tokens):
+            expanded.append(word)
+            continue
+
+        value_text = match.group("value").strip()
+        x0, y0, x1, y1 = word.bbox
+        separator_end = match.end("separator")
+        split_ratio = _clamp(separator_end / max(len(word.text), 1), 0.12, 0.88)
+        split_x = x0 + (x1 - x0) * split_ratio
+        expanded.extend(
+            (
+                TextWord(label_text, (x0, y0, split_x, y1), word.confidence),
+                TextWord(value_text, (split_x, y0, x1, y1), word.confidence),
+            )
+        )
+    return tuple(expanded)
+
+
+def _clamp(value: float, minimum: float, maximum: float) -> float:
+    """Small local clamp that keeps text role inference dependency-free."""
+
+    return max(minimum, min(maximum, value))
+
+
 def compare_text(
     reference: TextExtraction,
     candidate: TextExtraction,
@@ -90,15 +149,17 @@ def compare_text(
     normalized_reference = " ".join(reference.text.casefold().split())
     normalized_candidate = " ".join(candidate.text.casefold().split())
     similarity = SequenceMatcher(None, normalized_reference, normalized_candidate).ratio()
-    reference_tokens = [_token(word) for word in reference.words]
-    candidate_tokens = [_token(word) for word in candidate.words]
+    reference_words = _split_mixed_label_value_words(reference.words)
+    candidate_words = _split_mixed_label_value_words(candidate.words)
+    reference_tokens = [_token(word) for word in reference_words]
+    candidate_tokens = [_token(word) for word in candidate_words]
     matcher = SequenceMatcher(None, reference_tokens, candidate_tokens, autojunk=False)
     changes: list[TextChange] = []
     for tag, ref_start, ref_end, cand_start, cand_end in matcher.get_opcodes():
         if tag == "equal":
             continue
-        ref_words = reference.words[ref_start:ref_end]
-        cand_words = candidate.words[cand_start:cand_end]
+        ref_words = reference_words[ref_start:ref_end]
+        cand_words = candidate_words[cand_start:cand_end]
         location_words = cand_words or ref_words
         if not location_words:
             continue
@@ -108,8 +169,8 @@ def compare_text(
         if location_bbox is None:
             continue
         role, role_confidence, role_reason, field_label = _infer_change_role(
-            reference.words,
-            candidate.words,
+            reference_words,
+            candidate_words,
             reference_bbox,
             candidate_bbox,
             ref_words,
@@ -267,7 +328,11 @@ def _stable_label_before(
         and value_x0 - word.bbox[2] <= max(0.38, value_height * 16)
     ]
     same_line.sort(key=lambda word: word.bbox[0])
-    tokens = [_token(word) for word in same_line if _token(word)]
+    tokens = [
+        token.casefold()
+        for word in same_line
+        for token in re.findall(r"\w+", word.text, flags=re.UNICODE)
+    ]
     matched = _matching_label(tokens)
     if matched:
         return matched
@@ -280,7 +345,13 @@ def _stable_label_before(
         and _horizontal_overlap(word.bbox, value_bbox) >= 0.2
     ]
     above.sort(key=lambda word: (word.bbox[1], word.bbox[0]))
-    return _matching_label([_token(word) for word in above if _token(word)])
+    return _matching_label(
+        [
+            token.casefold()
+            for word in above
+            for token in re.findall(r"\w+", word.text, flags=re.UNICODE)
+        ]
+    )
 
 
 def _matching_label(tokens: list[str]) -> str | None:

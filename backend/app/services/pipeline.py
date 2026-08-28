@@ -702,6 +702,86 @@ class AnalysisManager:
                 if single_page
                 else f"page-{page_number:02d}-finding-{index:03d}"
             )
+            region_area = max(1, region.width * region.height)
+            before = " | ".join(change.before for change in region.text_changes)[:160]
+            after = " | ".join(change.after for change in region.text_changes)[:160]
+            role, role_confidence, reason, label = _region_role(
+                region,
+                reference_text,
+                candidate_text,
+                comparison_mode,
+                width,
+                height,
+            )
+            bounding_box = _normalized_box(region, width, height)
+            if comparison_mode is ComparisonMode.TEMPLATE and (
+                region.text_changes or role is RegionRole.VARIABLE
+            ):
+                suggestions.append(
+                    RegionSuggestion(
+                        suggestion_id=f"suggestion-{page_number:02d}-{index:03d}",
+                        page_number=page_number,
+                        bounding_box=bounding_box,
+                        role=role,
+                        confidence_score=role_confidence,
+                        reason=reason,
+                        label=label,
+                    )
+                )
+
+            if (
+                comparison_mode is ComparisonMode.TEMPLATE
+                and role is RegionRole.VARIABLE
+                and not region.text_changes
+            ):
+                # A portrait or QR payload naturally changes most of its pixels.
+                # Pixel content alone is therefore not a compositing signal.
+                background_score, typography_score = 0.0, 0.0
+            else:
+                background_score, typography_score = _manipulation_indicators(
+                    region,
+                    alignment.aligned_reference,
+                    candidate_image,
+                    reference_text,
+                    candidate_text,
+                )
+            layout_displacement = _layout_displacement_score(
+                region,
+                reference_text,
+                candidate_text,
+                width,
+                height,
+            )
+            if comparison_mode is ComparisonMode.TEMPLATE and role is RegionRole.VARIABLE:
+                layout_displacement = max(
+                    layout_displacement,
+                    _changed_text_displacement_score(region),
+                )
+            logo_seal_displacement = (
+                0.0
+                if layout_displacement > 0.0
+                else _logo_seal_displacement_score(
+                    region,
+                    alignment.aligned_reference,
+                    candidate_image,
+                    reference_text,
+                    candidate_text,
+                )
+            )
+            if (
+                comparison_mode is ComparisonMode.TEMPLATE
+                and role is RegionRole.VARIABLE
+                and not _template_variable_has_forensic_signal(
+                    background_score,
+                    typography_score,
+                    layout_displacement,
+                    logo_seal_displacement,
+                )
+            ):
+                # Allowed values remain review suggestions/metadata.  They do
+                # not create findings, evidence markers, or forensic crops.
+                continue
+
             candidate_crop = candidate_image[
                 region.y0 : region.y1, region.x0 : region.x1
             ].copy()
@@ -721,37 +801,6 @@ class AnalysisManager:
                 documents.write_png(path, image)
                 self.store.register_asset(job_id, asset_id, path)
 
-            region_area = max(1, region.width * region.height)
-            before = " | ".join(change.before for change in region.text_changes)[:160]
-            after = " | ".join(change.after for change in region.text_changes)[:160]
-            role, role_confidence, reason, label = _region_role(
-                region, reference_text, candidate_text, comparison_mode
-            )
-            background_score, typography_score = _manipulation_indicators(
-                region,
-                alignment.aligned_reference,
-                candidate_image,
-                reference_text,
-                candidate_text,
-            )
-            layout_displacement = _layout_displacement_score(
-                region,
-                reference_text,
-                candidate_text,
-                width,
-                height,
-            )
-            logo_seal_displacement = (
-                0.0
-                if layout_displacement > 0.0
-                else _logo_seal_displacement_score(
-                    region,
-                    alignment.aligned_reference,
-                    candidate_image,
-                    reference_text,
-                    candidate_text,
-                )
-            )
             base_risk, confidence = finding_scores(
                 changed_pixels=region.changed_pixels,
                 region_area=region_area,
@@ -784,7 +833,6 @@ class AnalysisManager:
                 layout_displacement=layout_displacement,
                 logo_seal_displacement=logo_seal_displacement,
             )
-            bounding_box = _normalized_box(region, width, height)
             findings.append(
                 Finding(
                     finding_id=finding_id,
@@ -824,18 +872,6 @@ class AnalysisManager:
                     },
                 )
             )
-            if comparison_mode is ComparisonMode.TEMPLATE and region.text_changes:
-                suggestions.append(
-                    RegionSuggestion(
-                        suggestion_id=f"suggestion-{page_number:02d}-{index:03d}",
-                        page_number=page_number,
-                        bounding_box=bounding_box,
-                        role=role,
-                        confidence_score=role_confidence,
-                        reason=reason,
-                        label=label,
-                    )
-                )
         return findings, suggestions
 
     def _build_unmatched_page(
@@ -1684,6 +1720,62 @@ def _layout_displacement_score(
     return round(max(displacements), 4) if displacements else 0.0
 
 
+def _changed_text_displacement_score(region: DifferenceRegion) -> float:
+    """Measure material value movement from paired OCR boxes.
+
+    Template values are allowed to differ in content, so the stable-token layout
+    detector cannot pair them.  The comparison change already carries both
+    value boxes; this uses those boxes only when the movement exceeds OCR jitter.
+    """
+
+    displacements: list[float] = []
+    for change in region.text_changes:
+        reference_box = change.reference_bbox
+        candidate_box = change.candidate_bbox
+        if reference_box is None or candidate_box is None:
+            continue
+        reference_height = max(1e-6, reference_box[3] - reference_box[1])
+        candidate_height = max(1e-6, candidate_box[3] - candidate_box[1])
+        # A legitimate field may be left-, right-, or centre-aligned.  Treat the
+        # closest preserved horizontal/vertical anchor as its stable placement;
+        # a true translation moves every anchor by the same amount.
+        horizontal_shift = min(
+            abs(candidate_box[0] - reference_box[0]),
+            abs(candidate_box[2] - reference_box[2]),
+            abs(
+                (candidate_box[0] + candidate_box[2]) / 2.0
+                - (reference_box[0] + reference_box[2]) / 2.0
+            ),
+        )
+        vertical_shift = min(
+            abs(candidate_box[1] - reference_box[1]),
+            abs(candidate_box[3] - reference_box[3]),
+            abs(
+                (candidate_box[1] + candidate_box[3]) / 2.0
+                - (reference_box[1] + reference_box[3]) / 2.0
+            ),
+        )
+        displacement = float(np.hypot(horizontal_shift, vertical_shift))
+        jitter_limit = max(0.018, 0.75 * max(reference_height, candidate_height))
+        if jitter_limit <= displacement <= 0.30:
+            displacements.append(displacement)
+    return round(max(displacements), 4) if displacements else 0.0
+
+
+def _template_variable_has_forensic_signal(
+    background_score: float,
+    typography_score: float,
+    layout_displacement: float,
+    visual_displacement: float,
+) -> bool:
+    return (
+        background_score >= 0.08
+        or typography_score >= 0.35
+        or layout_displacement > 0.0
+        or visual_displacement > 0.0
+    )
+
+
 def _logo_seal_displacement_score(
     region: DifferenceRegion,
     aligned_reference: np.ndarray,
@@ -1824,6 +1916,26 @@ def _describe_finding(
                 ),
                 round(max(72.0, base_risk), 1),
             )
+        if layout_displacement > 0.0:
+            return (
+                "layout_displacement",
+                "Variable field moved from its trusted position",
+                (
+                    "The field value is allowed to differ, but its measured position "
+                    "moved beyond conservative OCR geometry tolerance."
+                ),
+                round(max(70.0, base_risk), 1),
+            )
+        if logo_seal_displacement > 0.0:
+            return (
+                "visual_region_displacement",
+                "Variable visual region displaced",
+                (
+                    "The portrait or machine-readable payload may differ, but its "
+                    "edge geometry moved materially from the trusted placement."
+                ),
+                round(max(70.0, base_risk), 1),
+            )
         return (
             "variable_value_change",
             "Variable value changed",
@@ -1847,6 +1959,43 @@ def _describe_finding(
             ),
             round(max(76.0, base_risk), 1),
         )
+    if comparison_mode is ComparisonMode.TEMPLATE and role is RegionRole.UNKNOWN:
+        if has_text_change and background_score >= 0.08:
+            return (
+                "background_compositing",
+                "Background compositing indicator",
+                (
+                    "The field role is uncertain, but a coherent background disturbance "
+                    "is inconsistent with a clean template fill."
+                ),
+                round(max(78.0, base_risk), 1),
+            )
+        if has_text_change and typography_score >= 0.35:
+            return (
+                "typography_inconsistency",
+                "Typography inconsistency",
+                (
+                    "The field role is uncertain, but character size or baseline geometry "
+                    "differs materially from the trusted text."
+                ),
+                round(max(72.0, base_risk), 1),
+            )
+        if layout_displacement <= 0.0 and logo_seal_displacement <= 0.0:
+            category = (
+                "unclassified_content_change"
+                if has_text_change
+                else "unclassified_visual_change"
+            )
+            return (
+                category,
+                "Unclassified template difference",
+                (
+                    "This localized difference lacks enough stable semantic context to "
+                    "classify it as fixed or variable. It is retained for review without "
+                    "automatically treating it as critical."
+                ),
+                round(min(39.0, base_risk), 1),
+            )
     if has_text_change:
         return (
             "text_content_change",
@@ -1895,10 +2044,34 @@ def _region_role(
     reference_text: TextExtraction,
     candidate_text: TextExtraction,
     comparison_mode: ComparisonMode,
+    page_width: int,
+    page_height: int,
 ) -> tuple[RegionRole, float, str, str | None]:
     if comparison_mode is ComparisonMode.EXACT:
         return RegionRole.FIXED, 100.0, "Exact mode treats all content as fixed.", None
     if not region.text_changes:
+        bbox = (
+            region.x0 / max(page_width, 1),
+            region.y0 / max(page_height, 1),
+            region.x1 / max(page_width, 1),
+            region.y1 / max(page_height, 1),
+        )
+        label = _nearby_label(candidate_text, bbox) or _nearby_label(reference_text, bbox)
+        label_key = re.sub(r"[^a-z]", "", (label or "").casefold())
+        if label_key in {"photo", "portrait", "qrcode", "qr"}:
+            return (
+                RegionRole.VARIABLE,
+                92.0,
+                f'The visual payload occupies the stable "{label}" field geometry.',
+                label,
+            )
+        if label_key in {"logo", "issuerlogo", "seal", "emblem"}:
+            return (
+                RegionRole.FIXED,
+                90.0,
+                f'The visual region is identified by the stable "{label}" label.',
+                label,
+            )
         return (
             RegionRole.UNKNOWN,
             45.0,
@@ -1946,6 +2119,14 @@ def _region_role(
         "id",
         "date",
         "issuedate",
+        "dateofbirth",
+        "birthdate",
+        "dob",
+        "address",
+        "portrait",
+        "photo",
+        "qrcode",
+        "qr",
         "result",
         "grade",
         "marks",

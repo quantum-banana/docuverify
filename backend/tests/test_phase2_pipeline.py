@@ -131,10 +131,7 @@ def test_template_mode_separates_allowed_and_manipulated_values(
     ]
     assert legitimate["overall_tampering_risk"] < exact["overall_tampering_risk"]
     assert legitimate["region_suggestions"]
-    assert any(
-        finding["category"] == "variable_value_change"
-        for finding in legitimate["pages"][0]["findings"]
-    )
+    assert legitimate["pages"][0]["findings"] == []
     assert manipulated["overall_tampering_risk"] >= MANIFEST["template"][
         "manipulated"
     ]["minimum_tampering_risk"]
