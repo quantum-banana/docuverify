@@ -5,7 +5,7 @@ import {
   useState,
 } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { createAnalysis, runDemo, watchAnalysis } from './api/client'
+import { createAnalysis, createAutomaticAnalysis, runDemo, watchAnalysis } from './api/client'
 import { DocumentViewer } from './components/DocumentViewer'
 import { EvidenceDrawer } from './components/EvidenceDrawer'
 import { FileDropzone } from './components/FileDropzone'
@@ -23,6 +23,7 @@ import {
 } from './components/Icons'
 import type {
   AnalysisError,
+  AdvancedEvidenceInputs,
   AnalysisJobCreated,
   ComparisonMode,
   ConnectionState,
@@ -48,7 +49,16 @@ const conciseStageLabel = (stageId: StageId): string => {
     return 'Comparing'
   }
   if (['localizing_differences', 'scoring_evidence'].includes(stageId)) return 'Locating evidence'
-  if (['aggregating_document', 'preparing_result', 'complete'].includes(stageId)) return 'Finalizing'
+  if (['identifying_document_family', 'searching_trusted_profiles', 'matching_issuer_layout'].includes(stageId)) {
+    return 'Finding trusted profile'
+  }
+  if (stageId === 'decoding_codes') return 'Checking codes'
+  if (stageId === 'checking_digital_signatures') return 'Checking digital signatures'
+  if (stageId === 'inspecting_metadata') return 'Inspecting metadata'
+  if (stageId === 'validating_field_consistency') return 'Validating fields'
+  if (stageId === 'comparing_handwriting') return 'Comparing handwriting'
+  if (stageId === 'comparing_signatures') return 'Comparing signatures'
+  if (['aggregating_document', 'aggregating_evidence', 'preparing_result', 'complete'].includes(stageId)) return 'Finalizing'
   return 'Preparing'
 }
 
@@ -64,14 +74,21 @@ const initialProgress: ProgressEvent = {
   finding_count: 0,
 }
 
-const modeDescription: Record<ComparisonMode, { title: string; detail: string }> = {
+const modeDescription: Record<ComparisonMode, { title: string; path: string; detail: string }> = {
   exact: {
     title: 'Exact',
+    path: 'Compare with issued original',
     detail: 'Every page and field should match.',
   },
   template: {
     title: 'Template',
+    path: 'Compare with official template',
     detail: 'Expected field values may vary.',
+  },
+  docuvault: {
+    title: 'DocuVault',
+    path: 'Find closest trusted profile',
+    detail: 'Search local validated profiles without an uploaded reference.',
   },
 }
 
@@ -150,12 +167,62 @@ function AppHeader({ quiet = false }: { quiet?: boolean }) {
   )
 }
 
+function EvidenceFilePicker({
+  id,
+  title,
+  hint,
+  files,
+  minimum,
+  onFiles,
+}: {
+  id: string
+  title: string
+  hint: string
+  files: File[]
+  minimum: number
+  onFiles: (files: File[]) => void
+}) {
+  return (
+    <div className="evidence-picker">
+      <div>
+        <label htmlFor={id}>{title}</label>
+        <small>{hint}</small>
+      </div>
+      <label className="evidence-picker__button" htmlFor={id}>
+        <FileIcon /> {files.length ? `${files.length} selected` : 'Choose files'}
+      </label>
+      <input
+        id={id}
+        type="file"
+        multiple
+        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+        onChange={(event) => onFiles(Array.from(event.target.files ?? []).slice(0, 5))}
+      />
+      {files.length > 0 && (
+        <div className="evidence-picker__selection">
+          <span>{files.map((file) => file.name).join(', ')}</span>
+          <button type="button" onClick={() => onFiles([])}>Clear</button>
+        </div>
+      )}
+      {files.length > 0 && files.length < minimum && (
+        <p className="field-note field-note--warning">Select at least {minimum} samples to run this comparison.</p>
+      )}
+    </div>
+  )
+}
+
 function UploadScreen({
   reference,
   candidate,
   comparisonMode,
   onReference,
   onCandidate,
+  handwritingExemplars,
+  signatureExemplars,
+  profileOverride,
+  onHandwritingExemplars,
+  onSignatureExemplars,
+  onProfileOverride,
   onMode,
   onStart,
   onDemo,
@@ -166,13 +233,24 @@ function UploadScreen({
   comparisonMode: ComparisonMode
   onReference: (file: File | null) => void
   onCandidate: (file: File | null) => void
+  handwritingExemplars: File[]
+  signatureExemplars: File[]
+  profileOverride: string
+  onHandwritingExemplars: (files: File[]) => void
+  onSignatureExemplars: (files: File[]) => void
+  onProfileOverride: (profileId: string) => void
   onMode: (mode: ComparisonMode) => void
   onStart: () => void
   onDemo: () => void
   submitting: boolean
 }) {
   const reduceMotion = useReducedMotion()
-  const ready = Boolean(reference && candidate)
+  const signatureEnrollmentValid = signatureExemplars.length === 0 || signatureExemplars.length >= 2
+  const ready = Boolean(
+    candidate
+    && (comparisonMode === 'docuvault' || reference)
+    && signatureEnrollmentValid,
+  )
 
   return (
     <motion.main
@@ -184,7 +262,7 @@ function UploadScreen({
       <section className="upload-intro">
         <span className="section-kicker">Document comparison</span>
         <h1>Verify a document</h1>
-        <p>Compare a questioned document with a trusted reference.</p>
+        <p>Compare with a supplied reference or retrieve the closest validated local profile.</p>
       </section>
 
       <section className="upload-workbench" aria-labelledby="upload-title">
@@ -195,7 +273,7 @@ function UploadScreen({
           </div>
           <fieldset className="mode-selector" aria-label="Comparison mode">
             <legend className="visually-hidden">Choose a comparison mode</legend>
-            {(['exact', 'template'] as const).map((mode) => (
+            {(['exact', 'template', 'docuvault'] as const).map((mode) => (
               <label key={mode} className={`mode-option${comparisonMode === mode ? ' is-selected' : ''}`}>
                 <input
                   type="radio"
@@ -205,7 +283,7 @@ function UploadScreen({
                   onChange={() => onMode(mode)}
                 />
                 <span className="mode-option__copy">
-                  <strong>{modeDescription[mode].title}</strong>
+                  <strong><span className="visually-hidden">{modeDescription[mode].title} </span>{modeDescription[mode].path}</strong>
                   <small>{modeDescription[mode].detail}</small>
                 </span>
               </label>
@@ -213,17 +291,21 @@ function UploadScreen({
           </fieldset>
         </div>
 
-        <div className="dropzone-grid">
-          <FileDropzone
-            id="reference"
-            eyebrow="Trusted reference"
-            title="Add the known-good file"
-            description="Drop a file here or choose from this device"
-            file={reference}
-            onFile={onReference}
-            tone="reference"
-          />
-          <div className="compare-bridge" aria-hidden="true"><span>→</span></div>
+        <div className={`dropzone-grid${comparisonMode === 'docuvault' ? ' dropzone-grid--automatic' : ''}`}>
+          {comparisonMode !== 'docuvault' && (
+            <>
+              <FileDropzone
+                id="reference"
+                eyebrow={comparisonMode === 'template' ? 'Official template' : 'Issued original'}
+                title="Add the trusted reference"
+                description="Drop a file here or choose from this device"
+                file={reference}
+                onFile={onReference}
+                tone="reference"
+              />
+              <div className="compare-bridge" aria-hidden="true"><span>→</span></div>
+            </>
+          )}
           <FileDropzone
             id="candidate"
             eyebrow="Questioned document"
@@ -234,6 +316,43 @@ function UploadScreen({
             tone="candidate"
           />
         </div>
+
+        <details className="advanced-inputs">
+          <summary>Optional forensic inputs</summary>
+          <div className="advanced-inputs__body">
+            <p>Trusted exemplars stay local and are used only for this analysis.</p>
+            {comparisonMode === 'docuvault' && (
+              <label className="profile-override" htmlFor="profile-override">
+                <span>Profile override <small>Optional exact local profile ID</small></span>
+                <input
+                  id="profile-override"
+                  value={profileOverride}
+                  maxLength={160}
+                  placeholder="e.g. issuer.family.v1"
+                  onChange={(event) => onProfileOverride(event.target.value.trimStart())}
+                />
+              </label>
+            )}
+            <div className="advanced-inputs__grid">
+              <EvidenceFilePicker
+                id="handwriting-exemplars"
+                title="Handwriting exemplars"
+                hint="1–5 trusted samples"
+                files={handwritingExemplars}
+                minimum={1}
+                onFiles={onHandwritingExemplars}
+              />
+              <EvidenceFilePicker
+                id="signature-exemplars"
+                title="Signature exemplars"
+                hint="2–5 trusted samples"
+                files={signatureExemplars}
+                minimum={2}
+                onFiles={onSignatureExemplars}
+              />
+            </div>
+          </div>
+        </details>
 
         <div className="comparison-row">
           <span className="format-note">PDF, PNG or JPEG</span>
@@ -469,6 +588,178 @@ function PageAnomalySummary({ anomalies }: { anomalies: PageOrderAnomaly[] }) {
   )
 }
 
+const evidenceLabel = (value: string): string =>
+  value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+
+function EvidenceSection({
+  title,
+  status,
+  summary,
+  children,
+}: {
+  title: string
+  status: string
+  summary: string
+  children?: React.ReactNode
+}) {
+  const normalizedStatus = status.toLowerCase()
+  const tone = ['failed', 'invalid', 'modified', 'strong_contradictory_evidence'].some((word) => normalizedStatus.includes(word))
+    ? 'alert'
+    : ['warning', 'unknown', 'limited', 'closest', 'skipped', 'unsupported', 'unsigned', 'not_applicable'].some((word) => normalizedStatus.includes(word))
+      ? 'limited'
+      : 'clear'
+  return (
+    <details className={`evidence-section evidence-section--${tone}`}>
+      <summary>
+        <span><strong>{title}</strong><small>{summary}</small></span>
+        <em>{evidenceLabel(status)}</em>
+      </summary>
+      {children && <div className="evidence-section__body">{children}</div>}
+    </details>
+  )
+}
+
+function EvidenceOverview({ result }: { result: DocumentResult }) {
+  const profile = result.reference_profile
+  const digital = result.digital_signature
+  const codes = result.codes
+  const metadata = result.metadata_assessment
+  const logical = result.logical_consistency
+  const handwriting = result.handwriting
+  const signature = result.signature_similarity
+  const assessment = result.investigative_assessment
+  if (!profile && !digital && !codes && !metadata && !logical && !handwriting && !signature && !assessment) {
+    return null
+  }
+  return (
+    <section className="evidence-overview" aria-label="Independent evidence checks">
+      <div className="evidence-overview__heading">
+        <div>
+          <span className="section-kicker">Independent checks</span>
+          <h2>Core evidence assessment</h2>
+        </div>
+        {assessment && <span className="assessment-state">{evidenceLabel(assessment.status)}</span>}
+      </div>
+      {assessment && (
+        <div className="assessment-summary">
+          <ShieldIcon />
+          <div><strong>{assessment.summary}</strong><small>Deterministic assessment, not an authenticity probability.</small></div>
+        </div>
+      )}
+      <div className="evidence-overview__grid">
+        {profile && (
+          <EvidenceSection
+            title="Trusted reference profile"
+            status={profile.reference_strength}
+            summary={profile.selected_profile
+              ? `${profile.selected_profile.issuer} · ${profile.selected_profile.document_family} · ${Math.round(profile.selected_profile.score)} match`
+              : profile.explanation}
+          >
+            <p>{profile.explanation}</p>
+            {profile.closest_fallback_used && <p className="evidence-caution">Closest available profile only; treat it as context, not issuer proof.</p>}
+            {profile.top_matches.length > 0 && (
+              <ol className="profile-match-list">
+                {profile.top_matches.map((match) => (
+                  <li key={match.profile_id}>
+                    <div><strong>{match.issuer}</strong><small>{match.document_family} · {match.provenance_assurance}</small></div>
+                    <span>{Math.round(match.score)}</span>
+                    <p>{match.explanation}</p>
+                    <dl>
+                      {Object.entries(match.component_scores).map(([name, score]) => (
+                        <div key={name}><dt>{evidenceLabel(name)}</dt><dd>{Math.round(score)}</dd></div>
+                      ))}
+                    </dl>
+                    {match.authoritative_source_url && (
+                      <a href={match.authoritative_source_url} target="_blank" rel="noreferrer">Authoritative source</a>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </EvidenceSection>
+        )}
+        {digital && (
+          <EvidenceSection title="Digital PDF signature" status={digital.status} summary={digital.explanation}>
+            <p>Trust store: {evidenceLabel(digital.trust_store)} · {digital.signature_count} embedded signature{digital.signature_count === 1 ? '' : 's'}</p>
+            {digital.checks.map((check) => (
+              <article className="evidence-record" key={check.signature_index}>
+                <strong>Signature {check.signature_index} · {evidenceLabel(check.status)}</strong>
+                <p>{check.explanation}</p>
+                <small>Integrity: {check.cryptographically_intact === undefined ? 'unknown' : check.cryptographically_intact ? 'intact' : 'failed'} · Local trust: {check.signer_locally_trusted === undefined ? 'unknown' : check.signer_locally_trusted ? 'trusted' : 'not established'} · Updates: {check.incremental_updates}</small>
+              </article>
+            ))}
+            {digital.limitations.map((limitation) => <p className="evidence-caution" key={limitation}>{limitation}</p>)}
+          </EvidenceSection>
+        )}
+        {codes && (
+          <EvidenceSection title="QR and barcode evidence" status={codes.status} summary={codes.explanation}>
+            <p>Expected: {codes.expected} · Detected: {codes.detected_count} · Decoded: {codes.decoded_count}</p>
+            {codes.results.map((code) => (
+              <article className="evidence-record" key={code.code_index}>
+                <strong>{code.symbology} · page {code.page_number}</strong>
+                <p>{code.explanation}</p>
+                <small>Visible consistency: {code.visible_fields_consistent === undefined ? 'not established' : code.visible_fields_consistent ? 'consistent' : 'mismatch'} · Cryptographic check: {evidenceLabel(code.cryptographic_verification_result)}</small>
+              </article>
+            ))}
+          </EvidenceSection>
+        )}
+        {metadata && (
+          <EvidenceSection title="Metadata and provenance" status={metadata.status} summary={metadata.explanation}>
+            {metadata.available_fields.length > 0 && <p>Available fields: {metadata.available_fields.join(', ')}</p>}
+            {metadata.indicators.map((indicator, index) => (
+              <article className="evidence-record" key={`${indicator.category}-${index}`}>
+                <strong>{evidenceLabel(indicator.category)} · {evidenceLabel(indicator.status)}</strong>
+                <p>{indicator.explanation}</p>
+              </article>
+            ))}
+            {metadata.limitations.map((limitation) => <p className="evidence-caution" key={limitation}>{limitation}</p>)}
+          </EvidenceSection>
+        )}
+        {logical && (
+          <EvidenceSection title="Logical field consistency" status={logical.status} summary={logical.explanation}>
+            <p>{logical.passed_count} passed · {logical.failed_count} failed · {logical.skipped_count} skipped</p>
+            {logical.results.map((rule) => (
+              <article className="evidence-record" key={rule.rule_id}>
+                <strong>{evidenceLabel(rule.rule_id)} · {evidenceLabel(rule.status)}</strong>
+                <p>{rule.explanation}</p>
+                {Object.keys(rule.fields_used).length > 0 && <small>Fields: {Object.entries(rule.fields_used).map(([name, value]) => `${name}: ${value ?? 'unavailable'}`).join(' · ')}</small>}
+              </article>
+            ))}
+          </EvidenceSection>
+        )}
+        {handwriting && (
+          <EvidenceSection title="Handwriting similarity" status={handwriting.status} summary={handwriting.explanation}>
+            <p>Writer-consistency: {handwriting.similarity_score === undefined ? 'not scored' : `${Math.round(handwriting.similarity_score)}/100`} · Coverage: {Math.round(handwriting.coverage_score)}% · Closest: {handwriting.closest_exemplar ?? 'none'}</p>
+            {handwriting.reasons.map((reason) => <p key={reason}>{reason}</p>)}
+            {handwriting.limitations.map((limitation) => <p className="evidence-caution" key={limitation}>{limitation}</p>)}
+          </EvidenceSection>
+        )}
+        {signature && (
+          <EvidenceSection title="Signature similarity" status={signature.status} summary={signature.explanation}>
+            <p>Author-consistency: {signature.similarity_score === undefined ? 'not scored' : `${Math.round(signature.similarity_score)}/100`} · Coverage: {Math.round(signature.coverage_score)}% · Closest: {signature.closest_exemplar ?? 'none'}</p>
+            {signature.compositing_score !== undefined && <p>Independent paste/compositing indicator: {Math.round(signature.compositing_score)}/100</p>}
+            {signature.reasons.map((reason) => <p key={reason}>{reason}</p>)}
+            {signature.limitations.map((limitation) => <p className="evidence-caution" key={limitation}>{limitation}</p>)}
+          </EvidenceSection>
+        )}
+        {assessment && (
+          <EvidenceSection title="Unified investigative assessment" status={assessment.status} summary={assessment.summary}>
+            <dl className="assessment-dimensions">
+              {assessment.dimensions.map((dimension) => (
+                <div key={dimension.dimension}>
+                  <dt>{evidenceLabel(dimension.dimension)}</dt>
+                  <dd>{evidenceLabel(dimension.status)}{dimension.score === undefined ? '' : ` · ${Math.round(dimension.score)}`}</dd>
+                </div>
+              ))}
+            </dl>
+            {assessment.limitations.map((limitation) => <p className="evidence-caution" key={limitation}>{limitation}</p>)}
+          </EvidenceSection>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function ResultScreen({
   result,
   selectedFinding,
@@ -532,6 +823,8 @@ function ResultScreen({
   const referencePageNumber = referencePageMissing
     ? null
     : selectedPage?.reference_page_number ?? selectedPage?.page_number ?? null
+  const showReferenceViewer = result.comparison_mode !== 'docuvault'
+    || Boolean(result.reference_profile?.selected_profile?.visual_reference_available)
 
   const switchPage = (pageNumber: number) => {
     if (pageNumber === selectedPageNumber) return
@@ -581,6 +874,8 @@ function ResultScreen({
           <Metric label="Coverage" value={result.analysis_coverage} />
         </div>
       </section>
+
+      <EvidenceOverview result={result} />
 
       <PageAnomalySummary anomalies={anomalies} />
 
@@ -659,7 +954,7 @@ function ResultScreen({
       </div>
 
       <div className="result-grid">
-        <div className="document-comparison" aria-label="Selected page comparison">
+        <div className={`document-comparison${showReferenceViewer ? '' : ' document-comparison--candidate-only'}`} aria-label="Selected page comparison">
           <DocumentViewer
             imageUrl={candidatePageMissing ? undefined : selectedPage?.candidate_image_url}
             width={selectedPage?.width}
@@ -675,17 +970,19 @@ function ResultScreen({
             pageMissing={candidatePageMissing}
             label={`Questioned document · page ${selectedPage?.page_number ?? 1}`}
           />
-          <DocumentViewer
-            imageUrl={referencePageMissing ? undefined : selectedPage?.reference_image_url}
-            width={selectedPage?.width}
-            height={selectedPage?.height}
-            pageNumber={referencePageNumber}
-            totalPages={referencePages}
-            pageStatus={selectedPage?.status}
-            side="reference"
-            pageMissing={referencePageMissing}
-            label={`Trusted reference · page ${selectedPage?.page_number ?? 1}`}
-          />
+          {showReferenceViewer && (
+            <DocumentViewer
+              imageUrl={referencePageMissing ? undefined : selectedPage?.reference_image_url}
+              width={selectedPage?.width}
+              height={selectedPage?.height}
+              pageNumber={referencePageNumber}
+              totalPages={referencePages}
+              pageStatus={selectedPage?.status}
+              side="reference"
+              pageMissing={referencePageMissing}
+              label={`${result.comparison_mode === 'docuvault' ? 'Selected profile reference' : 'Trusted reference'} · page ${selectedPage?.page_number ?? 1}`}
+            />
+          )}
         </div>
 
         <aside className="findings-panel">
@@ -764,7 +1061,11 @@ function ResultScreen({
         <div className="result-context" aria-label="Document aggregate">
           <dl>
             <div><dt>Mode</dt><dd>{modeDescription[result.comparison_mode].title} — {modeDescription[result.comparison_mode].detail}</dd></div>
-            <div><dt>Trusted reference</dt><dd>{referencePages} {referencePages === 1 ? 'page' : 'pages'}</dd></div>
+            <div><dt>Trusted reference</dt><dd>{result.comparison_mode === 'docuvault'
+              ? result.reference_profile?.selected_profile
+                ? `${result.reference_profile.selected_profile.issuer} · ${result.reference_profile.reference_strength}`
+                : 'No profile selected'
+              : `${referencePages} ${referencePages === 1 ? 'page' : 'pages'}`}</dd></div>
             <div><dt>Questioned document</dt><dd>{candidatePages} {candidatePages === 1 ? 'page' : 'pages'}</dd></div>
             <div><dt>Review pages</dt><dd>{aggregate?.reviewed_page_count ?? pages.filter((page) => pageFindingCount(page) > 0).length}</dd></div>
             <div><dt>Variable regions</dt><dd>{result.region_suggestions?.length ?? 0}</dd></div>
@@ -806,6 +1107,9 @@ export default function App() {
   const [reference, setReference] = useState<File | null>(null)
   const [candidate, setCandidate] = useState<File | null>(null)
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('exact')
+  const [handwritingExemplars, setHandwritingExemplars] = useState<File[]>([])
+  const [signatureExemplars, setSignatureExemplars] = useState<File[]>([])
+  const [profileOverride, setProfileOverride] = useState('')
   const [candidatePreview, setCandidatePreview] = useState<string>()
   const [pagePreviews, setPagePreviews] = useState<PagePreviewMap>({})
   const [submitting, setSubmitting] = useState(false)
@@ -838,6 +1142,9 @@ export default function App() {
     setReference(null)
     setCandidate(null)
     setComparisonMode('exact')
+    setHandwritingExemplars([])
+    setSignatureExemplars([])
+    setProfileOverride('')
     setPagePreviews({})
     setProgress(initialProgress)
     setConnection('connecting')
@@ -886,20 +1193,35 @@ export default function App() {
   }, [])
 
   const startUpload = useCallback(async () => {
-    if (!reference || !candidate || submitting) return
+    if (!candidate || submitting || (comparisonMode !== 'docuvault' && !reference)) return
     setSubmitting(true)
     setError(null)
     setPagePreviews({})
     setProgress(initialProgress)
     setScreen('analysis')
     try {
-      watchJob(await createAnalysis(reference, candidate, comparisonMode))
+      const advancedInputs: AdvancedEvidenceInputs = {
+        handwritingExemplars,
+        signatureExemplars,
+        profileOverride: profileOverride.trim() || undefined,
+      }
+      const hasAdvancedInputs = handwritingExemplars.length > 0
+        || signatureExemplars.length > 0
+        || Boolean(profileOverride.trim())
+      const created = comparisonMode === 'docuvault'
+        ? hasAdvancedInputs
+          ? await createAutomaticAnalysis(candidate, advancedInputs)
+          : await createAutomaticAnalysis(candidate)
+        : hasAdvancedInputs
+          ? await createAnalysis(reference as File, candidate, comparisonMode, advancedInputs)
+          : await createAnalysis(reference as File, candidate, comparisonMode)
+      watchJob(created)
     } catch (requestError) {
       setError(errorFromUnknown(requestError))
       setScreen('error')
       setSubmitting(false)
     }
-  }, [candidate, comparisonMode, reference, submitting, watchJob])
+  }, [candidate, comparisonMode, handwritingExemplars, profileOverride, reference, signatureExemplars, submitting, watchJob])
 
   const startDemo = useCallback(async () => {
     if (submitting) return
@@ -908,6 +1230,9 @@ export default function App() {
     setCandidate(null)
     setCandidatePreview(undefined)
     setComparisonMode('exact')
+    setHandwritingExemplars([])
+    setSignatureExemplars([])
+    setProfileOverride('')
     setPagePreviews({})
     setSubmitting(true)
     setResult(null)
@@ -950,6 +1275,12 @@ export default function App() {
             comparisonMode={comparisonMode}
             onReference={setReference}
             onCandidate={setCandidate}
+            handwritingExemplars={handwritingExemplars}
+            signatureExemplars={signatureExemplars}
+            profileOverride={profileOverride}
+            onHandwritingExemplars={setHandwritingExemplars}
+            onSignatureExemplars={setSignatureExemplars}
+            onProfileOverride={setProfileOverride}
             onMode={setComparisonMode}
             onStart={() => void startUpload()}
             onDemo={() => void startDemo()}

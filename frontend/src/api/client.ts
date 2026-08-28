@@ -1,14 +1,19 @@
 import type {
   AnalysisError,
+  AdvancedEvidenceInputs,
   AnalysisJob,
   AnalysisJobCreated,
   AnalysisState,
   AnalysisWatchHandlers,
   ComparisonMode,
+  CodeAssessment,
+  DigitalSignatureAssessment,
   DocumentAggregate,
   DocumentDescriptor,
   DocumentResult,
   Finding,
+  InvestigativeAssessment,
+  LogicalConsistencyAssessment,
   MeasurementValue,
   NormalizedBoundingBox,
   OcrSummary,
@@ -18,6 +23,9 @@ import type {
   ProgressEvent,
   RegionRole,
   RegionSuggestion,
+  ReferenceProfileAssessment,
+  SimilarityAssessment,
+  MetadataAssessment,
 } from '../types/contracts'
 
 const configuredBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
@@ -41,6 +49,15 @@ const asNumber = (value: unknown, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+const asBoolean = (value: unknown, fallback = false): boolean =>
+  typeof value === 'boolean' ? value : fallback
+
+const asOptionalBoolean = (value: unknown): boolean | undefined =>
+  typeof value === 'boolean' ? value : undefined
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.map((item) => asString(item)).filter(Boolean) : []
+
 const clamp = (value: number, min = 0, max = 100): number => Math.min(max, Math.max(min, value))
 
 const asScore = (value: unknown): number => {
@@ -60,8 +77,11 @@ const normalizeIdentifier = (value: unknown, fallback = ''): string =>
 const humanizeIdentifier = (value: string): string =>
   value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
-const parseComparisonMode = (value: unknown): ComparisonMode =>
-  normalizeIdentifier(value) === 'template' ? 'template' : 'exact'
+const parseComparisonMode = (value: unknown): ComparisonMode => {
+  const mode = normalizeIdentifier(value)
+  if (mode === 'template' || mode === 'docuvault') return mode
+  return 'exact'
+}
 
 const assetUrl = (value: unknown): string => {
   const url = asString(value)
@@ -393,6 +413,223 @@ const parsePage = (value: unknown, fallbackFindings: Finding[], index: number): 
   }
 }
 
+const optionalString = (value: unknown): string | undefined => asString(value) || undefined
+
+const parseProfileMatch = (value: unknown) => {
+  if (!isRecord(value)) return undefined
+  const rawComponents = isRecord(value.component_scores) ? value.component_scores : {}
+  const componentScores = Object.fromEntries(
+    Object.entries(rawComponents).map(([name, score]) => [name, asScore(score)]),
+  )
+  const sourceUrl = asString(value.authoritative_source_url)
+  return {
+    profile_id: asString(value.profile_id),
+    issuer: asString(value.issuer, 'Unknown issuer'),
+    document_family: asString(value.document_family, 'Unknown family'),
+    subtype: asString(value.subtype),
+    provenance_kind: asString(value.provenance_kind, 'unknown'),
+    provenance_assurance: asString(value.provenance_assurance, 'unknown'),
+    score: asScore(value.score),
+    component_scores: componentScores,
+    reference_strength: asString(value.reference_strength, 'Reference strength unavailable'),
+    explanation: asString(value.explanation),
+    completeness: asScore(value.completeness),
+    authoritative_source_url: /^https:\/\//i.test(sourceUrl) ? sourceUrl : undefined,
+    visual_reference_available: asBoolean(value.visual_reference_available),
+    selected_by_override: asBoolean(value.selected_by_override),
+    limitations: asStringArray(value.limitations),
+  }
+}
+
+const parseReferenceProfile = (value: unknown): ReferenceProfileAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const selected = parseProfileMatch(value.selected_profile)
+  const topMatches = Array.isArray(value.top_matches)
+    ? value.top_matches.map(parseProfileMatch).filter((item): item is NonNullable<typeof item> => Boolean(item))
+    : []
+  return {
+    selected_profile: selected,
+    top_matches: topMatches,
+    closest_fallback_used: asBoolean(value.closest_fallback_used),
+    inferred_family: optionalString(value.inferred_family),
+    inferred_issuer: optionalString(value.inferred_issuer),
+    reference_strength: asString(value.reference_strength, 'Reference strength unavailable'),
+    explanation: asString(value.explanation),
+  }
+}
+
+const parseDigitalSignature = (value: unknown): DigitalSignatureAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const checks = Array.isArray(value.checks)
+    ? value.checks.filter(isRecord).map((check, index) => {
+        const rawCertificate = isRecord(check.certificate) ? check.certificate : undefined
+        return {
+          signature_index: Math.max(1, Math.round(asNumber(check.signature_index, index + 1))),
+          field_name: optionalString(check.field_name),
+          status: asString(check.status, 'unsupported_signature_format'),
+          cryptographically_intact: asOptionalBoolean(check.cryptographically_intact),
+          signer_locally_trusted: asOptionalBoolean(check.signer_locally_trusted),
+          signed_content_modified: asOptionalBoolean(check.signed_content_modified),
+          incremental_updates: Math.max(0, Math.round(asNumber(check.incremental_updates))),
+          signing_time: optionalString(check.signing_time),
+          certificate: rawCertificate ? {
+            subject: optionalString(rawCertificate.subject),
+            issuer: optionalString(rawCertificate.issuer),
+            serial_number: optionalString(rawCertificate.serial_number),
+            valid_from: optionalString(rawCertificate.valid_from),
+            valid_to: optionalString(rawCertificate.valid_to),
+          } : undefined,
+          explanation: asString(check.explanation),
+        }
+      })
+    : []
+  return {
+    status: asString(value.status, 'unsigned'),
+    signature_count: Math.max(0, Math.round(asNumber(value.signature_count, checks.length))),
+    trust_store: asString(value.trust_store, 'explicit_local_store'),
+    checks,
+    explanation: asString(value.explanation),
+    limitations: asStringArray(value.limitations),
+  }
+}
+
+const parseCodes = (value: unknown): CodeAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const results = Array.isArray(value.results)
+    ? value.results.filter(isRecord).map((code, index) => ({
+        code_index: Math.max(1, Math.round(asNumber(code.code_index, index + 1))),
+        page_number: Math.max(1, Math.round(asNumber(code.page_number, 1))),
+        symbology: asString(code.symbology, 'QR'),
+        bounding_box: code.bounding_box ? parseBoundingBox(code.bounding_box) : undefined,
+        detected: asBoolean(code.detected),
+        decoded: asBoolean(code.decoded),
+        decoder: asString(code.decoder, 'local decoder'),
+        confidence_score: asScore(code.confidence_score),
+        payload_summary: optionalString(code.payload_summary),
+        payload_sha256: optionalString(code.payload_sha256),
+        structure_valid: asOptionalBoolean(code.structure_valid),
+        visible_fields_consistent: asOptionalBoolean(code.visible_fields_consistent),
+        cryptographic_verification_available: asBoolean(code.cryptographic_verification_available),
+        cryptographic_verification_result: asString(
+          code.cryptographic_verification_result,
+          'unsupported',
+        ),
+        structural_tampering_indicators: asStringArray(code.structural_tampering_indicators),
+        explanation: asString(code.explanation),
+      }))
+    : []
+  return {
+    status: asString(value.status, 'not_applicable'),
+    expected: asString(value.expected, 'unknown'),
+    detected_count: Math.max(0, Math.round(asNumber(value.detected_count, results.length))),
+    decoded_count: Math.max(0, Math.round(asNumber(value.decoded_count))),
+    results,
+    explanation: asString(value.explanation),
+  }
+}
+
+const parseMetadataAssessment = (value: unknown): MetadataAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const indicators = Array.isArray(value.indicators)
+    ? value.indicators.filter(isRecord).map((indicator) => ({
+        category: asString(indicator.category, 'metadata_indicator'),
+        status: asString(indicator.status, 'not_applicable'),
+        severity: asString(indicator.severity, 'info'),
+        confidence_score: asScore(indicator.confidence_score),
+        explanation: asString(indicator.explanation),
+        measurements: parseMeasurements(indicator.supporting_measurements),
+      }))
+    : []
+  return {
+    status: asString(value.status, 'not_applicable'),
+    indicators,
+    available_fields: asStringArray(value.available_fields),
+    explanation: asString(value.explanation),
+    limitations: asStringArray(value.limitations),
+  }
+}
+
+const parseLogicalConsistency = (value: unknown): LogicalConsistencyAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const results = Array.isArray(value.results)
+    ? value.results.filter(isRecord).map((rule) => {
+        const rawFields = isRecord(rule.fields_used) ? rule.fields_used : {}
+        const fieldsUsed = Object.fromEntries(
+          Object.entries(rawFields)
+            .filter(([, fieldValue]) => fieldValue === null || typeof fieldValue === 'string')
+            .map(([name, fieldValue]) => [name, fieldValue as string | null]),
+        )
+        return {
+          rule_id: asString(rule.rule_id),
+          rule_version: asString(rule.rule_version),
+          status: asString(rule.status, 'skipped'),
+          confidence_score: asScore(rule.confidence_score),
+          fields_used: fieldsUsed,
+          explanation: asString(rule.explanation),
+        }
+      })
+    : []
+  return {
+    status: asString(value.status, 'not_applicable'),
+    passed_count: Math.max(0, Math.round(asNumber(value.passed_count))),
+    failed_count: Math.max(0, Math.round(asNumber(value.failed_count))),
+    skipped_count: Math.max(0, Math.round(asNumber(value.skipped_count))),
+    results,
+    explanation: asString(value.explanation),
+  }
+}
+
+const parseSimilarity = (value: unknown): SimilarityAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const evidence = Array.isArray(value.region_evidence)
+    ? value.region_evidence.filter(isRecord).map((region) => ({
+        page_number: Math.max(1, Math.round(asNumber(region.page_number, 1))),
+        bounding_box: parseBoundingBox(region.bounding_box),
+        similarity_score: asScore(region.similarity_score),
+        confidence_score: asScore(region.confidence_score),
+        measurements: parseMeasurements(region.measurements),
+        explanation: asString(region.explanation),
+      }))
+    : []
+  return {
+    status: asString(value.status, 'not_applicable'),
+    similarity_score: value.similarity_score === null || value.similarity_score === undefined
+      ? undefined
+      : asScore(value.similarity_score),
+    confidence_score: asScore(value.confidence_score),
+    coverage_score: asScore(value.coverage_score),
+    closest_exemplar: optionalString(value.closest_exemplar),
+    region_evidence: evidence,
+    reasons: asStringArray(value.reasons),
+    compositing_score: value.compositing_score === null || value.compositing_score === undefined
+      ? undefined
+      : asScore(value.compositing_score),
+    explanation: asString(value.explanation),
+    limitations: asStringArray(value.limitations),
+  }
+}
+
+const parseInvestigativeAssessment = (value: unknown): InvestigativeAssessment | undefined => {
+  if (!isRecord(value)) return undefined
+  const dimensions = Array.isArray(value.dimensions)
+    ? value.dimensions.filter(isRecord).map((dimension) => ({
+        dimension: asString(dimension.dimension),
+        status: asString(dimension.status),
+        score: dimension.score === null || dimension.score === undefined
+          ? undefined
+          : asScore(dimension.score),
+        evidence_count: Math.max(0, Math.round(asNumber(dimension.evidence_count))),
+        explanation: asString(dimension.explanation),
+      }))
+    : []
+  return {
+    status: asString(value.status, 'limited_evidence'),
+    summary: asString(value.summary),
+    dimensions,
+    limitations: asStringArray(value.limitations),
+  }
+}
+
 export const parseDocumentResult = (value: unknown, fallbackJobId = ''): DocumentResult => {
   const result = isRecord(value) ? value : {}
   const metrics = isRecord(result.metrics) ? result.metrics : result
@@ -606,6 +843,14 @@ export const parseDocumentResult = (value: unknown, fallbackJobId = ''): Documen
     page_order_anomalies: pageOrderAnomalies,
     document_aggregate: documentAggregate,
     region_suggestions: regionSuggestions,
+    reference_profile: parseReferenceProfile(result.reference_profile),
+    digital_signature: parseDigitalSignature(result.digital_signature),
+    codes: parseCodes(result.codes),
+    metadata_assessment: parseMetadataAssessment(result.metadata_assessment),
+    logical_consistency: parseLogicalConsistency(result.logical_consistency),
+    handwriting: parseSimilarity(result.handwriting),
+    signature_similarity: parseSimilarity(result.signature_similarity),
+    investigative_assessment: parseInvestigativeAssessment(result.investigative_assessment),
   }
 }
 
@@ -723,16 +968,41 @@ const parseCreated = (value: unknown): AnalysisJobCreated => {
   }
 }
 
+const appendAdvancedEvidence = (
+  form: FormData,
+  inputs: AdvancedEvidenceInputs = {},
+) => {
+  inputs.handwritingExemplars?.slice(0, 5).forEach((file) => {
+    form.append('handwriting_exemplars', file)
+  })
+  inputs.signatureExemplars?.slice(0, 5).forEach((file) => {
+    form.append('signature_exemplars', file)
+  })
+}
+
 export const createAnalysis = async (
   reference: File,
   candidate: File,
   comparisonMode: ComparisonMode,
+  inputs: AdvancedEvidenceInputs = {},
 ): Promise<AnalysisJobCreated> => {
   const form = new FormData()
   form.append('reference', reference)
   form.append('candidate', candidate)
   form.append('comparison_mode', comparisonMode)
+  appendAdvancedEvidence(form, inputs)
   return parseCreated(await request('/analyses/reference', { method: 'POST', body: form }))
+}
+
+export const createAutomaticAnalysis = async (
+  candidate: File,
+  inputs: AdvancedEvidenceInputs = {},
+): Promise<AnalysisJobCreated> => {
+  const form = new FormData()
+  form.append('candidate', candidate)
+  appendAdvancedEvidence(form, inputs)
+  if (inputs.profileOverride) form.append('profile_override', inputs.profileOverride)
+  return parseCreated(await request('/analyses/automatic', { method: 'POST', body: form }))
 }
 
 export const runDemo = async (): Promise<AnalysisJobCreated> =>

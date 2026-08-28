@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiInternals, parseDocumentResult, runDemo, watchAnalysis } from '../api/client'
+import {
+  apiInternals,
+  createAutomaticAnalysis,
+  parseDocumentResult,
+  runDemo,
+  watchAnalysis,
+} from '../api/client'
 import type {
   AnalysisJobCreated,
   AnalysisWatchHandlers,
@@ -154,6 +160,113 @@ describe('Phase 1 API contract and recovery behavior', () => {
     expect(parsed.findings[0].evidence_source).toBe('visual_difference, embedded_pdf_text')
     expect(parsed.findings[0].measurements.changed_pixel_ratio).toBe(0.12)
     expect(parsed.pages[0].candidate_image_url).toContain('/assets/candidate-page')
+  })
+
+  it('submits candidate-only evidence and parses DocuVault assessment dimensions', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        job_id: 'job-docuvault',
+        state: 'queued',
+        status_url: '/api/v1/analyses/job-docuvault',
+        events_url: '/api/v1/analyses/job-docuvault/events',
+      }, 202),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const candidate = new File(['candidate'], 'candidate.png', { type: 'image/png' })
+    const signatureOne = new File(['one'], 'signature-1.png', { type: 'image/png' })
+    const signatureTwo = new File(['two'], 'signature-2.png', { type: 'image/png' })
+
+    await createAutomaticAnalysis(candidate, {
+      signatureExemplars: [signatureOne, signatureTwo],
+      profileOverride: 'fictional.profile.v1',
+    })
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const form = init.body as FormData
+    expect(url).toBe('/api/v1/analyses/automatic')
+    expect(form.get('candidate')).toBe(candidate)
+    expect(form.getAll('signature_exemplars')).toEqual([signatureOne, signatureTwo])
+    expect(form.get('profile_override')).toBe('fictional.profile.v1')
+
+    const parsed = parseDocumentResult({
+      ...backendResult,
+      comparison_mode: 'docuvault',
+      reference_profile: {
+        selected_profile: {
+          profile_id: 'fictional.profile.v1',
+          issuer: 'Fictional Institute',
+          document_family: 'Academic record',
+          subtype: 'record',
+          provenance_kind: 'synthetic',
+          provenance_assurance: 'P0',
+          score: 0.895,
+          component_scores: { issuer_text: 0.96, layout: 88 },
+          reference_strength: 'Closest available profile',
+          explanation: 'Issuer and layout were the strongest signals.',
+          completeness: 0.9,
+          visual_reference_available: false,
+          selected_by_override: true,
+          limitations: [],
+        },
+        top_matches: [],
+        closest_fallback_used: true,
+        reference_strength: 'Closest available profile',
+        explanation: 'Limited local profile evidence.',
+      },
+      digital_signature: {
+        status: 'unsigned',
+        signature_count: 0,
+        trust_store: 'explicit_local_store',
+        checks: [],
+        explanation: 'No embedded signature.',
+        limitations: [],
+      },
+      logical_consistency: {
+        status: 'passed',
+        passed_count: 2,
+        failed_count: 0,
+        skipped_count: 1,
+        results: [],
+        explanation: 'Applicable rules passed.',
+      },
+      signature_similarity: {
+        status: 'warning',
+        similarity_score: 81,
+        confidence_score: 75,
+        coverage_score: 100,
+        closest_exemplar: 'exemplar_2',
+        region_evidence: [],
+        reasons: ['Appearance is consistent.'],
+        compositing_score: 72,
+        explanation: 'Appearance matches but compositing needs review.',
+        limitations: ['Not definitive authorship proof.'],
+      },
+      investigative_assessment: {
+        status: 'review_recommended',
+        summary: 'An independent compositing indicator warrants review.',
+        dimensions: [{
+          dimension: 'signature_similarity',
+          status: 'warning',
+          score: 81,
+          evidence_count: 1,
+          explanation: 'Appearance and compositing are separate.',
+        }],
+        limitations: [],
+      },
+    })
+
+    expect(parsed.comparison_mode).toBe('docuvault')
+    expect(parsed.reference_profile?.selected_profile).toMatchObject({
+      score: 89.5,
+      selected_by_override: true,
+      visual_reference_available: false,
+    })
+    expect(parsed.digital_signature?.status).toBe('unsigned')
+    expect(parsed.logical_consistency).toMatchObject({ passed_count: 2, skipped_count: 1 })
+    expect(parsed.signature_similarity).toMatchObject({
+      similarity_score: 81,
+      compositing_score: 72,
+    })
+    expect(parsed.investigative_assessment?.status).toBe('review_recommended')
   })
 
   it('normalizes Phase 2 page metrics, OCR, variable suggestions and page anomalies defensively', () => {

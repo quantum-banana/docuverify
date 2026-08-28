@@ -15,6 +15,7 @@ import type {
 
 const apiMocks = vi.hoisted(() => ({
   createAnalysis: vi.fn(),
+  createAutomaticAnalysis: vi.fn(),
   runDemo: vi.fn(),
   watchAnalysis: vi.fn(),
 }))
@@ -490,6 +491,122 @@ const templateManipulatedResult = resultWithPages([
   risk_label: 'Critical tampering risk',
 })
 
+const docuvaultResult = resultWithPages([
+  reviewPage(1, '/assets/docuvault-candidate', '/assets/proxy-reference', {
+    findings: [],
+    finding_count: 0,
+    risk_score: 0,
+  }),
+], {
+  comparison_mode: 'docuvault',
+  overall_tampering_risk: 0,
+  risk_label: 'Low tampering risk',
+  reference_profile: {
+    selected_profile: {
+      profile_id: 'fictional.lumen.v1',
+      issuer: 'Lumen Grove Institute',
+      document_family: 'Achievement record',
+      subtype: 'semester record',
+      provenance_kind: 'synthetic_fixture',
+      provenance_assurance: 'P0 synthetic',
+      score: 89.5,
+      component_scores: { issuer_text: 96, fixed_visual: 93, layout: 88 },
+      reference_strength: 'Closest available profile',
+      explanation: 'Strongest signals are issuer text and fixed layout.',
+      completeness: 96,
+      visual_reference_available: false,
+      selected_by_override: false,
+      limitations: ['Synthetic profile; no issuer authority claim.'],
+    },
+    top_matches: [
+      {
+        profile_id: 'fictional.lumen.v1',
+        issuer: 'Lumen Grove Institute',
+        document_family: 'Achievement record',
+        subtype: 'semester record',
+        provenance_kind: 'synthetic_fixture',
+        provenance_assurance: 'P0 synthetic',
+        score: 89.5,
+        component_scores: { issuer_text: 96, fixed_visual: 93, layout: 88 },
+        reference_strength: 'Closest available profile',
+        explanation: 'Strongest signals are issuer text and fixed layout.',
+        completeness: 96,
+        visual_reference_available: false,
+        selected_by_override: false,
+        limitations: [],
+      },
+    ],
+    closest_fallback_used: true,
+    inferred_family: 'Achievement record',
+    inferred_issuer: 'Lumen Grove Institute',
+    reference_strength: 'Closest available profile',
+    explanation: 'A closest local profile was selected with limited provenance strength.',
+  },
+  digital_signature: {
+    status: 'unsigned',
+    signature_count: 0,
+    trust_store: 'explicit_local_store',
+    checks: [],
+    explanation: 'No embedded PDF signature was found.',
+    limitations: ['Unsigned does not mean forged.'],
+  },
+  codes: {
+    status: 'passed',
+    expected: 'optional',
+    detected_count: 1,
+    decoded_count: 1,
+    results: [],
+    explanation: 'The QR payload structure and visible fields were consistent.',
+  },
+  metadata_assessment: {
+    status: 'passed',
+    indicators: [],
+    available_fields: ['producer'],
+    explanation: 'No contradictory metadata timeline was found.',
+    limitations: [],
+  },
+  logical_consistency: {
+    status: 'passed',
+    passed_count: 2,
+    failed_count: 0,
+    skipped_count: 1,
+    results: [],
+    explanation: 'Applicable profile rules passed.',
+  },
+  handwriting: {
+    status: 'not_applicable',
+    confidence_score: 0,
+    coverage_score: 0,
+    region_evidence: [],
+    reasons: [],
+    explanation: 'No trusted handwriting exemplars were supplied.',
+    limitations: ['Not legal identity proof.'],
+  },
+  signature_similarity: {
+    status: 'not_applicable',
+    confidence_score: 0,
+    coverage_score: 0,
+    region_evidence: [],
+    reasons: [],
+    explanation: 'No trusted signature exemplars were supplied.',
+    limitations: ['Not definitive authorship proof.'],
+  },
+  investigative_assessment: {
+    status: 'limited_evidence',
+    summary: 'No strong contradiction was found, but reference strength is limited.',
+    dimensions: [
+      {
+        dimension: 'visual_tampering_risk',
+        status: 'low',
+        score: 0,
+        evidence_count: 0,
+        explanation: 'No visual findings.',
+      },
+    ],
+    limitations: ['This is not an authenticity probability.'],
+  },
+})
+
 let latestHandlers: AnalysisWatchHandlers | undefined
 
 const beginDemo = async () => {
@@ -519,6 +636,7 @@ describe('DocuVerify Phase 1 experience', () => {
   beforeEach(() => {
     latestHandlers = undefined
     apiMocks.createAnalysis.mockReset().mockResolvedValue(createdJob)
+    apiMocks.createAutomaticAnalysis.mockReset().mockResolvedValue(createdJob)
     apiMocks.runDemo.mockReset().mockResolvedValue(createdJob)
     apiMocks.watchAnalysis.mockReset().mockImplementation(
       (_created: AnalysisJobCreated, handlers: AnalysisWatchHandlers) => {
@@ -538,11 +656,12 @@ describe('DocuVerify Phase 1 experience', () => {
     render(<App />)
 
     expect(screen.getByRole('heading', { name: /verify a document/i })).toBeInTheDocument()
-    expect(screen.getByText(/compare a questioned document with a trusted reference/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /trusted reference: choose a file/i })).toBeInTheDocument()
+    expect(screen.getByText(/compare with a supplied reference or retrieve the closest validated local profile/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /issued original: choose a file/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /questioned document: choose a file/i })).toBeInTheDocument()
     expect(screen.getByText('Exact')).toBeInTheDocument()
     expect(screen.getByText('Template')).toBeInTheDocument()
+    expect(screen.getByText('DocuVault')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /analyze document/i })).toBeDisabled()
 
     const detailsSummary = screen.getByText('Analysis details')
@@ -607,6 +726,37 @@ describe('DocuVerify Phase 1 experience', () => {
 
     await user.click(screen.getByRole('button', { name: /analyze document/i }))
     await waitFor(() => expect(apiMocks.createAnalysis).toHaveBeenCalledWith(reference, candidate, 'template'))
+  })
+
+  it('runs candidate-only DocuVault retrieval with optional local exemplars', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const modeGroup = screen.getByRole('group', { name: /comparison mode/i })
+    await user.click(within(modeGroup).getByRole('radio', { name: /^docuvault\b/i }))
+
+    expect(screen.queryByTestId('reference-input')).not.toBeInTheDocument()
+    const candidate = new File(['candidate'], 'questioned.png', { type: 'image/png' })
+    await user.upload(screen.getByTestId('candidate-input'), candidate)
+    await user.click(screen.getByText('Optional forensic inputs'))
+
+    const handwriting = new File(['handwriting'], 'handwriting.png', { type: 'image/png' })
+    const signatureOne = new File(['signature-one'], 'signature-1.png', { type: 'image/png' })
+    const signatureTwo = new File(['signature-two'], 'signature-2.png', { type: 'image/png' })
+    await user.upload(screen.getByLabelText('Handwriting exemplars'), handwriting)
+    await user.upload(screen.getByLabelText('Signature exemplars'), [signatureOne, signatureTwo])
+    await user.type(screen.getByLabelText(/profile override/i), 'fictional.profile.v1')
+
+    const start = screen.getByRole('button', { name: /analyze document/i })
+    expect(start).toBeEnabled()
+    await user.click(start)
+    await waitFor(() => expect(apiMocks.createAutomaticAnalysis).toHaveBeenCalledWith(
+      candidate,
+      {
+        handwritingExemplars: [handwriting],
+        signatureExemplars: [signatureOne, signatureTwo],
+        profileOverride: 'fictional.profile.v1',
+      },
+    ))
   })
 
   it('never loads an uploaded PDF in the browser and switches to the backend-safe PNG', async () => {
@@ -1008,6 +1158,25 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute('src', '/assets/template-manipulated-candidate-crop')
     expect(within(drawer).getByRole('img', { name: /trusted reference for selected finding/i })).toHaveAttribute('src', '/assets/template-manipulated-reference-crop')
     expect(within(drawer).getByRole('img', { name: /difference overlay for selected finding/i })).toHaveAttribute('src', '/assets/template-manipulated-overlay')
+  })
+
+  it('presents DocuVault and independent evidence without a misleading proxy viewer', async () => {
+    const { user } = await completeResultDemo(docuvaultResult)
+
+    expect(screen.getByText(/analysis complete · docuvault/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /core evidence assessment/i })).toBeInTheDocument()
+    expect(screen.getAllByText(/no strong contradiction was found, but reference strength is limited/i).length).toBeGreaterThan(0)
+    expect(screen.getByLabelText(/questioned document · page 1 viewer/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/selected profile reference.*viewer/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByText('Trusted reference profile'))
+    expect(screen.getByText('Lumen Grove Institute')).toBeInTheDocument()
+    expect(screen.getByText(/strongest signals are issuer text and fixed layout/i)).toBeInTheDocument()
+    expect(screen.getByText('Digital PDF signature')).toBeInTheDocument()
+    expect(screen.getByText('QR and barcode evidence')).toBeInTheDocument()
+    expect(screen.getByText('Logical field consistency')).toBeInTheDocument()
+    expect(screen.getByText('Handwriting similarity')).toBeInTheDocument()
+    expect(screen.getByText('Signature similarity')).toBeInTheDocument()
   })
 
   it('shows a structured failure state and a route back to upload', async () => {

@@ -4,7 +4,15 @@
  * in api/client.ts so components consume one stable, page-aware shape.
  */
 
-export type ComparisonMode = 'exact' | 'template'
+export type ComparisonMode = 'exact' | 'template' | 'docuvault'
+export type CheckStatus =
+  | 'passed'
+  | 'failed'
+  | 'warning'
+  | 'skipped'
+  | 'unsupported'
+  | 'not_applicable'
+  | string
 
 export type WireJobState = 'queued' | 'running' | 'completed' | 'failed'
 export type RiskLabel =
@@ -153,6 +161,14 @@ export interface WireDocumentResult {
   page_order_anomalies?: unknown[]
   document_aggregate?: Record<string, unknown>
   region_suggestions?: WireRegionSuggestion[]
+  reference_profile?: unknown
+  digital_signature?: unknown
+  codes?: unknown
+  metadata_assessment?: unknown
+  logical_consistency?: unknown
+  handwriting?: unknown
+  signature_similarity?: unknown
+  investigative_assessment?: unknown
 }
 
 export interface WireProgressEvent {
@@ -353,6 +369,162 @@ export interface DocumentAggregate {
   reordered_page_count?: number
 }
 
+export interface ProfileMatchSummary {
+  profile_id: string
+  issuer: string
+  document_family: string
+  subtype: string
+  provenance_kind: string
+  provenance_assurance: string
+  score: number
+  component_scores: Record<string, number>
+  reference_strength: string
+  explanation: string
+  completeness: number
+  authoritative_source_url?: string
+  visual_reference_available: boolean
+  selected_by_override: boolean
+  limitations: string[]
+}
+
+export interface ReferenceProfileAssessment {
+  selected_profile?: ProfileMatchSummary
+  top_matches: ProfileMatchSummary[]
+  closest_fallback_used: boolean
+  inferred_family?: string
+  inferred_issuer?: string
+  reference_strength: string
+  explanation: string
+}
+
+export interface PdfSignatureCheck {
+  signature_index: number
+  field_name?: string
+  status: string
+  cryptographically_intact?: boolean
+  signer_locally_trusted?: boolean
+  signed_content_modified?: boolean
+  incremental_updates: number
+  signing_time?: string
+  certificate?: {
+    subject?: string
+    issuer?: string
+    serial_number?: string
+    valid_from?: string
+    valid_to?: string
+  }
+  explanation: string
+}
+
+export interface DigitalSignatureAssessment {
+  status: string
+  signature_count: number
+  trust_store: string
+  checks: PdfSignatureCheck[]
+  explanation: string
+  limitations: string[]
+}
+
+export interface CodeCheckResult {
+  code_index: number
+  page_number: number
+  symbology: string
+  bounding_box?: NormalizedBoundingBox
+  detected: boolean
+  decoded: boolean
+  decoder: string
+  confidence_score: number
+  payload_summary?: string
+  payload_sha256?: string
+  structure_valid?: boolean
+  visible_fields_consistent?: boolean
+  cryptographic_verification_available: boolean
+  cryptographic_verification_result: CheckStatus
+  structural_tampering_indicators: string[]
+  explanation: string
+}
+
+export interface CodeAssessment {
+  status: CheckStatus
+  expected: string
+  detected_count: number
+  decoded_count: number
+  results: CodeCheckResult[]
+  explanation: string
+}
+
+export interface MetadataIndicator {
+  category: string
+  status: CheckStatus
+  severity: string
+  confidence_score: number
+  explanation: string
+  measurements: Record<string, MeasurementValue>
+}
+
+export interface MetadataAssessment {
+  status: CheckStatus
+  indicators: MetadataIndicator[]
+  available_fields: string[]
+  explanation: string
+  limitations: string[]
+}
+
+export interface LogicalRuleResult {
+  rule_id: string
+  rule_version: string
+  status: CheckStatus
+  confidence_score: number
+  fields_used: Record<string, string | null>
+  explanation: string
+}
+
+export interface LogicalConsistencyAssessment {
+  status: CheckStatus
+  passed_count: number
+  failed_count: number
+  skipped_count: number
+  results: LogicalRuleResult[]
+  explanation: string
+}
+
+export interface SimilarityRegionEvidence {
+  page_number: number
+  bounding_box: NormalizedBoundingBox
+  similarity_score: number
+  confidence_score: number
+  measurements: Record<string, MeasurementValue>
+  explanation: string
+}
+
+export interface SimilarityAssessment {
+  status: CheckStatus
+  similarity_score?: number
+  confidence_score: number
+  coverage_score: number
+  closest_exemplar?: string
+  region_evidence: SimilarityRegionEvidence[]
+  reasons: string[]
+  compositing_score?: number
+  explanation: string
+  limitations: string[]
+}
+
+export interface AssessmentDimension {
+  dimension: string
+  status: string
+  score?: number
+  evidence_count: number
+  explanation: string
+}
+
+export interface InvestigativeAssessment {
+  status: string
+  summary: string
+  dimensions: AssessmentDimension[]
+  limitations: string[]
+}
+
 export interface DocumentResult {
   schema_version: string
   job_id: string
@@ -375,6 +547,20 @@ export interface DocumentResult {
   page_order_anomalies?: PageOrderAnomaly[]
   document_aggregate?: DocumentAggregate
   region_suggestions?: RegionSuggestion[]
+  reference_profile?: ReferenceProfileAssessment
+  digital_signature?: DigitalSignatureAssessment
+  codes?: CodeAssessment
+  metadata_assessment?: MetadataAssessment
+  logical_consistency?: LogicalConsistencyAssessment
+  handwriting?: SimilarityAssessment
+  signature_similarity?: SimilarityAssessment
+  investigative_assessment?: InvestigativeAssessment
+}
+
+export interface AdvancedEvidenceInputs {
+  handwritingExemplars?: File[]
+  signatureExemplars?: File[]
+  profileOverride?: string
 }
 
 export interface AnalysisJobCreated {
