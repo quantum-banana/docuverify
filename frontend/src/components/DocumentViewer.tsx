@@ -13,9 +13,11 @@ interface DocumentViewerProps {
   scanning?: boolean
   progress?: number
   label?: string
-  pageNumber?: number
+  pageNumber?: number | null
   totalPages?: number
   pageStatus?: string
+  side?: 'candidate' | 'reference'
+  pageMissing?: boolean
   localizedRegion?: NormalizedBoundingBox
 }
 
@@ -44,6 +46,8 @@ export function DocumentViewer({
   pageNumber = 1,
   totalPages = 1,
   pageStatus = 'matched',
+  side = 'candidate',
+  pageMissing = false,
   localizedRegion,
 }: DocumentViewerProps) {
   const [imageFailed, setImageFailed] = useState(false)
@@ -54,9 +58,16 @@ export function DocumentViewer({
   // Cap width from the page ratio as well as the layout width so a tall page
   // never gets height-clamped independently of its overlay coordinate space.
   const pageMaxWidth = Math.min(510, 650 * pageRatio)
-  const showDocument = Boolean(imageUrl) && !imageFailed
+  const inferredMissing = side === 'candidate' ? pageStatus === 'missing' : pageStatus === 'added'
+  const isMissing = pageMissing || inferredMissing
+  const showDocument = Boolean(imageUrl) && !imageFailed && !isMissing
+  const showCandidateOverlays = side === 'candidate' && showDocument
   const statusLabel = pageStatus.replaceAll('_', ' ')
-  const isMissing = pageStatus === 'missing'
+  const missingTitle = side === 'candidate' ? 'Candidate page missing' : 'Reference page missing'
+  const missingDescription = side === 'candidate'
+    ? 'No candidate page corresponds to this trusted reference page.'
+    : 'No trusted reference page corresponds to this candidate page.'
+  const viewLabel = side === 'candidate' ? 'Candidate view' : 'Reference view'
 
   return (
     <section className="document-shell" aria-label={`${label} viewer`}>
@@ -66,7 +77,7 @@ export function DocumentViewer({
           <span>{label}</span>
         </div>
         <span className="document-shell__page">
-          PAGE {String(pageNumber).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+          PAGE {pageNumber === null ? '—' : String(pageNumber).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
         </span>
       </div>
       <div className="document-stage">
@@ -86,14 +97,14 @@ export function DocumentViewer({
                 {scanning
                   ? 'Preparing document preview'
                   : isMissing
-                    ? 'Candidate page missing'
+                    ? missingTitle
                     : 'Document preview unavailable'}
               </strong>
               <span>
                 {scanning
                   ? 'The rendered candidate page will appear when it is ready.'
                   : isMissing
-                    ? 'No candidate page corresponds to this trusted reference page.'
+                    ? missingDescription
                     : 'The analysis completed without a browser preview.'}
               </span>
             </div>
@@ -125,7 +136,7 @@ export function DocumentViewer({
             />
           )}
 
-          {!scanning && regionSuggestions.length > 0 && (
+          {!scanning && showCandidateOverlays && regionSuggestions.length > 0 && (
             <svg
               className="suggestion-overlay"
               viewBox="0 0 1 1"
@@ -146,7 +157,7 @@ export function DocumentViewer({
             </svg>
           )}
 
-          {!scanning && findings.length > 0 && (
+          {!scanning && showCandidateOverlays && findings.length > 0 && (
             <svg
               className="finding-overlay"
               viewBox="0 0 1 1"
@@ -186,7 +197,7 @@ export function DocumentViewer({
         </div>
       </div>
       <div className="document-shell__footer">
-        <span><EyeIcon /> Candidate view</span>
+        <span><EyeIcon /> {viewLabel}</span>
         <span>
           {pageStatus === 'matched' || pageStatus === 'completed'
             ? 'Normalized coordinates · 0—1'

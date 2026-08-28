@@ -7,6 +7,8 @@ interface EvidenceDrawerProps {
   finding: Finding | null
   index: number
   onClose: () => void
+  candidateEvidenceAvailable?: boolean
+  referenceEvidenceAvailable?: boolean
 }
 
 const humanize = (value: string): string =>
@@ -19,20 +21,30 @@ const formatMeasurement = (value: string | number | boolean | null): string => {
   return value
 }
 
-function EvidenceImage({ src, label }: { src: string; label: string }) {
+function EvidenceImage({ src, label, unavailableLabel = 'Artifact unavailable' }: {
+  src: string
+  label: string
+  unavailableLabel?: string
+}) {
   return (
     <figure className="evidence-image">
       <figcaption>{label}</figcaption>
       {src ? (
         <img src={src} alt={`${label} for selected finding`} />
       ) : (
-        <div className="evidence-image__empty"><EyeIcon /> Artifact unavailable</div>
+        <div className="evidence-image__empty"><EyeIcon /> {unavailableLabel}</div>
       )}
     </figure>
   )
 }
 
-export function EvidenceDrawer({ finding, index, onClose }: EvidenceDrawerProps) {
+export function EvidenceDrawer({
+  finding,
+  index,
+  onClose,
+  candidateEvidenceAvailable = true,
+  referenceEvidenceAvailable = true,
+}: EvidenceDrawerProps) {
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -103,8 +115,16 @@ export function EvidenceDrawer({ finding, index, onClose }: EvidenceDrawerProps)
                   <small>{finding.evidence_source}</small>
                 </div>
                 <div className="evidence-images">
-                  <EvidenceImage src={finding.candidate_crop_url} label="Questioned" />
-                  <EvidenceImage src={finding.reference_crop_url} label="Trusted reference" />
+                  <EvidenceImage
+                    src={candidateEvidenceAvailable ? finding.candidate_crop_url : ''}
+                    label="Questioned"
+                    unavailableLabel={candidateEvidenceAvailable ? undefined : 'Candidate page missing'}
+                  />
+                  <EvidenceImage
+                    src={referenceEvidenceAvailable ? finding.reference_crop_url : ''}
+                    label="Trusted reference"
+                    unavailableLabel={referenceEvidenceAvailable ? undefined : 'Reference page missing'}
+                  />
                   <EvidenceImage src={finding.difference_overlay_url} label="Difference overlay" />
                 </div>
               </section>

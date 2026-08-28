@@ -624,8 +624,8 @@ function ResultScreen({
     setSelectedPageNumber(firstViewablePage?.page_number ?? 1)
   }, [firstViewablePage?.page_number, result.job_id])
 
-  const selectedPage = pages.find((page) => page.page_number === selectedPageNumber) ?? pages[0]
-  const selectedPageIndex = Math.max(0, pages.findIndex((page) => page.page_number === selectedPage?.page_number))
+  const selectedPage = pages.find((page) => page.page_number === selectedPageNumber)
+  const selectedPageIndex = pages.findIndex((page) => page.page_number === selectedPageNumber)
   const allFindings = result.findings.length ? result.findings : pages.flatMap((page) => page.findings)
   const currentPageFindings = selectedPage?.findings.length
     ? selectedPage.findings
@@ -641,6 +641,14 @@ function ResultScreen({
   const aggregate = result.document_aggregate
   const selectedRisk = selectedPage ? pageRisk(selectedPage) : 0
   const selectedTone = riskTone(selectedRisk)
+  const candidatePageMissing = selectedPage?.candidate_page_number === null || selectedPage?.status === 'missing'
+  const referencePageMissing = selectedPage?.reference_page_number === null || selectedPage?.status === 'added'
+  const candidatePageNumber = candidatePageMissing
+    ? null
+    : selectedPage?.candidate_page_number ?? selectedPage?.page_number ?? null
+  const referencePageNumber = referencePageMissing
+    ? null
+    : selectedPage?.reference_page_number ?? selectedPage?.page_number ?? null
 
   const switchPage = (pageNumber: number) => {
     if (pageNumber === selectedPageNumber) return
@@ -799,19 +807,34 @@ function ResultScreen({
       </div>
 
       <div className="result-grid">
-        <DocumentViewer
-          imageUrl={selectedPage?.candidate_image_url || result.candidate?.preview_url}
-          width={selectedPage?.width}
-          height={selectedPage?.height}
-          findings={currentPageFindings}
-          regionSuggestions={suggestions}
-          selectedFindingId={selectedFinding?.finding_id}
-          onSelectFinding={selectFinding}
-          pageNumber={selectedPage?.page_number ?? 1}
-          totalPages={totalPages}
-          pageStatus={selectedPage?.status}
-          label={`Questioned document · page ${selectedPage?.page_number ?? 1}`}
-        />
+        <div className="document-comparison" aria-label="Selected page comparison">
+          <DocumentViewer
+            imageUrl={candidatePageMissing ? undefined : selectedPage?.candidate_image_url}
+            width={selectedPage?.width}
+            height={selectedPage?.height}
+            findings={candidatePageMissing ? [] : currentPageFindings}
+            regionSuggestions={candidatePageMissing ? [] : suggestions}
+            selectedFindingId={selectedFinding?.finding_id}
+            onSelectFinding={selectFinding}
+            pageNumber={candidatePageNumber}
+            totalPages={candidatePages}
+            pageStatus={selectedPage?.status}
+            side="candidate"
+            pageMissing={candidatePageMissing}
+            label={`Questioned document · page ${selectedPage?.page_number ?? 1}`}
+          />
+          <DocumentViewer
+            imageUrl={referencePageMissing ? undefined : selectedPage?.reference_image_url}
+            width={selectedPage?.width}
+            height={selectedPage?.height}
+            pageNumber={referencePageNumber}
+            totalPages={referencePages}
+            pageStatus={selectedPage?.status}
+            side="reference"
+            pageMissing={referencePageMissing}
+            label={`Trusted reference · page ${selectedPage?.page_number ?? 1}`}
+          />
+        </div>
 
         <aside className="findings-panel">
           <div className="findings-panel__heading">
@@ -1007,6 +1030,15 @@ export default function App() {
   const findingIndex = result && selectedFinding
     ? Math.max(0, result.findings.findIndex((item) => item.finding_id === selectedFinding.finding_id))
     : 0
+  const selectedFindingPage = result && selectedFinding
+    ? result.pages.find((page) => page.page_number === selectedFinding.page_number)
+    : undefined
+  const candidateEvidenceAvailable = selectedFindingPage
+    ? selectedFindingPage.candidate_page_number !== null && selectedFindingPage.status !== 'missing'
+    : true
+  const referenceEvidenceAvailable = selectedFindingPage
+    ? selectedFindingPage.reference_page_number !== null && selectedFindingPage.status !== 'added'
+    : true
 
   return (
     <div className="app-shell">
@@ -1057,6 +1089,8 @@ export default function App() {
         finding={selectedFinding}
         index={findingIndex}
         onClose={() => setSelectedFinding(null)}
+        candidateEvidenceAvailable={candidateEvidenceAvailable}
+        referenceEvidenceAvailable={referenceEvidenceAvailable}
       />
       <footer className="site-footer">
         <span>DOCUVERIFY / PHASE 02</span>

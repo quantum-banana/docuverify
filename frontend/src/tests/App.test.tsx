@@ -5,9 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   AnalysisJobCreated,
   AnalysisWatchHandlers,
+  DocumentDescriptor,
   DocumentResult,
   Finding,
+  PageResult,
   ProgressEvent,
+  RegionSuggestion,
 } from '../types/contracts'
 
 const apiMocks = vi.hoisted(() => ({
@@ -257,6 +260,234 @@ const multiPageResult: DocumentResult = {
   },
 }
 
+const documentDescriptor = (
+  filename: string,
+  pageCount: number,
+  previewUrl: string,
+): DocumentDescriptor => ({
+  filename,
+  content_type: 'application/pdf',
+  sha256: `${filename}-sha256`,
+  page_count: pageCount,
+  width: 1200,
+  height: 1697,
+  preview_url: previewUrl,
+  transform: {
+    original_width: 1200,
+    original_height: 1697,
+    normalized_width: 1200,
+    normalized_height: 1697,
+    scale_x: 1,
+    scale_y: 1,
+    orientation_degrees: 0,
+  },
+})
+
+const reviewPage = (
+  pageNumber: number,
+  candidateImageUrl: string,
+  referenceImageUrl: string,
+  overrides: Partial<PageResult> = {},
+): PageResult => ({
+  page_number: pageNumber,
+  width: 1200,
+  height: 1697,
+  candidate_image_url: candidateImageUrl,
+  reference_image_url: referenceImageUrl,
+  findings: [],
+  status: 'matched',
+  reference_page_number: pageNumber,
+  candidate_page_number: pageNumber,
+  risk_score: 0,
+  confidence_score: 99,
+  coverage_score: 100,
+  finding_count: 0,
+  ...overrides,
+})
+
+const resultWithPages = (
+  pages: PageResult[],
+  overrides: Partial<DocumentResult> = {},
+): DocumentResult => {
+  const findings = pages.flatMap((page) => page.findings)
+  return {
+    ...completedResult,
+    schema_version: '2.0',
+    overall_tampering_risk: 0,
+    risk_label: 'Low tampering risk',
+    assessment_confidence: 99,
+    analysis_coverage: 100,
+    alignment_quality: 98,
+    finding_count: findings.length,
+    processing_duration_ms: 900,
+    pages,
+    findings,
+    total_page_count: pages.length,
+    reference_page_count: pages.length,
+    candidate_page_count: pages.length,
+    reference: documentDescriptor('reference.pdf', pages.length, '/assets/reference-descriptor-page-1'),
+    candidate: documentDescriptor('candidate.pdf', pages.length, '/assets/candidate-descriptor-page-1'),
+    ...overrides,
+  }
+}
+
+const missingPageFinding: Finding = {
+  finding_id: 'finding-page-missing-2',
+  page_number: 2,
+  category: 'page_missing',
+  title: 'Page missing',
+  explanation: 'Trusted reference page 2 has no corresponding candidate page.',
+  bounding_box: { x: 0, y: 0, width: 1, height: 1 },
+  risk_score: 82,
+  confidence_score: 99,
+  severity: 'high',
+  evidence_source: 'Page correspondence',
+  candidate_crop_url: '/assets/invalid-missing-candidate-crop',
+  reference_crop_url: '/assets/reference-page-2',
+  difference_overlay_url: '/assets/missing-page-2-overlay',
+  measurements: { reference_page_number: 2, candidate_page_number: null },
+}
+
+const addedPageFinding: Finding = {
+  finding_id: 'finding-page-added-2',
+  page_number: 2,
+  category: 'page_added',
+  title: 'Page added',
+  explanation: 'Candidate page 2 has no corresponding trusted reference page.',
+  bounding_box: { x: 0, y: 0, width: 1, height: 1 },
+  risk_score: 78,
+  confidence_score: 99,
+  severity: 'high',
+  evidence_source: 'Page correspondence',
+  candidate_crop_url: '/assets/candidate-page-2',
+  reference_crop_url: '/assets/invalid-added-reference-crop',
+  difference_overlay_url: '/assets/added-page-2-overlay',
+  measurements: { reference_page_number: null, candidate_page_number: 2 },
+}
+
+const missingPageResult = resultWithPages([
+  reviewPage(1, '/assets/candidate-page-1', '/assets/reference-page-1'),
+  reviewPage(2, '', '/assets/reference-page-2', {
+    status: 'missing',
+    candidate_page_number: null,
+    findings: [missingPageFinding],
+    finding_count: 1,
+    risk_score: 82,
+  }),
+  reviewPage(3, '/assets/candidate-page-2-after-gap', '/assets/reference-page-3', {
+    candidate_page_number: 2,
+  }),
+], {
+  overall_tampering_risk: 82,
+  risk_label: 'Critical tampering risk',
+  reference_page_count: 3,
+  candidate_page_count: 2,
+  candidate: documentDescriptor('candidate-missing.pdf', 2, '/assets/candidate-page-1-fallback'),
+  page_order_anomalies: [{
+    anomaly_id: 'missing-2',
+    type: 'missing',
+    title: 'Page missing',
+    explanation: 'Trusted reference page 2 has no corresponding candidate page.',
+    page_number: 2,
+    reference_page_number: 2,
+    candidate_page_number: null,
+    severity: 'high',
+  }],
+})
+
+const addedPageResult = resultWithPages([
+  reviewPage(1, '/assets/candidate-page-1', '/assets/reference-page-1'),
+  reviewPage(2, '/assets/candidate-page-2-added', '', {
+    status: 'added',
+    reference_page_number: null,
+    findings: [addedPageFinding],
+    finding_count: 1,
+    risk_score: 78,
+  }),
+], {
+  overall_tampering_risk: 78,
+  risk_label: 'Critical tampering risk',
+  reference_page_count: 1,
+  candidate_page_count: 2,
+  reference: documentDescriptor('reference-added.pdf', 1, '/assets/reference-page-1-fallback'),
+})
+
+const reorderedPageResult = resultWithPages([
+  reviewPage(1, '/assets/reordered-candidate-page-1', '/assets/reordered-reference-page-1'),
+  reviewPage(2, '/assets/reordered-candidate-page-2', '/assets/reordered-reference-page-3', {
+    status: 'reordered',
+    reference_page_number: 3,
+    candidate_page_number: 2,
+    risk_score: 70.4,
+  }),
+  reviewPage(3, '/assets/reordered-candidate-page-3', '/assets/reordered-reference-page-2', {
+    status: 'reordered',
+    reference_page_number: 2,
+    candidate_page_number: 3,
+    risk_score: 70.4,
+  }),
+], {
+  overall_tampering_risk: 70.4,
+  risk_label: 'High tampering risk',
+})
+
+const normalPageTwoTamperResult = resultWithPages([
+  reviewPage(1, '/assets/normal-candidate-page-1', '/assets/normal-reference-page-1'),
+  reviewPage(2, '/assets/normal-candidate-page-2', '/assets/normal-reference-page-2', {
+    findings: [pageTwoFinding],
+    finding_count: 1,
+    risk_score: 88,
+  }),
+], {
+  overall_tampering_risk: 85.3,
+  risk_label: 'Critical tampering risk',
+})
+
+const templateSuggestions: RegionSuggestion[] = ['Name', 'Date', 'Identifier', 'Amount'].map((label, index) => ({
+  suggestion_id: `template-variable-${index + 1}`,
+  page_number: 1,
+  role: 'variable',
+  confidence_score: 93,
+  reason: `${label} is a legitimate variable field.`,
+  label,
+  bounding_box: { x: 0.1, y: 0.18 + index * 0.14, width: 0.3, height: 0.06 },
+}))
+
+const templateLegitimateResult = resultWithPages([
+  reviewPage(1, '/assets/template-legitimate-candidate', '/assets/template-reference', {
+    region_suggestions: templateSuggestions,
+    risk_score: 15,
+  }),
+], {
+  comparison_mode: 'template',
+  overall_tampering_risk: 15,
+  risk_label: 'Low tampering risk',
+  region_suggestions: templateSuggestions,
+})
+
+const templateManipulatedFinding: Finding = {
+  ...pageTwoFinding,
+  finding_id: 'template-background-compositing',
+  page_number: 1,
+  category: 'background_compositing',
+  title: 'Background compositing detected',
+  candidate_crop_url: '/assets/template-manipulated-candidate-crop',
+  reference_crop_url: '/assets/template-manipulated-reference-crop',
+  difference_overlay_url: '/assets/template-manipulated-overlay',
+}
+
+const templateManipulatedResult = resultWithPages([
+  reviewPage(1, '/assets/template-manipulated-candidate', '/assets/template-reference', {
+    findings: [templateManipulatedFinding],
+    finding_count: 1,
+    risk_score: 81,
+  }),
+], {
+  comparison_mode: 'template',
+  overall_tampering_risk: 81,
+  risk_label: 'Critical tampering risk',
+})
+
 let latestHandlers: AnalysisWatchHandlers | undefined
 
 const beginDemo = async () => {
@@ -271,6 +502,13 @@ const beginDemo = async () => {
 const completeMultiPageDemo = async () => {
   const context = await beginDemo()
   context.handlers.onComplete(multiPageResult)
+  await screen.findByRole('heading', { name: 'Evidence review' })
+  return context
+}
+
+const completeResultDemo = async (result: DocumentResult) => {
+  const context = await beginDemo()
+  context.handlers.onComplete(result)
   await screen.findByRole('heading', { name: 'Evidence review' })
   return context
 }
@@ -554,6 +792,146 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(anomalies).getByText('Missing page')).toBeInTheDocument()
     expect(within(anomalies).getByText('Added page')).toBeInTheDocument()
     expect(within(anomalies).getByText('Reordered page')).toBeInTheDocument()
+  })
+
+  it('keeps missing logical page 2 selected without candidate pixels or evidence', async () => {
+    const { user } = await completeResultDemo(missingPageResult)
+    const filmstrip = screen.getByRole('region', { name: /document pages/i })
+    const pageOne = within(filmstrip).getByRole('button', { name: /page 1:/i })
+    const pageTwo = within(filmstrip).getByRole('button', { name: /page 2:/i })
+
+    await user.click(pageTwo)
+    expect(pageTwo).toHaveAttribute('aria-current', 'page')
+    let candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    let referenceViewer = screen.getByRole('region', { name: /trusted reference · page 2 viewer/i })
+    expect(within(candidateViewer).getByText('Candidate page missing')).toBeInTheDocument()
+    expect(within(candidateViewer).queryByRole('img')).not.toBeInTheDocument()
+    expect(within(candidateViewer).queryByLabelText(/evidence marker/i)).not.toBeInTheDocument()
+    expect(within(referenceViewer).getByRole('img', { name: /trusted reference · page 2/i })).toHaveAttribute(
+      'src',
+      '/assets/reference-page-2',
+    )
+
+    const missingFinding = screen.getByRole('button', { name: /open finding on page 2: page missing/i })
+    expect(missingFinding).toBeInTheDocument()
+    await user.click(missingFinding)
+    const drawer = await screen.findByRole('dialog', { name: /page missing/i })
+    expect(within(drawer).queryByRole('img', { name: /questioned for selected finding/i })).not.toBeInTheDocument()
+    expect(within(drawer).getByText('Candidate page missing')).toBeInTheDocument()
+    expect(within(drawer).getByRole('img', { name: /trusted reference for selected finding/i })).toHaveAttribute(
+      'src',
+      '/assets/reference-page-2',
+    )
+    expect(within(drawer).queryByText('/assets/invalid-missing-candidate-crop')).not.toBeInTheDocument()
+    await user.click(within(drawer).getByRole('button', { name: /close evidence drawer/i }))
+
+    await user.click(screen.getByRole('button', { name: /previous page/i }))
+    expect(screen.getByRole('img', { name: /questioned document · page 1/i })).toHaveAttribute(
+      'src',
+      '/assets/candidate-page-1',
+    )
+    await user.click(screen.getByRole('button', { name: /next page/i }))
+    candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    expect(within(candidateViewer).getByText('Candidate page missing')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /next page/i }))
+    expect(screen.getByRole('img', { name: /questioned document · page 3/i })).toHaveAttribute(
+      'src',
+      '/assets/candidate-page-2-after-gap',
+    )
+    await user.click(screen.getByRole('button', { name: /previous page/i }))
+    candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    expect(within(candidateViewer).getByText('Candidate page missing')).toBeInTheDocument()
+    await user.click(pageOne)
+    await user.click(pageTwo)
+    candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    referenceViewer = screen.getByRole('region', { name: /trusted reference · page 2 viewer/i })
+    expect(within(candidateViewer).getByText('Candidate page missing')).toBeInTheDocument()
+    expect(within(candidateViewer).queryByRole('img')).not.toBeInTheDocument()
+    expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/reference-page-2')
+  })
+
+  it('renders an added candidate page with no substituted reference evidence', async () => {
+    const { user } = await completeResultDemo(addedPageResult)
+    const filmstrip = screen.getByRole('region', { name: /document pages/i })
+    await user.click(within(filmstrip).getByRole('button', { name: /page 2:/i }))
+
+    const candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    const referenceViewer = screen.getByRole('region', { name: /trusted reference · page 2 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/candidate-page-2-added')
+    expect(within(referenceViewer).getByText('Reference page missing')).toBeInTheDocument()
+    expect(within(referenceViewer).queryByRole('img')).not.toBeInTheDocument()
+    expect(within(referenceViewer).queryByLabelText(/evidence marker/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /open finding on page 2: page added/i }))
+    const drawer = await screen.findByRole('dialog', { name: /page added/i })
+    expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute(
+      'src',
+      '/assets/candidate-page-2',
+    )
+    expect(within(drawer).queryByRole('img', { name: /trusted reference for selected finding/i })).not.toBeInTheDocument()
+    expect(within(drawer).getByText('Reference page missing')).toBeInTheDocument()
+  })
+
+  it('uses explicit physical correspondence for reordered review slots', async () => {
+    const { user } = await completeResultDemo(reorderedPageResult)
+    const filmstrip = screen.getByRole('region', { name: /document pages/i })
+
+    await user.click(within(filmstrip).getByRole('button', { name: /page 2:/i }))
+    let candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    let referenceViewer = screen.getByRole('region', { name: /trusted reference · page 2 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/reordered-candidate-page-2')
+    expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/reordered-reference-page-3')
+    expect(within(candidateViewer).getByText(/page 02 \/ 03/i)).toBeInTheDocument()
+    expect(within(referenceViewer).getByText(/page 03 \/ 03/i)).toBeInTheDocument()
+
+    await user.click(within(filmstrip).getByRole('button', { name: /page 3:/i }))
+    candidateViewer = screen.getByRole('region', { name: /questioned document · page 3 viewer/i })
+    referenceViewer = screen.getByRole('region', { name: /trusted reference · page 3 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/reordered-candidate-page-3')
+    expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/reordered-reference-page-2')
+    expect(within(candidateViewer).getByText(/page 03 \/ 03/i)).toBeInTheDocument()
+    expect(within(referenceViewer).getByText(/page 02 \/ 03/i)).toBeInTheDocument()
+  })
+
+  it('preserves normal matched page-2 tampering markers and evidence', async () => {
+    const { user } = await completeResultDemo(normalPageTwoTamperResult)
+    const filmstrip = screen.getByRole('region', { name: /document pages/i })
+    await user.click(within(filmstrip).getByRole('button', { name: /page 2:/i }))
+
+    const candidateViewer = screen.getByRole('region', { name: /questioned document · page 2 viewer/i })
+    const referenceViewer = screen.getByRole('region', { name: /trusted reference · page 2 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/normal-candidate-page-2')
+    expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/normal-reference-page-2')
+    const marker = within(candidateViewer).getByRole('button', { name: /typography inconsistency/i })
+    await user.click(marker)
+    const drawer = await screen.findByRole('dialog', { name: /typography inconsistency/i })
+    expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute('src', '/assets/page-2-candidate-crop')
+    expect(within(drawer).getByRole('img', { name: /trusted reference for selected finding/i })).toHaveAttribute('src', '/assets/page-2-reference-crop')
+    expect(within(drawer).getByRole('img', { name: /difference overlay for selected finding/i })).toHaveAttribute('src', '/assets/page-2-difference')
+  })
+
+  it('preserves the legitimate template result and its four variable regions', async () => {
+    await completeResultDemo(templateLegitimateResult)
+    expect(screen.getAllByText('Template comparison').length).toBeGreaterThan(0)
+    expect(within(screen.getByRole('region', { name: /analysis assessment/i })).getByText('15')).toBeInTheDocument()
+    const candidateViewer = screen.getByRole('region', { name: /questioned document · page 1 viewer/i })
+    const referenceViewer = screen.getByRole('region', { name: /trusted reference · page 1 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-legitimate-candidate')
+    expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-reference')
+    expect(within(candidateViewer).getByLabelText('4 suggested variable regions')).toBeInTheDocument()
+    expect(screen.queryByText(/candidate page missing|reference page missing/i)).not.toBeInTheDocument()
+  })
+
+  it('preserves manipulated template markers and evidence', async () => {
+    const { user } = await completeResultDemo(templateManipulatedResult)
+    expect(within(screen.getByRole('region', { name: /analysis assessment/i })).getByText('81')).toBeInTheDocument()
+    const candidateViewer = screen.getByRole('region', { name: /questioned document · page 1 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-manipulated-candidate')
+    await user.click(within(candidateViewer).getByRole('button', { name: /background compositing detected/i }))
+    const drawer = await screen.findByRole('dialog', { name: /background compositing detected/i })
+    expect(within(drawer).getByRole('img', { name: /questioned for selected finding/i })).toHaveAttribute('src', '/assets/template-manipulated-candidate-crop')
+    expect(within(drawer).getByRole('img', { name: /trusted reference for selected finding/i })).toHaveAttribute('src', '/assets/template-manipulated-reference-crop')
+    expect(within(drawer).getByRole('img', { name: /difference overlay for selected finding/i })).toHaveAttribute('src', '/assets/template-manipulated-overlay')
   })
 
   it('shows a structured failure state and a route back to upload', async () => {

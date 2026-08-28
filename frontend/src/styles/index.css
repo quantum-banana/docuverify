@@ -964,6 +964,18 @@ button:disabled {
   gap: 22px;
 }
 
+.document-comparison {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.document-comparison .document-stage {
+  min-height: 560px;
+  padding: 22px;
+}
+
 .document-shell {
   min-width: 0;
   overflow: hidden;
@@ -2187,6 +2199,11 @@ button:disabled {
   .findings-panel {
     order: -1;
   }
+
+  .document-comparison .document-stage {
+    min-height: 500px;
+    padding: 18px;
+  }
 }
 
 @media (max-width: 620px) {
@@ -2284,6 +2301,10 @@ button:disabled {
   .document-stage {
     min-height: 480px;
     padding: 20px 14px;
+  }
+
+  .document-comparison {
+    grid-template-columns: 1fr;
   }
 
   .document-page {
