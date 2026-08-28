@@ -390,8 +390,38 @@ export interface ProfileMatchSummary {
   completeness: number
   authoritative_source_url?: string
   visual_reference_available: boolean
+  reference_asset?: ReferenceAssetSummary
+  selected_exemplar_id?: string
+  exemplar_scores: Record<string, number>
+  visual_comparison_coverage: number
+  visual_alignment_quality: number
+  visual_risk_allowed: boolean
+  visual_policy_reason: string
   selected_by_override: boolean
   limitations: string[]
+}
+
+export interface ReferenceAssetSummary {
+  page_number: number
+  side: string
+  mime_type: string
+  dimensions?: {
+    width: number
+    height: number
+  }
+  source_url?: string
+  retrieval_date?: string
+  redistribution_status: string
+  trust_level: string
+  exemplar_id?: string
+  source_class: string
+  source_label: string
+  issuer?: string
+  profile_version?: string
+  demonstration_only: boolean
+  may_influence_tampering_risk: boolean
+  page_count: number
+  thumbnail_available: boolean
 }
 
 export interface ReferenceProfileAssessment {
@@ -405,19 +435,14 @@ export interface ReferenceProfileAssessment {
   checked_items: string[]
   unverified_items: string[]
   result_summary: string
-  reference_asset?: {
-    page_number: number
-    side: string
-    mime_type: string
-    dimensions: {
-      width: number
-      height: number
-    } | undefined
-    source_url?: string
-    retrieval_date?: string
-    redistribution_status: string
-    trust_level: string
-  }
+  reference_asset?: ReferenceAssetSummary
+  matched_items: string[]
+  differed_items: string[]
+  visual_comparison_coverage: number
+  visual_tampering_interpretation: string
+  reference_source_label: string
+  selected_exemplar?: string
+  reference_image_available: boolean
 }
 
 export interface PdfSignatureCheck {

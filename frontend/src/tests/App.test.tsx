@@ -526,6 +526,11 @@ const docuvaultResult = resultWithPages([
       explanation: 'Strongest signals are issuer text and fixed layout.',
       completeness: 96,
       visual_reference_available: false,
+      exemplar_scores: {},
+      visual_comparison_coverage: 0,
+      visual_alignment_quality: 0,
+      visual_risk_allowed: false,
+      visual_policy_reason: 'No compatible visual exemplar was selected.',
       selected_by_override: false,
       limitations: ['Synthetic profile; no issuer authority claim.'],
     },
@@ -554,6 +559,11 @@ const docuvaultResult = resultWithPages([
         explanation: 'Strongest signals are issuer text and fixed layout.',
         completeness: 96,
         visual_reference_available: false,
+        exemplar_scores: {},
+        visual_comparison_coverage: 0,
+        visual_alignment_quality: 0,
+        visual_risk_allowed: false,
+        visual_policy_reason: 'No compatible visual exemplar was selected.',
         selected_by_override: false,
         limitations: [],
       },
@@ -576,6 +586,11 @@ const docuvaultResult = resultWithPages([
         explanation: 'Only the general page structure was similar.',
         completeness: 72,
         visual_reference_available: false,
+        exemplar_scores: {},
+        visual_comparison_coverage: 0,
+        visual_alignment_quality: 0,
+        visual_risk_allowed: false,
+        visual_policy_reason: 'No compatible visual exemplar was selected.',
         selected_by_override: false,
         limitations: [],
       },
@@ -598,6 +613,15 @@ const docuvaultResult = resultWithPages([
       'Issuer cryptographic keys unavailable',
     ],
     result_summary: 'Closest profile identified, but visual authenticity could not be fully checked because this profile has no trusted reference image.',
+    matched_items: [
+      'Issuer wording matched',
+      'Document family and page structure matched',
+    ],
+    differed_items: [],
+    visual_comparison_coverage: 0,
+    visual_tampering_interpretation: 'No trusted pixel comparison was performed.',
+    reference_source_label: 'Metadata and layout profile only',
+    reference_image_available: false,
   },
   digital_signature: {
     status: 'unsigned',
@@ -683,10 +707,26 @@ const docuvaultVisualResult: DocumentResult = {
       match_level: 'Strong',
       reference_capability: 'trusted visual specimen',
       visual_reference_available: true,
+      selected_exemplar_id: 'marksheet-clean-a',
+      exemplar_scores: {
+        'marksheet-clean-a': 96,
+        'marksheet-clean-b': 89,
+      },
+      visual_comparison_coverage: 88,
+      visual_alignment_quality: 95,
+      visual_risk_allowed: true,
+      visual_policy_reason: 'Synthetic evaluation policy permits localized fixed-region comparison.',
     },
     closest_fallback_used: false,
     unverified_items: ['Issuer cryptographic keys unavailable'],
     result_summary: 'The document closely matches the trusted visual profile. No localized alteration requires review.',
+    matched_items: ['Fixed labels and layout matched', 'Expected marksheet structure matched'],
+    differed_items: ['No reportable fixed-region differences were found.'],
+    visual_comparison_coverage: 88,
+    visual_tampering_interpretation: 'The selected visual exemplar produced no reportable tampering finding.',
+    reference_source_label: 'Synthetic demonstration reference',
+    selected_exemplar: 'marksheet-clean-a',
+    reference_image_available: true,
     reference_asset: {
       page_number: 1,
       side: 'front',
@@ -696,6 +736,15 @@ const docuvaultVisualResult: DocumentResult = {
       retrieval_date: '2026-08-28',
       redistribution_status: 'synthetic_fixture',
       trust_level: 'P0 synthetic',
+      exemplar_id: 'marksheet-clean-a',
+      source_class: 'synthetic_demo',
+      source_label: 'Synthetic demonstration reference',
+      issuer: 'Lumen Grove Institute',
+      profile_version: '2026',
+      demonstration_only: true,
+      may_influence_tampering_risk: true,
+      page_count: 1,
+      thumbnail_available: true,
     },
   },
 }
@@ -1262,11 +1311,20 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(profileReport).getByText('Lumen Grove Institute')).toBeInTheDocument()
     expect(within(profileReport).getByText(/academic credential.*2026/i)).toBeInTheDocument()
     expect(within(profileReport).getByText(/moderate profile match/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText('Metadata and layout profile only')).toBeInTheDocument()
     expect(within(profileReport).getByText(/reference available: metadata and configured rules only/i)).toBeInTheDocument()
-    expect(within(profileReport).getByRole('heading', { name: /why this profile matched/i })).toBeInTheDocument()
-    expect(within(profileReport).getByText('Issuer wording matched')).toBeInTheDocument()
+    expect(within(profileReport).getByText('Reference image: Not available in this result')).toBeInTheDocument()
+    const matchReasonHeading = within(profileReport).getByRole('heading', { name: /why this profile matched/i })
+    expect(matchReasonHeading).toBeInTheDocument()
+    expect(within(matchReasonHeading.closest('section')!).getByText('Issuer wording matched')).toBeInTheDocument()
     expect(within(profileReport).getByRole('heading', { name: /what was checked/i })).toBeInTheDocument()
     expect(within(profileReport).getByText('QR presence and decoding')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /what matched/i })).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /what differed/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('Visual differences were not evaluated for this profile.')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /visual evidence interpretation/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('No trusted pixel comparison was performed.')).toBeInTheDocument()
+    expect(within(profileReport).getByText(/visual-comparison coverage: 0%/i)).toBeInTheDocument()
     expect(within(profileReport).getByRole('heading', { name: /could not be verified/i })).toBeInTheDocument()
     expect(within(profileReport).getByText('No trusted visual specimen available')).toBeInTheDocument()
     expect(within(profileReport).getByText(/unavailable checks reduce coverage/i)).toBeInTheDocument()
@@ -1277,6 +1335,8 @@ describe('DocuVerify Phase 1 experience', () => {
     expect(within(profileReport).getByText('Northwind Academic Record')).toBeInTheDocument()
     expect(screen.getByLabelText(/questioned document · page 1 viewer/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/trusted profile.*reference.*viewer/i)).not.toBeInTheDocument()
+    expect(within(profileReport).queryByRole('link', { name: /view trusted visual reference/i })).not.toBeInTheDocument()
+    expect(within(profileReport).queryByRole('img', { name: /trusted visual reference thumbnail/i })).not.toBeInTheDocument()
     expect(screen.getByRole('note')).toHaveTextContent(/no trusted visual specimen is available/i)
     expect(screen.getByRole('heading', { name: /what needs attention/i })).toBeInTheDocument()
     expect(screen.getByText('No evidence-backed concerns')).toBeInTheDocument()
@@ -1300,13 +1360,63 @@ describe('DocuVerify Phase 1 experience', () => {
 
     const profileReport = screen.getByRole('region', { name: /docuvault profile report/i })
     expect(within(profileReport).getByText(/strong profile match/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText('Synthetic demonstration reference')).toBeInTheDocument()
     expect(within(profileReport).getByText(/reference available: trusted visual specimen/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText('Reference image: Available')).toBeInTheDocument()
+    expect(within(profileReport).getByLabelText('Synthetic reference notice')).toHaveTextContent(
+      'This visual reference is fictional and is provided for demonstration and detector evaluation.',
+    )
+    expect(within(profileReport).getByText('Exemplar used')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: 'Marksheet Clean A' })).toBeInTheDocument()
+    expect(within(profileReport).getByText(/page 1 \/ front/i)).toBeInTheDocument()
+    expect(within(profileReport).getByRole('img', { name: /lumen grove achievement record trusted visual reference thumbnail/i })).toHaveAttribute(
+      'src',
+      '/assets/docuvault-trusted-specimen',
+    )
+    expect(within(profileReport).getByRole('link', { name: /view trusted visual reference/i })).toHaveAttribute(
+      'href',
+      '/assets/docuvault-trusted-specimen',
+    )
+    expect(within(profileReport).getByRole('progressbar', { name: /visual-comparison coverage/i })).toHaveAttribute(
+      'aria-valuenow',
+      '88',
+    )
+    expect(within(profileReport).getByRole('heading', { name: /what matched/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('Fixed labels and layout matched')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /what differed/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('No reportable fixed-region differences were found.')).toBeInTheDocument()
+    expect(within(profileReport).getByText('The selected visual exemplar produced no reportable tampering finding.')).toBeInTheDocument()
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
 
     const candidateViewer = screen.getByRole('region', { name: /questioned document · page 1 viewer/i })
-    const referenceViewer = screen.getByRole('region', { name: /lumen grove achievement record reference · p0 synthetic · page 1 viewer/i })
+    const referenceViewer = screen.getByRole('region', { name: /lumen grove achievement record reference \/ synthetic demonstration reference \/ page 1 viewer/i })
     expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/docuvault-visual-candidate')
     expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/docuvault-trusted-specimen')
+  })
+
+  it('keeps a verified reference visible when its pixels are retrieval-only', async () => {
+    const limitedVisualResult: DocumentResult = {
+      ...docuvaultVisualResult,
+      reference_profile: {
+        ...docuvaultVisualResult.reference_profile!,
+        selected_profile: {
+          ...docuvaultVisualResult.reference_profile!.selected_profile!,
+          visual_risk_allowed: false,
+          visual_policy_reason: 'Alignment was insufficient for tampering risk.',
+        },
+        differed_items: [],
+        visual_tampering_interpretation: 'The visual asset supported retrieval only and did not contribute tampering risk.',
+        reference_image_available: true,
+      },
+    }
+
+    await completeResultDemo(limitedVisualResult)
+
+    const profileReport = screen.getByRole('region', { name: /docuvault profile report/i })
+    expect(within(profileReport).getByText('Reference image: Available')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('link', { name: /view trusted visual reference/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('Visual differences were not evaluated for this profile.')).toBeInTheDocument()
+    expect(within(profileReport).getByText(/supported retrieval only and did not contribute tampering risk/i)).toBeInTheDocument()
   })
 
   it('shows a structured failure state and a route back to upload', async () => {

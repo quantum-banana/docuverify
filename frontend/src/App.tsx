@@ -595,7 +595,7 @@ const capabilityLabel = (tier: string): string => ({
   metadata_only: 'Metadata only',
   structural: 'Structure and layout',
   visual_reference: 'Trusted visual specimen',
-  cryptographic: 'Cryptographically verifiable',
+  cryptographic: 'Configured cryptographic capability',
 })[tier] ?? evidenceLabel(tier)
 
 const codeStateLabel = (state: string): string => ({
@@ -790,12 +790,43 @@ function DocuVaultReport({ result }: { result: DocumentResult }) {
   const checkedItems = assessment?.checked_items ?? []
   const unverifiedItems = assessment?.unverified_items ?? []
   const referenceAsset = assessment?.reference_asset
+  const matchedItems = assessment?.matched_items?.length
+    ? assessment.matched_items
+    : matchReasons
+  const differedItems = assessment?.differed_items ?? []
+  const visualCoverage = assessment?.visual_comparison_coverage
+    ?? profile?.visual_comparison_coverage
+    ?? 0
+  const referenceSourceLabel = assessment?.reference_source_label
+    || referenceAsset?.source_label
+    || 'Metadata and layout profile only'
+  const selectedExemplarId = assessment?.selected_exemplar
+    ?? profile?.selected_exemplar_id
+  const selectedExemplarLabel = selectedExemplarId
+    ? evidenceLabel(selectedExemplarId.replace(/[.-]+/g, '_'))
+    : 'No visual exemplar selected'
+  const selectedReferencePage = result.pages.find((page) => (
+    Boolean(page.reference_image_url)
+    && (page.reference_page_number ?? page.page_number) === (referenceAsset?.page_number ?? 1)
+  )) ?? result.pages.find((page) => Boolean(page.reference_image_url))
+  const referenceImageUrl = selectedReferencePage?.reference_image_url
+  const referenceImageAvailable = Boolean(
+    (assessment?.reference_image_available ?? profile?.visual_reference_available)
+    && referenceImageUrl,
+  )
+  const syntheticReference = referenceAsset?.source_class === 'synthetic_demo'
+    || referenceAsset?.demonstration_only
+  const sourceTone = syntheticReference
+    ? 'synthetic'
+    : referenceSourceLabel === 'Metadata and layout profile only'
+      ? 'limited'
+      : 'trusted'
 
   return (
     <section className="docuvault-report" aria-label="DocuVault profile report">
       <header className="docuvault-profile-card">
         <div className="docuvault-profile-card__identity">
-          <span className="section-kicker">Closest trusted profile</span>
+          <span className="section-kicker">Matched DocuVault profile</span>
           {profile ? (
             <>
               <h2>{profile.display_name}</h2>
@@ -817,7 +848,11 @@ function DocuVaultReport({ result }: { result: DocumentResult }) {
             <span className={`profile-match-level profile-match-level--${profile.match_level.toLowerCase()}`}>
               {profile.match_level} profile match
             </span>
+            <span className={`docuvault-source-badge docuvault-source-badge--${sourceTone}`}>
+              {referenceSourceLabel}
+            </span>
             <strong>Reference available: {profile.reference_capability || capabilityLabel(profile.capability_tier)}</strong>
+            <strong>Reference image: {referenceImageAvailable ? 'Available' : 'Not available in this result'}</strong>
           </div>
         )}
         <p className="docuvault-profile-card__summary">
@@ -830,6 +865,62 @@ function DocuVaultReport({ result }: { result: DocumentResult }) {
           </p>
         )}
       </header>
+
+      {syntheticReference && (
+        <aside className="docuvault-synthetic-warning" aria-label="Synthetic reference notice">
+          <AlertIcon />
+          <p>This visual reference is fictional and is provided for demonstration and detector evaluation.</p>
+        </aside>
+      )}
+
+      {referenceImageAvailable && referenceImageUrl && selectedReferencePage && (
+        <section className="docuvault-reference-preview" aria-label="Selected visual reference">
+          <a
+            className="docuvault-reference-preview__thumbnail"
+            href={referenceImageUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open visual reference thumbnail"
+          >
+            <img
+              src={referenceImageUrl}
+              alt={`${profile?.display_name ?? 'Selected profile'} trusted visual reference thumbnail`}
+            />
+          </a>
+          <div className="docuvault-reference-preview__copy">
+            <span className="section-kicker">Exemplar used</span>
+            <h3>{selectedExemplarLabel}</h3>
+            <p>
+              Page {referenceAsset?.page_number ?? selectedReferencePage.reference_page_number ?? selectedReferencePage.page_number}
+              {referenceAsset && referenceAsset.page_count > 1 ? ` of ${referenceAsset.page_count}` : ''}
+              {' / '}{referenceAsset?.side ?? 'single'}
+            </p>
+            <small>
+              {referenceAsset?.issuer || profile?.issuer || 'Issuer not specified'}
+              {(referenceAsset?.profile_version || profile?.version_label)
+                ? ` / Version ${referenceAsset?.profile_version || profile?.version_label}`
+                : ''}
+            </small>
+            <a href={referenceImageUrl} target="_blank" rel="noreferrer">
+              View trusted visual reference <ArrowIcon />
+            </a>
+          </div>
+          <div className="docuvault-reference-preview__coverage">
+            <span>Visual-comparison coverage</span>
+            <strong>{Math.round(visualCoverage)}%</strong>
+            <div
+              className="docuvault-coverage-track"
+              role="progressbar"
+              aria-label="Visual-comparison coverage"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(visualCoverage)}
+            >
+              <i style={{ width: `${visualCoverage}%` }} />
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="docuvault-report__columns">
         <section className="docuvault-report-block" aria-labelledby="docuvault-match-reasons">
@@ -851,6 +942,40 @@ function DocuVaultReport({ result }: { result: DocumentResult }) {
           )}
         </section>
       </div>
+
+      <div className="docuvault-report__columns">
+        <section className="docuvault-report-block" aria-labelledby="docuvault-matched-items">
+          <h3 id="docuvault-matched-items">What matched</h3>
+          {matchedItems.length ? (
+            <ul className="docuvault-check-list">
+              {matchedItems.map((item) => <li key={item}><CheckIcon /> <span>{item}</span></li>)}
+            </ul>
+          ) : (
+            <p>No supported visual match was reported.</p>
+          )}
+        </section>
+        <section className="docuvault-report-block" aria-labelledby="docuvault-differed-items">
+          <h3 id="docuvault-differed-items">What differed</h3>
+          {differedItems.length ? (
+            <ul>{differedItems.map((item) => <li key={item}>{item}</li>)}</ul>
+          ) : (
+            <p>{profile?.visual_risk_allowed
+              ? 'No reportable visual difference was provided.'
+              : 'Visual differences were not evaluated for this profile.'}</p>
+          )}
+        </section>
+      </div>
+
+      <section className={`docuvault-interpretation${profile?.visual_risk_allowed ? '' : ' docuvault-interpretation--limited'}`} aria-labelledby="docuvault-visual-interpretation">
+        <div>
+          <ShieldIcon />
+          <h3 id="docuvault-visual-interpretation">Visual evidence interpretation</h3>
+        </div>
+        <p>{assessment?.visual_tampering_interpretation || 'No trusted pixel comparison was performed.'}</p>
+        <small>
+          Visual-comparison coverage: {Math.round(visualCoverage)}%. Limited coverage is not evidence of tampering.
+        </small>
+      </section>
 
       {unverifiedItems.length > 0 && (
         <section className="docuvault-unverified" aria-labelledby="docuvault-unverified-items">
@@ -886,6 +1011,10 @@ function DocuVaultReport({ result }: { result: DocumentResult }) {
               <div><dt>Profile score</dt><dd>{Math.round(profile.score)}/100</dd></div>
               <div><dt>Capability tier</dt><dd>{capabilityLabel(profile.capability_tier)}</dd></div>
               <div><dt>Provenance</dt><dd>{profile.provenance_assurance}</dd></div>
+              <div><dt>Source class</dt><dd>{referenceAsset?.source_class ?? 'none'}</dd></div>
+              <div><dt>Selected exemplar ID</dt><dd>{selectedExemplarId ?? 'none'}</dd></div>
+              <div><dt>Visual alignment</dt><dd>{Math.round(profile.visual_alignment_quality ?? 0)}/100</dd></div>
+              <div><dt>Risk policy</dt><dd>{profile.visual_policy_reason || 'No visual risk policy was reported.'}</dd></div>
               {referenceAsset && <div><dt>Reference asset</dt><dd>Page {referenceAsset.page_number} · {referenceAsset.side} · {referenceAsset.trust_level}</dd></div>}
             </dl>
             {Object.keys(profile.component_scores).length > 0 && (
@@ -895,8 +1024,15 @@ function DocuVaultReport({ result }: { result: DocumentResult }) {
                 ))}
               </dl>
             )}
+            {Object.keys(profile.exemplar_scores ?? {}).length > 0 && (
+              <dl aria-label="Exemplar scores">
+                {Object.entries(profile.exemplar_scores ?? {}).map(([name, score]) => (
+                  <div key={name}><dt>{name}</dt><dd>{Math.round(score)}/100</dd></div>
+                ))}
+              </dl>
+            )}
             {referenceAsset?.source_url && (
-              <a href={referenceAsset.source_url} target="_blank" rel="noreferrer">Reference asset source</a>
+              <a href={referenceAsset.source_url} target="_blank" rel="noreferrer">Reference provenance source</a>
             )}
           </div>
         )}
@@ -976,7 +1112,8 @@ function ResultScreen({
     ? null
     : selectedPage?.reference_page_number ?? selectedPage?.page_number ?? null
   const selectedProfile = result.reference_profile?.selected_profile
-  const profileHasVisualReference = Boolean(selectedProfile?.visual_reference_available)
+  const profileHasVisualReference = result.reference_profile?.reference_image_available
+    ?? Boolean(selectedProfile?.visual_reference_available)
   const showReferenceViewer = !isDocuVault || Boolean(
     profileHasVisualReference && selectedPage?.reference_image_url,
   )
@@ -1139,7 +1276,7 @@ function ResultScreen({
                 side="reference"
                 pageMissing={referencePageMissing}
                 label={isDocuVault
-                  ? `${selectedProfile?.display_name ?? 'Trusted profile'} reference · ${result.reference_profile?.reference_asset?.trust_level ?? capabilityLabel(selectedProfile?.capability_tier ?? 'visual_reference')} · page ${selectedPage?.page_number ?? 1}`
+                  ? `${selectedProfile?.display_name ?? 'Trusted profile'} reference / ${result.reference_profile?.reference_source_label || result.reference_profile?.reference_asset?.source_label || capabilityLabel(selectedProfile?.capability_tier ?? 'visual_reference')} / page ${selectedPage?.page_number ?? 1}`
                   : `Trusted reference · page ${selectedPage?.page_number ?? 1}`}
               />
             )}

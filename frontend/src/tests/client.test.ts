@@ -211,6 +211,12 @@ describe('Phase 1 API contract and recovery behavior', () => {
           explanation: 'Issuer and layout were the strongest signals.',
           completeness: 0.9,
           visual_reference_available: false,
+          selected_exemplar_id: 'structural-layout-a',
+          exemplar_scores: { 'structural-layout-a': 0.82 },
+          visual_comparison_coverage: 0.42,
+          visual_alignment_quality: 0.91,
+          visual_risk_allowed: false,
+          visual_policy_reason: 'The selected source is available for retrieval only.',
           selected_by_override: true,
           limitations: [],
         },
@@ -221,6 +227,13 @@ describe('Phase 1 API contract and recovery behavior', () => {
         checked_items: ['Document type and issuer', 'Page structure and dimensions'],
         unverified_items: ['No trusted visual specimen available'],
         result_summary: 'Closest profile identified; visual authenticity could not be fully checked.',
+        matched_items: ['Issuer wording matched'],
+        differed_items: ['No trusted pixel comparison was performed.'],
+        visual_comparison_coverage: 0.42,
+        visual_tampering_interpretation: 'The visual asset did not contribute tampering risk.',
+        reference_source_label: 'Metadata and layout profile only',
+        selected_exemplar: 'structural-layout-a',
+        reference_image_available: false,
         reference_asset: {
           page_number: 1,
           side: 'front',
@@ -229,6 +242,15 @@ describe('Phase 1 API contract and recovery behavior', () => {
           source_url: 'C:\\private\\reference.pdf',
           redistribution_status: 'restricted',
           trust_level: 'P2 structural',
+          exemplar_id: 'structural-layout-a',
+          source_class: 'unknown',
+          source_label: 'Metadata and layout profile only',
+          issuer: 'Fictional Institute',
+          profile_version: '2026',
+          demonstration_only: false,
+          may_influence_tampering_risk: false,
+          page_count: 2,
+          thumbnail_available: true,
         },
       },
       codes: {
@@ -306,15 +328,30 @@ describe('Phase 1 API contract and recovery behavior', () => {
       capability_tier: 'structural',
       match_level: 'Moderate',
       match_reasons: ['Issuer wording matched', 'Page structure matched'],
+      selected_exemplar_id: 'structural-layout-a',
+      exemplar_scores: { 'structural-layout-a': 82 },
+      visual_comparison_coverage: 42,
+      visual_alignment_quality: 91,
+      visual_risk_allowed: false,
     })
     expect(parsed.reference_profile).toMatchObject({
       checked_items: ['Document type and issuer', 'Page structure and dimensions'],
       unverified_items: ['No trusted visual specimen available'],
+      matched_items: ['Issuer wording matched'],
+      differed_items: ['No trusted pixel comparison was performed.'],
+      visual_comparison_coverage: 42,
+      reference_source_label: 'Metadata and layout profile only',
+      selected_exemplar: 'structural-layout-a',
+      reference_image_available: false,
     })
     expect(parsed.reference_profile?.reference_asset).toMatchObject({
       page_number: 1,
       dimensions: { width: 595, height: 842 },
       source_url: undefined,
+      source_class: 'unknown',
+      demonstration_only: false,
+      page_count: 2,
+      thumbnail_available: true,
     })
     expect(parsed.codes).toMatchObject({
       states: ['DETECTED_BUT_UNREADABLE', 'CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE'],
@@ -331,6 +368,33 @@ describe('Phase 1 API contract and recovery behavior', () => {
       compositing_score: 72,
     })
     expect(parsed.investigative_assessment?.status).toBe('review_recommended')
+  })
+
+  it.each([
+    ['authorized_official_specimen', 'Authorized visual reference'],
+    ['authorized_organization_template', 'Authorized visual reference'],
+    ['synthetic_demo', 'Synthetic demonstration reference'],
+    ['user_registered_trusted_reference', 'User-registered trusted reference'],
+    ['unknown', 'Metadata and layout profile only'],
+  ])('uses the exact safe source label for %s', (sourceClass, expectedLabel) => {
+    const parsed = parseDocumentResult({
+      ...backendResult,
+      comparison_mode: 'docuvault',
+      reference_profile: {
+        top_matches: [],
+        reference_asset: {
+          page_number: 1,
+          side: 'front',
+          mime_type: 'image/png',
+          redistribution_status: 'permitted',
+          trust_level: 'P1',
+          source_class: sourceClass,
+        },
+      },
+    })
+
+    expect(parsed.reference_profile?.reference_source_label).toBe(expectedLabel)
+    expect(parsed.reference_profile?.reference_asset?.source_label).toBe(expectedLabel)
   })
 
   it('normalizes Phase 2 page metrics, OCR, variable suggestions and page anomalies defensively', () => {

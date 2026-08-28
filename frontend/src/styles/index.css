@@ -1333,6 +1333,36 @@ svg {
   font-weight: 650;
 }
 
+.docuvault-source-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.docuvault-source-badge--trusted {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.docuvault-source-badge--synthetic {
+  border-color: var(--red-border);
+  background: var(--red-soft);
+  color: var(--red-deep);
+}
+
+.docuvault-source-badge--limited {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
 .profile-match-level {
   display: inline-flex;
   align-items: center;
@@ -1373,6 +1403,140 @@ svg {
 .docuvault-neutral-note {
   color: var(--muted);
   font-size: 11px;
+}
+
+.docuvault-synthetic-warning {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 16px;
+  border: 1px solid var(--red-border);
+  border-left: 4px solid var(--red);
+  border-radius: var(--radius-md);
+  background: var(--red-soft);
+  color: var(--red-deep);
+}
+
+.docuvault-synthetic-warning svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.docuvault-synthetic-warning p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.docuvault-reference-preview {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) minmax(155px, 0.35fr);
+  align-items: center;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--ink);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.docuvault-reference-preview__thumbnail {
+  display: grid;
+  width: 112px;
+  height: 146px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.docuvault-reference-preview__thumbnail:focus-visible,
+.docuvault-reference-preview__copy a:focus-visible {
+  outline: 3px solid var(--red-deep);
+  outline-offset: 3px;
+}
+
+.docuvault-reference-preview__thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.docuvault-reference-preview__copy {
+  min-width: 0;
+}
+
+.docuvault-reference-preview__copy h3 {
+  margin: 3px 0 2px;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.docuvault-reference-preview__copy p,
+.docuvault-reference-preview__copy small {
+  display: block;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.docuvault-reference-preview__copy a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 11px;
+  color: var(--red-deep);
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.docuvault-reference-preview__copy a:hover {
+  text-decoration: underline;
+}
+
+.docuvault-reference-preview__copy a svg {
+  width: 13px;
+  height: 13px;
+}
+
+.docuvault-reference-preview__coverage {
+  display: grid;
+  gap: 5px;
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
+.docuvault-reference-preview__coverage span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.docuvault-reference-preview__coverage strong {
+  color: var(--ink);
+  font-size: 25px;
+  line-height: 1;
+}
+
+.docuvault-coverage-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.docuvault-coverage-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  max-width: 100%;
+  border-radius: inherit;
+  background: var(--red);
 }
 
 .docuvault-report__columns {
@@ -1486,6 +1650,49 @@ svg {
   margin: 12px 0 0;
   color: var(--muted);
   font-size: 11px;
+}
+
+.docuvault-interpretation {
+  padding: 16px 18px;
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--ink);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.docuvault-interpretation--limited {
+  border-left-color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.docuvault-interpretation > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.docuvault-interpretation svg {
+  width: 17px;
+  height: 17px;
+  color: var(--ink-soft);
+}
+
+.docuvault-interpretation h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.docuvault-interpretation p {
+  margin: 9px 0 4px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.docuvault-interpretation small {
+  color: var(--muted);
+  font-size: 10px;
 }
 
 .docuvault-disclosure {
@@ -3022,9 +3229,22 @@ svg {
   }
 
   .docuvault-profile-card,
+  .docuvault-reference-preview,
   .docuvault-report__columns,
   .docuvault-technical__profile {
     grid-template-columns: 1fr;
+  }
+
+  .docuvault-reference-preview__thumbnail {
+    width: 100%;
+    height: min(260px, 50vw);
+  }
+
+  .docuvault-reference-preview__coverage {
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
   }
 
   .docuvault-profile-card__status {

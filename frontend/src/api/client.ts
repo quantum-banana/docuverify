@@ -436,7 +436,7 @@ const capabilityDescription = (tier: ReturnType<typeof parseCapabilityTier>): st
   metadata_only: 'Metadata only',
   structural: 'Structure and layout',
   visual_reference: 'Trusted visual specimen',
-  cryptographic: 'Cryptographically verifiable',
+  cryptographic: 'Configured cryptographic capability',
 })[tier]
 
 const codeStates = new Set<CodeVerificationState>([
@@ -454,6 +454,51 @@ const parseCodeState = (value: unknown): CodeVerificationState | undefined => {
   return codeStates.has(state) ? state : undefined
 }
 
+const referenceSourceLabels: Record<string, string> = {
+  synthetic_demo: 'Synthetic demonstration reference',
+  authorized_official_specimen: 'Authorized visual reference',
+  authorized_organization_template: 'Authorized visual reference',
+  user_registered_trusted_reference: 'User-registered trusted reference',
+  derived_from_multiple_trusted_exemplars: 'Derived trusted exemplar profile',
+}
+
+const referenceSourceLabel = (sourceClass: string): string =>
+  referenceSourceLabels[sourceClass] ?? 'Metadata and layout profile only'
+
+const safeReferenceSourceLabels = new Set([
+  ...Object.values(referenceSourceLabels),
+  'Metadata and layout profile only',
+])
+
+const parseReferenceAsset = (value: unknown) => {
+  if (!isRecord(value)) return undefined
+  const rawDimensions = isRecord(value.dimensions) ? value.dimensions : undefined
+  const sourceUrl = asString(value.source_url)
+  const sourceClass = asString(value.source_class, 'unknown')
+  return {
+    page_number: Math.max(1, Math.round(asNumber(value.page_number, 1))),
+    side: asString(value.side, 'front'),
+    mime_type: asString(value.mime_type, 'application/octet-stream'),
+    dimensions: rawDimensions ? {
+      width: Math.max(1, Math.round(asNumber(rawDimensions.width, 1))),
+      height: Math.max(1, Math.round(asNumber(rawDimensions.height, 1))),
+    } : undefined,
+    source_url: /^https:\/\//i.test(sourceUrl) ? sourceUrl : undefined,
+    retrieval_date: optionalString(value.retrieval_date),
+    redistribution_status: asString(value.redistribution_status, 'unspecified'),
+    trust_level: asString(value.trust_level, 'unspecified'),
+    exemplar_id: optionalString(value.exemplar_id),
+    source_class: sourceClass,
+    source_label: referenceSourceLabel(sourceClass),
+    issuer: optionalString(value.issuer),
+    profile_version: optionalString(value.profile_version),
+    demonstration_only: asBoolean(value.demonstration_only),
+    may_influence_tampering_risk: asBoolean(value.may_influence_tampering_risk),
+    page_count: Math.max(1, Math.round(asNumber(value.page_count, 1))),
+    thumbnail_available: asBoolean(value.thumbnail_available),
+  }
+}
+
 const parseProfileMatch = (value: unknown) => {
   if (!isRecord(value)) return undefined
   const rawComponents = isRecord(value.component_scores) ? value.component_scores : {}
@@ -465,6 +510,7 @@ const parseProfileMatch = (value: unknown) => {
   const capabilityTier = parseCapabilityTier(value.capability_tier)
   const subtype = asString(value.subtype)
   const documentFamily = asString(value.document_family, 'Unknown family')
+  const rawExemplarScores = isRecord(value.exemplar_scores) ? value.exemplar_scores : {}
   return {
     profile_id: asString(value.profile_id),
     display_name: asString(value.display_name) || humanizeIdentifier(subtype || documentFamily),
@@ -486,6 +532,18 @@ const parseProfileMatch = (value: unknown) => {
     completeness: asScore(value.completeness),
     authoritative_source_url: /^https:\/\//i.test(sourceUrl) ? sourceUrl : undefined,
     visual_reference_available: asBoolean(value.visual_reference_available),
+    reference_asset: parseReferenceAsset(value.reference_asset),
+    selected_exemplar_id: optionalString(value.selected_exemplar_id),
+    exemplar_scores: Object.fromEntries(
+      Object.entries(rawExemplarScores).map(([name, exemplarScore]) => [name, asScore(exemplarScore)]),
+    ),
+    visual_comparison_coverage: asScore(value.visual_comparison_coverage),
+    visual_alignment_quality: asScore(value.visual_alignment_quality),
+    visual_risk_allowed: asBoolean(value.visual_risk_allowed),
+    visual_policy_reason: asString(
+      value.visual_policy_reason,
+      'No compatible visual exemplar was selected.',
+    ),
     selected_by_override: asBoolean(value.selected_by_override),
     limitations: asStringArray(value.limitations),
   }
@@ -497,22 +555,12 @@ const parseReferenceProfile = (value: unknown): ReferenceProfileAssessment | und
   const topMatches = Array.isArray(value.top_matches)
     ? value.top_matches.map(parseProfileMatch).filter((item): item is NonNullable<typeof item> => Boolean(item))
     : []
-  const rawAsset = isRecord(value.reference_asset) ? value.reference_asset : undefined
-  const rawDimensions = rawAsset && isRecord(rawAsset.dimensions) ? rawAsset.dimensions : undefined
-  const assetSourceUrl = rawAsset ? asString(rawAsset.source_url) : ''
-  const referenceAsset = rawAsset ? {
-    page_number: Math.max(1, Math.round(asNumber(rawAsset.page_number, 1))),
-    side: asString(rawAsset.side, 'front'),
-    mime_type: asString(rawAsset.mime_type, 'application/octet-stream'),
-    dimensions: rawDimensions ? {
-      width: Math.max(1, Math.round(asNumber(rawDimensions.width, 1))),
-      height: Math.max(1, Math.round(asNumber(rawDimensions.height, 1))),
-    } : undefined,
-    source_url: /^https:\/\//i.test(assetSourceUrl) ? assetSourceUrl : undefined,
-    retrieval_date: optionalString(rawAsset.retrieval_date),
-    redistribution_status: asString(rawAsset.redistribution_status, 'unspecified'),
-    trust_level: asString(rawAsset.trust_level, 'unspecified'),
-  } : undefined
+  const referenceAsset = parseReferenceAsset(value.reference_asset)
+  const reportedSourceLabel = asString(value.reference_source_label)
+  const parsedSourceLabel = referenceAsset?.source_label
+    ?? (safeReferenceSourceLabels.has(reportedSourceLabel)
+      ? reportedSourceLabel
+      : 'Metadata and layout profile only')
   return {
     selected_profile: selected,
     top_matches: topMatches,
@@ -525,6 +573,19 @@ const parseReferenceProfile = (value: unknown): ReferenceProfileAssessment | und
     unverified_items: asStringArray(value.unverified_items),
     result_summary: asString(value.result_summary, asString(value.explanation)),
     reference_asset: referenceAsset,
+    matched_items: asStringArray(value.matched_items),
+    differed_items: asStringArray(value.differed_items),
+    visual_comparison_coverage: asScore(value.visual_comparison_coverage),
+    visual_tampering_interpretation: asString(
+      value.visual_tampering_interpretation,
+      'No trusted pixel comparison was performed.',
+    ),
+    reference_source_label: parsedSourceLabel,
+    selected_exemplar: optionalString(value.selected_exemplar),
+    reference_image_available: asBoolean(
+      value.reference_image_available,
+      Boolean(selected?.visual_reference_available && referenceAsset),
+    ),
   }
 }
 
