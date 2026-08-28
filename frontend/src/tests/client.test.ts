@@ -193,9 +193,16 @@ describe('Phase 1 API contract and recovery behavior', () => {
       reference_profile: {
         selected_profile: {
           profile_id: 'fictional.profile.v1',
+          display_name: 'Fictional Academic Record',
           issuer: 'Fictional Institute',
           document_family: 'Academic record',
+          document_category: 'Academic credential',
           subtype: 'record',
+          version_label: '2026',
+          capability_tier: 'structural',
+          match_level: 'Moderate',
+          reference_capability: 'metadata and layout only',
+          match_reasons: ['Issuer wording matched', 'Page structure matched'],
           provenance_kind: 'synthetic',
           provenance_assurance: 'P0',
           score: 0.895,
@@ -211,6 +218,41 @@ describe('Phase 1 API contract and recovery behavior', () => {
         closest_fallback_used: true,
         reference_strength: 'Closest available profile',
         explanation: 'Limited local profile evidence.',
+        checked_items: ['Document type and issuer', 'Page structure and dimensions'],
+        unverified_items: ['No trusted visual specimen available'],
+        result_summary: 'Closest profile identified; visual authenticity could not be fully checked.',
+        reference_asset: {
+          page_number: 1,
+          side: 'front',
+          mime_type: 'application/pdf',
+          dimensions: { width: 595, height: 842 },
+          source_url: 'C:\\private\\reference.pdf',
+          redistribution_status: 'restricted',
+          trust_level: 'P2 structural',
+        },
+      },
+      codes: {
+        status: 'warning',
+        states: ['DETECTED_BUT_UNREADABLE', 'CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE'],
+        coverage_score: 0.64,
+        expected: 'required',
+        detected_count: 1,
+        decoded_count: 0,
+        results: [{
+          code_index: 1,
+          page_number: 1,
+          symbology: 'QR',
+          detected: true,
+          decoded: false,
+          state: 'DETECTED_BUT_UNREADABLE',
+          decoder: 'opencv',
+          confidence_score: 0.82,
+          cryptographic_verification_available: false,
+          cryptographic_verification_result: 'unsupported',
+          structural_tampering_indicators: [],
+          explanation: 'A QR-like region was detected, but its payload could not be decoded.',
+        }],
+        explanation: 'The visible QR region could not be decoded.',
       },
       digital_signature: {
         status: 'unsigned',
@@ -259,6 +301,28 @@ describe('Phase 1 API contract and recovery behavior', () => {
       score: 89.5,
       selected_by_override: true,
       visual_reference_available: false,
+      display_name: 'Fictional Academic Record',
+      document_category: 'Academic credential',
+      capability_tier: 'structural',
+      match_level: 'Moderate',
+      match_reasons: ['Issuer wording matched', 'Page structure matched'],
+    })
+    expect(parsed.reference_profile).toMatchObject({
+      checked_items: ['Document type and issuer', 'Page structure and dimensions'],
+      unverified_items: ['No trusted visual specimen available'],
+    })
+    expect(parsed.reference_profile?.reference_asset).toMatchObject({
+      page_number: 1,
+      dimensions: { width: 595, height: 842 },
+      source_url: undefined,
+    })
+    expect(parsed.codes).toMatchObject({
+      states: ['DETECTED_BUT_UNREADABLE', 'CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE'],
+      coverage_score: 64,
+    })
+    expect(parsed.codes?.results[0]).toMatchObject({
+      state: 'DETECTED_BUT_UNREADABLE',
+      confidence_score: 82,
     })
     expect(parsed.digital_signature?.status).toBe('unsigned')
     expect(parsed.logical_consistency).toMatchObject({ passed_count: 2, skipped_count: 1 })

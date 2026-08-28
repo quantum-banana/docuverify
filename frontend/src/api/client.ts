@@ -26,6 +26,7 @@ import type {
   ReferenceProfileAssessment,
   SimilarityAssessment,
   MetadataAssessment,
+  CodeVerificationState,
 } from '../types/contracts'
 
 const configuredBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
@@ -415,6 +416,44 @@ const parsePage = (value: unknown, fallbackFindings: Finding[], index: number): 
 
 const optionalString = (value: unknown): string | undefined => asString(value) || undefined
 
+const parseCapabilityTier = (value: unknown): 'metadata_only' | 'structural' | 'visual_reference' | 'cryptographic' => {
+  const tier = normalizeIdentifier(value)
+  if (tier === 'structural' || tier === 'visual_reference' || tier === 'cryptographic') return tier
+  return 'metadata_only'
+}
+
+const parseMatchLevel = (value: unknown, score: number): 'Strong' | 'Moderate' | 'Weak' => {
+  const level = asString(value).trim().toLowerCase()
+  if (level === 'strong') return 'Strong'
+  if (level === 'moderate') return 'Moderate'
+  if (level === 'weak') return 'Weak'
+  if (score >= 80) return 'Strong'
+  if (score >= 60) return 'Moderate'
+  return 'Weak'
+}
+
+const capabilityDescription = (tier: ReturnType<typeof parseCapabilityTier>): string => ({
+  metadata_only: 'Metadata only',
+  structural: 'Structure and layout',
+  visual_reference: 'Trusted visual specimen',
+  cryptographic: 'Cryptographically verifiable',
+})[tier]
+
+const codeStates = new Set<CodeVerificationState>([
+  'DETECTED_AND_DECODED',
+  'DETECTED_BUT_UNREADABLE',
+  'EXPECTED_REGION_OCCUPIED_UNVERIFIED',
+  'CONFIRMED_MISSING',
+  'NOT_EXPECTED',
+  'DECODER_UNSUPPORTED',
+  'CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE',
+])
+
+const parseCodeState = (value: unknown): CodeVerificationState | undefined => {
+  const state = asString(value).trim().toUpperCase() as CodeVerificationState
+  return codeStates.has(state) ? state : undefined
+}
+
 const parseProfileMatch = (value: unknown) => {
   if (!isRecord(value)) return undefined
   const rawComponents = isRecord(value.component_scores) ? value.component_scores : {}
@@ -422,14 +461,25 @@ const parseProfileMatch = (value: unknown) => {
     Object.entries(rawComponents).map(([name, score]) => [name, asScore(score)]),
   )
   const sourceUrl = asString(value.authoritative_source_url)
+  const score = asScore(value.score)
+  const capabilityTier = parseCapabilityTier(value.capability_tier)
+  const subtype = asString(value.subtype)
+  const documentFamily = asString(value.document_family, 'Unknown family')
   return {
     profile_id: asString(value.profile_id),
+    display_name: asString(value.display_name) || humanizeIdentifier(subtype || documentFamily),
     issuer: asString(value.issuer, 'Unknown issuer'),
-    document_family: asString(value.document_family, 'Unknown family'),
-    subtype: asString(value.subtype),
+    document_family: documentFamily,
+    document_category: asString(value.document_category) || humanizeIdentifier(documentFamily),
+    subtype,
+    version_label: optionalString(value.version_label),
+    capability_tier: capabilityTier,
+    match_level: parseMatchLevel(value.match_level, score),
+    reference_capability: asString(value.reference_capability) || capabilityDescription(capabilityTier),
+    match_reasons: asStringArray(value.match_reasons).slice(0, 4),
     provenance_kind: asString(value.provenance_kind, 'unknown'),
     provenance_assurance: asString(value.provenance_assurance, 'unknown'),
-    score: asScore(value.score),
+    score,
     component_scores: componentScores,
     reference_strength: asString(value.reference_strength, 'Reference strength unavailable'),
     explanation: asString(value.explanation),
@@ -447,6 +497,22 @@ const parseReferenceProfile = (value: unknown): ReferenceProfileAssessment | und
   const topMatches = Array.isArray(value.top_matches)
     ? value.top_matches.map(parseProfileMatch).filter((item): item is NonNullable<typeof item> => Boolean(item))
     : []
+  const rawAsset = isRecord(value.reference_asset) ? value.reference_asset : undefined
+  const rawDimensions = rawAsset && isRecord(rawAsset.dimensions) ? rawAsset.dimensions : undefined
+  const assetSourceUrl = rawAsset ? asString(rawAsset.source_url) : ''
+  const referenceAsset = rawAsset ? {
+    page_number: Math.max(1, Math.round(asNumber(rawAsset.page_number, 1))),
+    side: asString(rawAsset.side, 'front'),
+    mime_type: asString(rawAsset.mime_type, 'application/octet-stream'),
+    dimensions: rawDimensions ? {
+      width: Math.max(1, Math.round(asNumber(rawDimensions.width, 1))),
+      height: Math.max(1, Math.round(asNumber(rawDimensions.height, 1))),
+    } : undefined,
+    source_url: /^https:\/\//i.test(assetSourceUrl) ? assetSourceUrl : undefined,
+    retrieval_date: optionalString(rawAsset.retrieval_date),
+    redistribution_status: asString(rawAsset.redistribution_status, 'unspecified'),
+    trust_level: asString(rawAsset.trust_level, 'unspecified'),
+  } : undefined
   return {
     selected_profile: selected,
     top_matches: topMatches,
@@ -455,6 +521,10 @@ const parseReferenceProfile = (value: unknown): ReferenceProfileAssessment | und
     inferred_issuer: optionalString(value.inferred_issuer),
     reference_strength: asString(value.reference_strength, 'Reference strength unavailable'),
     explanation: asString(value.explanation),
+    checked_items: asStringArray(value.checked_items),
+    unverified_items: asStringArray(value.unverified_items),
+    result_summary: asString(value.result_summary, asString(value.explanation)),
+    reference_asset: referenceAsset,
   }
 }
 
@@ -496,30 +566,50 @@ const parseDigitalSignature = (value: unknown): DigitalSignatureAssessment | und
 const parseCodes = (value: unknown): CodeAssessment | undefined => {
   if (!isRecord(value)) return undefined
   const results = Array.isArray(value.results)
-    ? value.results.filter(isRecord).map((code, index) => ({
-        code_index: Math.max(1, Math.round(asNumber(code.code_index, index + 1))),
-        page_number: Math.max(1, Math.round(asNumber(code.page_number, 1))),
-        symbology: asString(code.symbology, 'QR'),
-        bounding_box: code.bounding_box ? parseBoundingBox(code.bounding_box) : undefined,
-        detected: asBoolean(code.detected),
-        decoded: asBoolean(code.decoded),
-        decoder: asString(code.decoder, 'local decoder'),
-        confidence_score: asScore(code.confidence_score),
-        payload_summary: optionalString(code.payload_summary),
-        payload_sha256: optionalString(code.payload_sha256),
-        structure_valid: asOptionalBoolean(code.structure_valid),
-        visible_fields_consistent: asOptionalBoolean(code.visible_fields_consistent),
-        cryptographic_verification_available: asBoolean(code.cryptographic_verification_available),
-        cryptographic_verification_result: asString(
-          code.cryptographic_verification_result,
-          'unsupported',
-        ),
-        structural_tampering_indicators: asStringArray(code.structural_tampering_indicators),
-        explanation: asString(code.explanation),
-      }))
+    ? value.results.filter(isRecord).map((code, index) => {
+        const detected = asBoolean(code.detected)
+        const decoded = asBoolean(code.decoded)
+        const state = parseCodeState(code.state)
+          ?? (decoded
+            ? 'DETECTED_AND_DECODED'
+            : detected
+              ? 'DETECTED_BUT_UNREADABLE'
+              : 'EXPECTED_REGION_OCCUPIED_UNVERIFIED')
+        return {
+          code_index: Math.max(1, Math.round(asNumber(code.code_index, index + 1))),
+          page_number: Math.max(1, Math.round(asNumber(code.page_number, 1))),
+          symbology: asString(code.symbology, 'QR'),
+          bounding_box: code.bounding_box ? parseBoundingBox(code.bounding_box) : undefined,
+          detected,
+          decoded,
+          state,
+          decoder: asString(code.decoder, 'local decoder'),
+          confidence_score: asScore(code.confidence_score),
+          payload_summary: optionalString(code.payload_summary),
+          payload_sha256: optionalString(code.payload_sha256),
+          structure_valid: asOptionalBoolean(code.structure_valid),
+          visible_fields_consistent: asOptionalBoolean(code.visible_fields_consistent),
+          cryptographic_verification_available: asBoolean(code.cryptographic_verification_available),
+          cryptographic_verification_result: asString(
+            code.cryptographic_verification_result,
+            'unsupported',
+          ),
+          structural_tampering_indicators: asStringArray(code.structural_tampering_indicators),
+          explanation: asString(code.explanation),
+        }
+      })
     : []
+  const parsedStates = Array.isArray(value.states)
+    ? value.states.map(parseCodeState).filter((state): state is CodeVerificationState => Boolean(state))
+    : []
+  const states = [...new Set(parsedStates.length ? parsedStates : results.map((result) => result.state))]
+  if (!states.length) states.push(asString(value.expected).toLowerCase() === 'not_expected'
+    ? 'NOT_EXPECTED'
+    : 'EXPECTED_REGION_OCCUPIED_UNVERIFIED')
   return {
     status: asString(value.status, 'not_applicable'),
+    states,
+    coverage_score: asScore(value.coverage_score),
     expected: asString(value.expected, 'unknown'),
     detected_count: Math.max(0, Math.round(asNumber(value.detected_count, results.length))),
     decoded_count: Math.max(0, Math.round(asNumber(value.decoded_count))),

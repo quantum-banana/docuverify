@@ -591,6 +591,23 @@ function PageAnomalySummary({ anomalies }: { anomalies: PageOrderAnomaly[] }) {
 const evidenceLabel = (value: string): string =>
   value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
+const capabilityLabel = (tier: string): string => ({
+  metadata_only: 'Metadata only',
+  structural: 'Structure and layout',
+  visual_reference: 'Trusted visual specimen',
+  cryptographic: 'Cryptographically verifiable',
+})[tier] ?? evidenceLabel(tier)
+
+const codeStateLabel = (state: string): string => ({
+  DETECTED_AND_DECODED: 'QR code detected and decoded',
+  DETECTED_BUT_UNREADABLE: 'QR code detected but could not be decoded',
+  EXPECTED_REGION_OCCUPIED_UNVERIFIED: 'Expected QR region could not be verified',
+  CONFIRMED_MISSING: 'QR code appears absent from the expected region',
+  NOT_EXPECTED: 'No QR code is expected for this profile',
+  DECODER_UNSUPPORTED: 'The available decoder does not support this code',
+  CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE: 'Cryptographic QR verification is not available for this profile',
+})[state] ?? evidenceLabel(state)
+
 function EvidenceSection({
   title,
   status,
@@ -619,7 +636,7 @@ function EvidenceSection({
   )
 }
 
-function EvidenceOverview({ result }: { result: DocumentResult }) {
+function EvidenceTechnicalOverview({ result, hideProfile = false }: { result: DocumentResult; hideProfile?: boolean }) {
   const profile = result.reference_profile
   const digital = result.digital_signature
   const codes = result.codes
@@ -647,7 +664,7 @@ function EvidenceOverview({ result }: { result: DocumentResult }) {
         </div>
       )}
       <div className="evidence-overview__grid">
-        {profile && (
+        {profile && !hideProfile && (
           <EvidenceSection
             title="Trusted reference profile"
             status={profile.reference_strength}
@@ -693,10 +710,11 @@ function EvidenceOverview({ result }: { result: DocumentResult }) {
         )}
         {codes && (
           <EvidenceSection title="QR and barcode evidence" status={codes.status} summary={codes.explanation}>
-            <p>Expected: {codes.expected} · Detected: {codes.detected_count} · Decoded: {codes.decoded_count}</p>
+            <p>Expected: {codes.expected} · Detected: {codes.detected_count} · Decoded: {codes.decoded_count} · Coverage: {Math.round(codes.coverage_score)}%</p>
+            {codes.states.map((state) => <p key={state}>{codeStateLabel(state)}</p>)}
             {codes.results.map((code) => (
               <article className="evidence-record" key={code.code_index}>
-                <strong>{code.symbology} · page {code.page_number}</strong>
+                <strong>{codeStateLabel(code.state)} · page {code.page_number}</strong>
                 <p>{code.explanation}</p>
                 <small>Visible consistency: {code.visible_fields_consistent === undefined ? 'not established' : code.visible_fields_consistent ? 'consistent' : 'mismatch'} · Cryptographic check: {evidenceLabel(code.cryptographic_verification_result)}</small>
               </article>
@@ -760,6 +778,139 @@ function EvidenceOverview({ result }: { result: DocumentResult }) {
   )
 }
 
+function DocuVaultReport({ result }: { result: DocumentResult }) {
+  const assessment = result.reference_profile
+  const profile = assessment?.selected_profile
+  const alternatives = assessment?.top_matches.filter((match) => match.profile_id !== profile?.profile_id) ?? []
+  const matchReasons = profile?.match_reasons.length
+    ? profile.match_reasons.slice(0, 4)
+    : profile?.explanation
+      ? [profile.explanation]
+      : []
+  const checkedItems = assessment?.checked_items ?? []
+  const unverifiedItems = assessment?.unverified_items ?? []
+  const referenceAsset = assessment?.reference_asset
+
+  return (
+    <section className="docuvault-report" aria-label="DocuVault profile report">
+      <header className="docuvault-profile-card">
+        <div className="docuvault-profile-card__identity">
+          <span className="section-kicker">Closest trusted profile</span>
+          {profile ? (
+            <>
+              <h2>{profile.display_name}</h2>
+              <p>{profile.issuer}</p>
+              <small>
+                {profile.document_category}
+                {profile.version_label ? ` · ${profile.version_label}` : ''}
+              </small>
+            </>
+          ) : (
+            <>
+              <h2>No suitable profile identified</h2>
+              <p>The available local profiles did not provide a reliable match.</p>
+            </>
+          )}
+        </div>
+        {profile && (
+          <div className="docuvault-profile-card__status">
+            <span className={`profile-match-level profile-match-level--${profile.match_level.toLowerCase()}`}>
+              {profile.match_level} profile match
+            </span>
+            <strong>Reference available: {profile.reference_capability || capabilityLabel(profile.capability_tier)}</strong>
+          </div>
+        )}
+        <p className="docuvault-profile-card__summary">
+          {assessment?.result_summary || assessment?.explanation || 'The result is limited to the evidence supported by the selected profile.'}
+        </p>
+        {profile && (
+          <p className="docuvault-neutral-note">
+            {assessment?.closest_fallback_used ? 'This is the closest available profile. ' : ''}
+            A profile match does not prove that the issuer produced this document and is separate from tampering risk.
+          </p>
+        )}
+      </header>
+
+      <div className="docuvault-report__columns">
+        <section className="docuvault-report-block" aria-labelledby="docuvault-match-reasons">
+          <h3 id="docuvault-match-reasons">Why this profile matched</h3>
+          {matchReasons.length ? (
+            <ul>{matchReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+          ) : (
+            <p>No profile-specific match reasons were available.</p>
+          )}
+        </section>
+        <section className="docuvault-report-block" aria-labelledby="docuvault-checked-items">
+          <h3 id="docuvault-checked-items">What was checked</h3>
+          {checkedItems.length ? (
+            <ul className="docuvault-check-list">
+              {checkedItems.map((item) => <li key={item}><CheckIcon /> <span>{item}</span></li>)}
+            </ul>
+          ) : (
+            <p>No completed profile checks were reported.</p>
+          )}
+        </section>
+      </div>
+
+      {unverifiedItems.length > 0 && (
+        <section className="docuvault-unverified" aria-labelledby="docuvault-unverified-items">
+          <div>
+            <ShieldIcon />
+            <h3 id="docuvault-unverified-items">Could not be verified</h3>
+          </div>
+          <ul>{unverifiedItems.map((item) => <li key={item}>{item}</li>)}</ul>
+          <p>Unavailable checks reduce coverage; they are not suspicious findings.</p>
+        </section>
+      )}
+
+      {alternatives.length > 0 && (
+        <details className="docuvault-disclosure">
+          <summary>Alternative profile matches ({alternatives.length})</summary>
+          <ol className="docuvault-alternatives">
+            {alternatives.map((match) => (
+              <li key={match.profile_id}>
+                <div><strong>{match.display_name}</strong><span>{match.issuer}</span></div>
+                <small>{match.match_level} match · {match.reference_capability || capabilityLabel(match.capability_tier)}</small>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+
+      <details className="docuvault-disclosure docuvault-technical">
+        <summary>Technical details</summary>
+        {profile && (
+          <div className="docuvault-technical__profile">
+            <dl>
+              <div><dt>Profile ID</dt><dd>{profile.profile_id}</dd></div>
+              <div><dt>Profile score</dt><dd>{Math.round(profile.score)}/100</dd></div>
+              <div><dt>Capability tier</dt><dd>{capabilityLabel(profile.capability_tier)}</dd></div>
+              <div><dt>Provenance</dt><dd>{profile.provenance_assurance}</dd></div>
+              {referenceAsset && <div><dt>Reference asset</dt><dd>Page {referenceAsset.page_number} · {referenceAsset.side} · {referenceAsset.trust_level}</dd></div>}
+            </dl>
+            {Object.keys(profile.component_scores).length > 0 && (
+              <dl aria-label="Profile component scores">
+                {Object.entries(profile.component_scores).map(([name, score]) => (
+                  <div key={name}><dt>{evidenceLabel(name)}</dt><dd>{Math.round(score)}/100</dd></div>
+                ))}
+              </dl>
+            )}
+            {referenceAsset?.source_url && (
+              <a href={referenceAsset.source_url} target="_blank" rel="noreferrer">Reference asset source</a>
+            )}
+          </div>
+        )}
+        <EvidenceTechnicalOverview result={result} hideProfile />
+      </details>
+    </section>
+  )
+}
+
+function EvidenceOverview({ result }: { result: DocumentResult }) {
+  if (result.comparison_mode === 'docuvault') return <DocuVaultReport result={result} />
+  return <EvidenceTechnicalOverview result={result} />
+}
+
 function ResultScreen({
   result,
   selectedFinding,
@@ -813,6 +964,7 @@ function ResultScreen({
   const referencePages = result.reference_page_count ?? result.reference?.page_count ?? pages.length
   const candidatePages = result.candidate_page_count ?? result.candidate?.page_count ?? pages.length
   const aggregate = result.document_aggregate
+  const isDocuVault = result.comparison_mode === 'docuvault'
   const selectedRisk = selectedPage ? pageRisk(selectedPage) : 0
   const selectedTone = riskTone(selectedRisk)
   const candidatePageMissing = selectedPage?.candidate_page_number === null || selectedPage?.status === 'missing'
@@ -823,8 +975,11 @@ function ResultScreen({
   const referencePageNumber = referencePageMissing
     ? null
     : selectedPage?.reference_page_number ?? selectedPage?.page_number ?? null
-  const showReferenceViewer = result.comparison_mode !== 'docuvault'
-    || Boolean(result.reference_profile?.selected_profile?.visual_reference_available)
+  const selectedProfile = result.reference_profile?.selected_profile
+  const profileHasVisualReference = Boolean(selectedProfile?.visual_reference_available)
+  const showReferenceViewer = !isDocuVault || Boolean(
+    profileHasVisualReference && selectedPage?.reference_image_url,
+  )
 
   const switchPage = (pageNumber: number) => {
     if (pageNumber === selectedPageNumber) return
@@ -859,6 +1014,8 @@ function ResultScreen({
         </div>
       </div>
 
+      {isDocuVault && <EvidenceOverview result={result} />}
+
       <section className={`risk-summary risk-summary--${tone}`} aria-label="Analysis assessment">
         <div className="risk-score">
           <span>Risk</span>
@@ -875,7 +1032,7 @@ function ResultScreen({
         </div>
       </section>
 
-      <EvidenceOverview result={result} />
+      {!isDocuVault && <EvidenceOverview result={result} />}
 
       <PageAnomalySummary anomalies={anomalies} />
 
@@ -954,41 +1111,58 @@ function ResultScreen({
       </div>
 
       <div className="result-grid">
-        <div className={`document-comparison${showReferenceViewer ? '' : ' document-comparison--candidate-only'}`} aria-label="Selected page comparison">
-          <DocumentViewer
-            imageUrl={candidatePageMissing ? undefined : selectedPage?.candidate_image_url}
-            width={selectedPage?.width}
-            height={selectedPage?.height}
-            findings={candidatePageMissing ? [] : currentPageFindings}
-            regionSuggestions={candidatePageMissing ? [] : suggestions}
-            selectedFindingId={selectedFinding?.finding_id}
-            onSelectFinding={selectFinding}
-            pageNumber={candidatePageNumber}
-            totalPages={candidatePages}
-            pageStatus={selectedPage?.status}
-            side="candidate"
-            pageMissing={candidatePageMissing}
-            label={`Questioned document · page ${selectedPage?.page_number ?? 1}`}
-          />
-          {showReferenceViewer && (
+        <div className="viewer-column">
+          <div className={`document-comparison${showReferenceViewer ? '' : ' document-comparison--candidate-only'}`} aria-label="Selected page comparison">
             <DocumentViewer
-              imageUrl={referencePageMissing ? undefined : selectedPage?.reference_image_url}
+              imageUrl={candidatePageMissing ? undefined : selectedPage?.candidate_image_url}
               width={selectedPage?.width}
               height={selectedPage?.height}
-              pageNumber={referencePageNumber}
-              totalPages={referencePages}
+              findings={candidatePageMissing ? [] : currentPageFindings}
+              regionSuggestions={candidatePageMissing ? [] : suggestions}
+              selectedFindingId={selectedFinding?.finding_id}
+              onSelectFinding={selectFinding}
+              pageNumber={candidatePageNumber}
+              totalPages={candidatePages}
               pageStatus={selectedPage?.status}
-              side="reference"
-              pageMissing={referencePageMissing}
-              label={`${result.comparison_mode === 'docuvault' ? 'Selected profile reference' : 'Trusted reference'} · page ${selectedPage?.page_number ?? 1}`}
+              side="candidate"
+              pageMissing={candidatePageMissing}
+              label={`Questioned document · page ${selectedPage?.page_number ?? 1}`}
             />
+            {showReferenceViewer && (
+              <DocumentViewer
+                imageUrl={referencePageMissing ? undefined : selectedPage?.reference_image_url}
+                width={selectedPage?.width}
+                height={selectedPage?.height}
+                pageNumber={referencePageNumber}
+                totalPages={referencePages}
+                pageStatus={selectedPage?.status}
+                side="reference"
+                pageMissing={referencePageMissing}
+                label={isDocuVault
+                  ? `${selectedProfile?.display_name ?? 'Trusted profile'} reference · ${result.reference_profile?.reference_asset?.trust_level ?? capabilityLabel(selectedProfile?.capability_tier ?? 'visual_reference')} · page ${selectedPage?.page_number ?? 1}`
+                  : `Trusted reference · page ${selectedPage?.page_number ?? 1}`}
+              />
+            )}
+          </div>
+          {isDocuVault && !showReferenceViewer && (
+            <aside className="docuvault-viewer-notice" role="note">
+              <ShieldIcon />
+              <div>
+                <strong>{profileHasVisualReference
+                  ? 'No trusted visual specimen is available for this page.'
+                  : 'No trusted visual specimen is available for this profile.'}</strong>
+                <p>{profileHasVisualReference
+                  ? 'Visual comparison is unavailable on this page; the reported checks remain limited to supported evidence.'
+                  : 'Checks are limited to metadata, text, layout and configured rules.'}</p>
+              </div>
+            </aside>
           )}
         </div>
 
         <aside className="findings-panel">
           <div className="findings-panel__heading">
-            <h2>Findings</h2>
-            <span>{result.finding_count} suspicious</span>
+            <h2>{isDocuVault ? 'What needs attention' : 'Findings'}</h2>
+            <span>{result.finding_count} {isDocuVault ? 'requiring review' : 'suspicious'}</span>
           </div>
           <div className="findings-panel__content">
             {allFindings.length ? (
@@ -1019,8 +1193,10 @@ function ResultScreen({
             ) : (
               <div className="empty-findings">
                 <CheckIcon />
-                <strong>No suspicious findings</strong>
-                <p>{allowedTemplateChanges.length
+                <strong>{isDocuVault ? 'No evidence-backed concerns' : 'No suspicious findings'}</strong>
+                <p>{isDocuVault
+                  ? 'Unavailable checks are listed separately and do not raise tampering risk.'
+                  : allowedTemplateChanges.length
                   ? `${allowedTemplateChanges.length} allowed Template ${allowedTemplateChanges.length === 1 ? 'change was' : 'changes were'} detected below.`
                   : 'No reportable differences found.'}</p>
               </div>
@@ -1063,7 +1239,7 @@ function ResultScreen({
             <div><dt>Mode</dt><dd>{modeDescription[result.comparison_mode].title} — {modeDescription[result.comparison_mode].detail}</dd></div>
             <div><dt>Trusted reference</dt><dd>{result.comparison_mode === 'docuvault'
               ? result.reference_profile?.selected_profile
-                ? `${result.reference_profile.selected_profile.issuer} · ${result.reference_profile.reference_strength}`
+                ? `${result.reference_profile.selected_profile.display_name} · ${result.reference_profile.selected_profile.issuer} · ${result.reference_profile.selected_profile.reference_capability}`
                 : 'No profile selected'
               : `${referencePages} ${referencePages === 1 ? 'page' : 'pages'}`}</dd></div>
             <div><dt>Questioned document</dt><dd>{candidatePages} {candidatePages === 1 ? 'page' : 'pages'}</dd></div>

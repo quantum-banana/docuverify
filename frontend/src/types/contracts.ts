@@ -371,9 +371,16 @@ export interface DocumentAggregate {
 
 export interface ProfileMatchSummary {
   profile_id: string
+  display_name: string
   issuer: string
   document_family: string
+  document_category: string
   subtype: string
+  version_label?: string
+  capability_tier: 'metadata_only' | 'structural' | 'visual_reference' | 'cryptographic'
+  match_level: 'Strong' | 'Moderate' | 'Weak'
+  reference_capability: string
+  match_reasons: string[]
   provenance_kind: string
   provenance_assurance: string
   score: number
@@ -395,6 +402,22 @@ export interface ReferenceProfileAssessment {
   inferred_issuer?: string
   reference_strength: string
   explanation: string
+  checked_items: string[]
+  unverified_items: string[]
+  result_summary: string
+  reference_asset?: {
+    page_number: number
+    side: string
+    mime_type: string
+    dimensions: {
+      width: number
+      height: number
+    } | undefined
+    source_url?: string
+    retrieval_date?: string
+    redistribution_status: string
+    trust_level: string
+  }
 }
 
 export interface PdfSignatureCheck {
@@ -432,6 +455,7 @@ export interface CodeCheckResult {
   bounding_box?: NormalizedBoundingBox
   detected: boolean
   decoded: boolean
+  state: CodeVerificationState
   decoder: string
   confidence_score: number
   payload_summary?: string
@@ -446,12 +470,23 @@ export interface CodeCheckResult {
 
 export interface CodeAssessment {
   status: CheckStatus
+  states: CodeVerificationState[]
+  coverage_score: number
   expected: string
   detected_count: number
   decoded_count: number
   results: CodeCheckResult[]
   explanation: string
 }
+
+export type CodeVerificationState =
+  | 'DETECTED_AND_DECODED'
+  | 'DETECTED_BUT_UNREADABLE'
+  | 'EXPECTED_REGION_OCCUPIED_UNVERIFIED'
+  | 'CONFIRMED_MISSING'
+  | 'NOT_EXPECTED'
+  | 'DECODER_UNSUPPORTED'
+  | 'CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE'
 
 export interface MetadataIndicator {
   category: string

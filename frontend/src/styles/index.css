@@ -1276,6 +1276,316 @@ svg {
   background: var(--ink-soft);
 }
 
+.docuvault-report {
+  display: grid;
+  gap: 12px;
+  margin-top: 0;
+}
+
+.docuvault-report + .risk-summary {
+  margin-top: 18px;
+}
+
+.docuvault-profile-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 28px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--red);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.docuvault-profile-card__identity h2 {
+  margin: 4px 0 2px;
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.docuvault-profile-card__identity p {
+  margin: 0 0 3px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.docuvault-profile-card__identity small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.docuvault-profile-card__status {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 8px;
+  text-align: right;
+}
+
+.docuvault-profile-card__status strong {
+  max-width: 310px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.profile-match-level {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.profile-match-level--strong {
+  border-color: var(--ink-soft);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.profile-match-level--weak {
+  color: var(--muted);
+}
+
+.docuvault-profile-card__summary,
+.docuvault-neutral-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.docuvault-profile-card__summary {
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.docuvault-neutral-note {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.docuvault-report__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.docuvault-report-block,
+.docuvault-unverified {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.docuvault-report-block h3,
+.docuvault-unverified h3 {
+  margin: 0 0 11px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.docuvault-report-block ul,
+.docuvault-unverified ul {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.docuvault-report-block li,
+.docuvault-unverified li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.docuvault-report-block li::before,
+.docuvault-unverified li::before {
+  position: absolute;
+  top: 0.62em;
+  left: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--red);
+  content: '';
+}
+
+.docuvault-report-block > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.docuvault-check-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-left: 0;
+}
+
+.docuvault-check-list li::before {
+  display: none;
+}
+
+.docuvault-check-list svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex: 0 0 14px;
+  color: var(--ink-soft);
+}
+
+.docuvault-unverified {
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+
+.docuvault-unverified > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.docuvault-unverified > div svg {
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+}
+
+.docuvault-unverified > div h3 {
+  margin-bottom: 0;
+}
+
+.docuvault-unverified ul {
+  margin-top: 12px;
+}
+
+.docuvault-unverified li::before {
+  border: 1px solid var(--muted);
+  background: transparent;
+}
+
+.docuvault-unverified > p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.docuvault-disclosure {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.docuvault-disclosure > summary {
+  padding: 13px 16px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.docuvault-disclosure[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.docuvault-alternatives {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.docuvault-alternatives li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.docuvault-alternatives li:last-child {
+  border-bottom: 0;
+}
+
+.docuvault-alternatives li > div {
+  display: grid;
+  gap: 2px;
+}
+
+.docuvault-alternatives strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.docuvault-alternatives span,
+.docuvault-alternatives small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.docuvault-technical__profile {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.docuvault-technical__profile dl {
+  padding: 0;
+  margin: 0;
+}
+
+.docuvault-technical__profile dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.docuvault-technical__profile dd {
+  margin: 0;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.docuvault-technical__profile a {
+  grid-column: 1 / -1;
+  color: var(--red-deep);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.docuvault-technical .evidence-overview {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: none;
+}
+
 .evidence-overview {
   display: grid;
   gap: 12px;
@@ -1834,6 +2144,12 @@ svg {
   gap: 18px;
 }
 
+.viewer-column {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
 .document-comparison {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1845,6 +2161,37 @@ svg {
 .document-comparison--candidate-only {
   grid-template-columns: minmax(0, 720px);
   justify-content: center;
+}
+
+.docuvault-viewer-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.docuvault-viewer-notice > svg {
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  flex: 0 0 17px;
+  color: var(--muted);
+}
+
+.docuvault-viewer-notice strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.docuvault-viewer-notice p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .document-shell {
@@ -2672,6 +3019,23 @@ svg {
 @media (max-width: 760px) {
   html {
     scroll-behavior: auto;
+  }
+
+  .docuvault-profile-card,
+  .docuvault-report__columns,
+  .docuvault-technical__profile {
+    grid-template-columns: 1fr;
+  }
+
+  .docuvault-profile-card__status {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .docuvault-profile-card__summary,
+  .docuvault-neutral-note,
+  .docuvault-technical__profile a {
+    grid-column: 1;
   }
 
   .site-header,

@@ -504,9 +504,20 @@ const docuvaultResult = resultWithPages([
   reference_profile: {
     selected_profile: {
       profile_id: 'fictional.lumen.v1',
+      display_name: 'Lumen Grove Achievement Record',
       issuer: 'Lumen Grove Institute',
       document_family: 'Achievement record',
+      document_category: 'Academic credential',
       subtype: 'semester record',
+      version_label: '2026',
+      capability_tier: 'metadata_only',
+      match_level: 'Moderate',
+      reference_capability: 'metadata and configured rules only',
+      match_reasons: [
+        'Issuer wording matched',
+        'Document family and page structure matched',
+        'Expected academic fields were found',
+      ],
       provenance_kind: 'synthetic_fixture',
       provenance_assurance: 'P0 synthetic',
       score: 89.5,
@@ -521,9 +532,20 @@ const docuvaultResult = resultWithPages([
     top_matches: [
       {
         profile_id: 'fictional.lumen.v1',
+        display_name: 'Lumen Grove Achievement Record',
         issuer: 'Lumen Grove Institute',
         document_family: 'Achievement record',
+        document_category: 'Academic credential',
         subtype: 'semester record',
+        version_label: '2026',
+        capability_tier: 'metadata_only',
+        match_level: 'Moderate',
+        reference_capability: 'metadata and configured rules only',
+        match_reasons: [
+          'Issuer wording matched',
+          'Document family and page structure matched',
+          'Expected academic fields were found',
+        ],
         provenance_kind: 'synthetic_fixture',
         provenance_assurance: 'P0 synthetic',
         score: 89.5,
@@ -535,12 +557,47 @@ const docuvaultResult = resultWithPages([
         selected_by_override: false,
         limitations: [],
       },
+      {
+        profile_id: 'fictional.northwind.v1',
+        display_name: 'Northwind Academic Record',
+        issuer: 'Northwind College',
+        document_family: 'Academic record',
+        document_category: 'Academic credential',
+        subtype: 'semester record',
+        capability_tier: 'structural',
+        match_level: 'Weak',
+        reference_capability: 'structure and layout',
+        match_reasons: ['The page structure was similar'],
+        provenance_kind: 'synthetic_fixture',
+        provenance_assurance: 'P0 synthetic',
+        score: 48,
+        component_scores: { layout: 61 },
+        reference_strength: 'Closest available profile',
+        explanation: 'Only the general page structure was similar.',
+        completeness: 72,
+        visual_reference_available: false,
+        selected_by_override: false,
+        limitations: [],
+      },
     ],
     closest_fallback_used: true,
     inferred_family: 'Achievement record',
     inferred_issuer: 'Lumen Grove Institute',
     reference_strength: 'Closest available profile',
     explanation: 'A closest local profile was selected with limited provenance strength.',
+    checked_items: [
+      'Document type and issuer',
+      'Page structure and dimensions',
+      'Fixed labels and layout',
+      'QR presence and decoding',
+      'Metadata',
+      'Logical field consistency',
+    ],
+    unverified_items: [
+      'No trusted visual specimen available',
+      'Issuer cryptographic keys unavailable',
+    ],
+    result_summary: 'Closest profile identified, but visual authenticity could not be fully checked because this profile has no trusted reference image.',
   },
   digital_signature: {
     status: 'unsigned',
@@ -552,6 +609,8 @@ const docuvaultResult = resultWithPages([
   },
   codes: {
     status: 'passed',
+    states: ['DETECTED_AND_DECODED', 'CRYPTOGRAPHIC_VERIFICATION_UNAVAILABLE'],
+    coverage_score: 78,
     expected: 'optional',
     detected_count: 1,
     decoded_count: 1,
@@ -606,6 +665,40 @@ const docuvaultResult = resultWithPages([
     limitations: ['This is not an authenticity probability.'],
   },
 })
+
+const docuvaultVisualResult: DocumentResult = {
+  ...docuvaultResult,
+  pages: [
+    reviewPage(1, '/assets/docuvault-visual-candidate', '/assets/docuvault-trusted-specimen', {
+      findings: [],
+      finding_count: 0,
+      risk_score: 0,
+    }),
+  ],
+  reference_profile: {
+    ...docuvaultResult.reference_profile!,
+    selected_profile: {
+      ...docuvaultResult.reference_profile!.selected_profile!,
+      capability_tier: 'visual_reference',
+      match_level: 'Strong',
+      reference_capability: 'trusted visual specimen',
+      visual_reference_available: true,
+    },
+    closest_fallback_used: false,
+    unverified_items: ['Issuer cryptographic keys unavailable'],
+    result_summary: 'The document closely matches the trusted visual profile. No localized alteration requires review.',
+    reference_asset: {
+      page_number: 1,
+      side: 'front',
+      mime_type: 'application/pdf',
+      dimensions: { width: 595, height: 842 },
+      source_url: 'https://example.test/lumen-specimen',
+      retrieval_date: '2026-08-28',
+      redistribution_status: 'synthetic_fixture',
+      trust_level: 'P0 synthetic',
+    },
+  },
+}
 
 let latestHandlers: AnalysisWatchHandlers | undefined
 
@@ -1164,19 +1257,56 @@ describe('DocuVerify Phase 1 experience', () => {
     const { user } = await completeResultDemo(docuvaultResult)
 
     expect(screen.getByText(/analysis complete · docuvault/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /core evidence assessment/i })).toBeInTheDocument()
-    expect(screen.getAllByText(/no strong contradiction was found, but reference strength is limited/i).length).toBeGreaterThan(0)
+    const profileReport = screen.getByRole('region', { name: /docuvault profile report/i })
+    expect(within(profileReport).getByRole('heading', { name: /lumen grove achievement record/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('Lumen Grove Institute')).toBeInTheDocument()
+    expect(within(profileReport).getByText(/academic credential.*2026/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText(/moderate profile match/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText(/reference available: metadata and configured rules only/i)).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /why this profile matched/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('Issuer wording matched')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /what was checked/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('QR presence and decoding')).toBeInTheDocument()
+    expect(within(profileReport).getByRole('heading', { name: /could not be verified/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText('No trusted visual specimen available')).toBeInTheDocument()
+    expect(within(profileReport).getByText(/unavailable checks reduce coverage/i)).toBeInTheDocument()
+    const alternativesSummary = within(profileReport).getByText('Alternative profile matches (1)')
+    expect(alternativesSummary.closest('details')).not.toHaveAttribute('open')
+    await user.click(alternativesSummary)
+    expect(alternativesSummary.closest('details')).toHaveAttribute('open')
+    expect(within(profileReport).getByText('Northwind Academic Record')).toBeInTheDocument()
     expect(screen.getByLabelText(/questioned document · page 1 viewer/i)).toBeInTheDocument()
-    expect(screen.queryByLabelText(/selected profile reference.*viewer/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/trusted profile.*reference.*viewer/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('note')).toHaveTextContent(/no trusted visual specimen is available/i)
+    expect(screen.getByRole('heading', { name: /what needs attention/i })).toBeInTheDocument()
+    expect(screen.getByText('No evidence-backed concerns')).toBeInTheDocument()
 
-    await user.click(screen.getByText('Trusted reference profile'))
-    expect(screen.getByText('Lumen Grove Institute')).toBeInTheDocument()
-    expect(screen.getByText(/strongest signals are issuer text and fixed layout/i)).toBeInTheDocument()
+    const technicalSummary = within(profileReport).getByText('Technical details')
+    expect(technicalSummary.closest('details')).not.toHaveAttribute('open')
+    await user.click(technicalSummary)
+    expect(technicalSummary.closest('details')).toHaveAttribute('open')
+    expect(within(profileReport).getByRole('heading', { name: /core evidence assessment/i })).toBeInTheDocument()
+    expect(within(profileReport).getByText(/qr code detected and decoded/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText(/cryptographic qr verification is not available/i)).toBeInTheDocument()
     expect(screen.getByText('Digital PDF signature')).toBeInTheDocument()
     expect(screen.getByText('QR and barcode evidence')).toBeInTheDocument()
-    expect(screen.getByText('Logical field consistency')).toBeInTheDocument()
+    expect(screen.getAllByText('Logical field consistency')).toHaveLength(2)
     expect(screen.getByText('Handwriting similarity')).toBeInTheDocument()
     expect(screen.getByText('Signature similarity')).toBeInTheDocument()
+  })
+
+  it('shows a real DocuVault trusted visual profile beside the questioned document', async () => {
+    await completeResultDemo(docuvaultVisualResult)
+
+    const profileReport = screen.getByRole('region', { name: /docuvault profile report/i })
+    expect(within(profileReport).getByText(/strong profile match/i)).toBeInTheDocument()
+    expect(within(profileReport).getByText(/reference available: trusted visual specimen/i)).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+
+    const candidateViewer = screen.getByRole('region', { name: /questioned document · page 1 viewer/i })
+    const referenceViewer = screen.getByRole('region', { name: /lumen grove achievement record reference · p0 synthetic · page 1 viewer/i })
+    expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/docuvault-visual-candidate')
+    expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/docuvault-trusted-specimen')
   })
 
   it('shows a structured failure state and a route back to upload', async () => {
