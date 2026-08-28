@@ -1,0 +1,3 @@
+# Phase 1 deliberately has no heavyweight raster-OCR dependency.
+# PyMuPDF embedded-PDF text extraction is supplied by common.txt; raster images
+# remain fully analyzable by the visual pipeline and report OCR as unavailable.

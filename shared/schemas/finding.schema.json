@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "AssetLinks": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_crop_url": {
+          "title": "Candidate Crop Url",
+          "type": "string"
+        },
+        "difference_overlay_url": {
+          "title": "Difference Overlay Url",
+          "type": "string"
+        },
+        "reference_crop_url": {
+          "title": "Reference Crop Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_crop_url",
+        "reference_crop_url",
+        "difference_overlay_url"
+      ],
+      "title": "AssetLinks",
+      "type": "object"
+    },
+    "BoundingBox": {
+      "additionalProperties": false,
+      "description": "Candidate-page coordinates normalized to [0, 1].",
+      "properties": {
+        "height": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Width",
+          "type": "number"
+        },
+        "x": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "$id": "https://docuverify.local/schemas/v1/finding.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assets": {
+      "$ref": "#/$defs/AssetLinks"
+    },
+    "bounding_box": {
+      "$ref": "#/$defs/BoundingBox"
+    },
+    "category": {
+      "title": "Category",
+      "type": "string"
+    },
+    "confidence_score": {
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Confidence Score",
+      "type": "number"
+    },
+    "evidence_source": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Source",
+      "type": "array"
+    },
+    "explanation": {
+      "title": "Explanation",
+      "type": "string"
+    },
+    "finding_id": {
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "page_number": {
+      "minimum": 1,
+      "title": "Page Number",
+      "type": "integer"
+    },
+    "risk_score": {
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Risk Score",
+      "type": "number"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "supporting_measurements": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Supporting Measurements",
+      "type": "object"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "finding_id",
+    "page_number",
+    "category",
+    "title",
+    "explanation",
+    "bounding_box",
+    "risk_score",
+    "confidence_score",
+    "severity",
+    "evidence_source",
+    "assets"
+  ],
+  "title": "Finding",
+  "type": "object"
+}

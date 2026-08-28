@@ -1,0 +1,48 @@
+{
+  "alterations": [
+    {
+      "after": "PASS",
+      "before": "DISTINCTION",
+      "expected_category": "text_content_change",
+      "field": "RESULT",
+      "normalized_bbox": {
+        "height": 0.065,
+        "width": 0.38,
+        "x": 0.46,
+        "y": 0.475
+      }
+    }
+  ],
+  "files": {
+    "clean_candidate.pdf": {
+      "sha256": "cee9846ef35d9f5b5c9d20bde962008cb2884dd3b8a2186be931841e05968458"
+    },
+    "clean_candidate.png": {
+      "sha256": "60716dfbd6bb847ef2c840de0bc8f0d4069e0d6e900ea6cbf6514f4919b1b62f"
+    },
+    "reference.pdf": {
+      "sha256": "cee9846ef35d9f5b5c9d20bde962008cb2884dd3b8a2186be931841e05968458"
+    },
+    "reference.png": {
+      "sha256": "60716dfbd6bb847ef2c840de0bc8f0d4069e0d6e900ea6cbf6514f4919b1b62f"
+    },
+    "tampered_candidate.pdf": {
+      "sha256": "003cd93e7c28e4301ba55bb60fcca74ec7ed9c6ce02d4de054f26093b47d53ca"
+    },
+    "tampered_candidate.png": {
+      "sha256": "fd3ee8ab3778f10711808c55fc3eb536424d5e7019d84faf6dbaca07d072ecf3"
+    }
+  },
+  "fixture": "northstar_synthetic_certificate",
+  "notice": "Fictional demonstration data; not a real credential or institution.",
+  "page_count": 1,
+  "rendered_height": 1800,
+  "rendered_width": 1272,
+  "schema_version": "1.0",
+  "synthetic": true,
+  "thresholds": {
+    "clean_max_risk": 15,
+    "minimum_localization_iou": 0.05,
+    "tampered_min_risk": 50
+  }
+}

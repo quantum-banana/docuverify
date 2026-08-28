@@ -1,0 +1,623 @@
+{
+  "$defs": {
+    "AssetLinks": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_crop_url": {
+          "title": "Candidate Crop Url",
+          "type": "string"
+        },
+        "difference_overlay_url": {
+          "title": "Difference Overlay Url",
+          "type": "string"
+        },
+        "reference_crop_url": {
+          "title": "Reference Crop Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_crop_url",
+        "reference_crop_url",
+        "difference_overlay_url"
+      ],
+      "title": "AssetLinks",
+      "type": "object"
+    },
+    "BoundingBox": {
+      "additionalProperties": false,
+      "description": "Candidate-page coordinates normalized to [0, 1].",
+      "properties": {
+        "height": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Width",
+          "type": "number"
+        },
+        "x": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    },
+    "CoordinateTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "normalized_height": {
+          "exclusiveMinimum": 0,
+          "title": "Normalized Height",
+          "type": "integer"
+        },
+        "normalized_width": {
+          "exclusiveMinimum": 0,
+          "title": "Normalized Width",
+          "type": "integer"
+        },
+        "orientation_degrees": {
+          "default": 0,
+          "enum": [
+            0,
+            90,
+            180,
+            270
+          ],
+          "title": "Orientation Degrees",
+          "type": "integer"
+        },
+        "original_height": {
+          "exclusiveMinimum": 0,
+          "title": "Original Height",
+          "type": "integer"
+        },
+        "original_width": {
+          "exclusiveMinimum": 0,
+          "title": "Original Width",
+          "type": "integer"
+        },
+        "scale_x": {
+          "exclusiveMinimum": 0,
+          "title": "Scale X",
+          "type": "number"
+        },
+        "scale_y": {
+          "exclusiveMinimum": 0,
+          "title": "Scale Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "original_width",
+        "original_height",
+        "normalized_width",
+        "normalized_height",
+        "scale_x",
+        "scale_y"
+      ],
+      "title": "CoordinateTransform",
+      "type": "object"
+    },
+    "DocumentDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "content_type": {
+          "title": "Content Type",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "page_count": {
+          "const": 1,
+          "title": "Page Count",
+          "type": "integer"
+        },
+        "preview_url": {
+          "title": "Preview Url",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "transform": {
+          "$ref": "#/$defs/CoordinateTransform"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "filename",
+        "content_type",
+        "sha256",
+        "page_count",
+        "width",
+        "height",
+        "preview_url",
+        "transform"
+      ],
+      "title": "DocumentDescriptor",
+      "type": "object"
+    },
+    "DocumentResult": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment_quality": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Alignment Quality",
+          "type": "number"
+        },
+        "analysis_coverage": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Analysis Coverage",
+          "type": "number"
+        },
+        "assessment_confidence": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Assessment Confidence",
+          "type": "number"
+        },
+        "candidate": {
+          "$ref": "#/$defs/DocumentDescriptor"
+        },
+        "comparison_mode": {
+          "const": "exact",
+          "default": "exact",
+          "title": "Comparison Mode",
+          "type": "string"
+        },
+        "finding_count": {
+          "minimum": 0,
+          "title": "Finding Count",
+          "type": "integer"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "overall_tampering_risk": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Overall Tampering Risk",
+          "type": "number"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/PageResult"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "processing_duration_ms": {
+          "minimum": 0,
+          "title": "Processing Duration Ms",
+          "type": "integer"
+        },
+        "reference": {
+          "$ref": "#/$defs/DocumentDescriptor"
+        },
+        "risk_label": {
+          "$ref": "#/$defs/RiskLabel"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "text_extraction": {
+          "$ref": "#/$defs/TextExtractionSummary"
+        }
+      },
+      "required": [
+        "job_id",
+        "reference",
+        "candidate",
+        "pages",
+        "overall_tampering_risk",
+        "risk_label",
+        "assessment_confidence",
+        "analysis_coverage",
+        "alignment_quality",
+        "finding_count",
+        "processing_duration_ms",
+        "text_extraction",
+        "generated_at"
+      ],
+      "title": "DocumentResult",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "$ref": "#/$defs/AssetLinks"
+        },
+        "bounding_box": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "confidence_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "evidence_source": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Source",
+          "type": "array"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "page_number": {
+          "minimum": 1,
+          "title": "Page Number",
+          "type": "integer"
+        },
+        "risk_score": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Risk Score",
+          "type": "number"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "supporting_measurements": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Supporting Measurements",
+          "type": "object"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "page_number",
+        "category",
+        "title",
+        "explanation",
+        "bounding_box",
+        "risk_score",
+        "confidence_score",
+        "severity",
+        "evidence_source",
+        "assets"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "JobState": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "title": "JobState",
+      "type": "string"
+    },
+    "PageResult": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_image_url": {
+          "title": "Candidate Image Url",
+          "type": "string"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "page_number": {
+          "minimum": 1,
+          "title": "Page Number",
+          "type": "integer"
+        },
+        "reference_image_url": {
+          "title": "Reference Image Url",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page_number",
+        "width",
+        "height",
+        "reference_image_url",
+        "candidate_image_url",
+        "findings"
+      ],
+      "title": "PageResult",
+      "type": "object"
+    },
+    "RiskLabel": {
+      "enum": [
+        "Low tampering risk",
+        "Moderate tampering risk",
+        "High tampering risk",
+        "Critical tampering risk"
+      ],
+      "title": "RiskLabel",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "StageId": {
+      "enum": [
+        "queued",
+        "validating_uploads",
+        "rendering_documents",
+        "normalizing_pages",
+        "aligning_reference",
+        "extracting_text",
+        "comparing_structure",
+        "localizing_differences",
+        "scoring_evidence",
+        "preparing_result",
+        "complete",
+        "failed"
+      ],
+      "title": "StageId",
+      "type": "string"
+    },
+    "TextExtractionSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_characters": {
+          "minimum": 0,
+          "title": "Candidate Characters",
+          "type": "integer"
+        },
+        "candidate_source": {
+          "title": "Candidate Source",
+          "type": "string"
+        },
+        "reference_characters": {
+          "minimum": 0,
+          "title": "Reference Characters",
+          "type": "integer"
+        },
+        "reference_source": {
+          "title": "Reference Source",
+          "type": "string"
+        },
+        "similarity": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Similarity"
+        }
+      },
+      "required": [
+        "reference_source",
+        "candidate_source",
+        "reference_characters",
+        "candidate_characters",
+        "similarity"
+      ],
+      "title": "TextExtractionSummary",
+      "type": "object"
+    }
+  },
+  "$id": "https://docuverify.local/schemas/v1/analysis-job.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_page_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Page Url"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "current_stage": {
+      "$ref": "#/$defs/StageId"
+    },
+    "current_stage_message": {
+      "title": "Current Stage Message",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ErrorDetail"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "progress": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Progress",
+      "type": "integer"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DocumentResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/JobState"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "state",
+    "progress",
+    "current_stage",
+    "current_stage_message",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "AnalysisJob",
+  "type": "object"
+}

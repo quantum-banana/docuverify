@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "CapabilityStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment": {
+          "title": "Alignment",
+          "type": "boolean"
+        },
+        "embedded_pdf_text": {
+          "title": "Embedded Pdf Text",
+          "type": "boolean"
+        },
+        "image_rendering": {
+          "title": "Image Rendering",
+          "type": "boolean"
+        },
+        "pdf_rendering": {
+          "title": "Pdf Rendering",
+          "type": "boolean"
+        },
+        "raster_ocr": {
+          "title": "Raster Ocr",
+          "type": "boolean"
+        },
+        "sse": {
+          "title": "Sse",
+          "type": "boolean"
+        },
+        "uploads": {
+          "title": "Uploads",
+          "type": "boolean"
+        },
+        "visual_comparison": {
+          "title": "Visual Comparison",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "uploads",
+        "pdf_rendering",
+        "image_rendering",
+        "alignment",
+        "visual_comparison",
+        "embedded_pdf_text",
+        "raster_ocr",
+        "sse"
+      ],
+      "title": "CapabilityStatus",
+      "type": "object"
+    }
+  },
+  "$id": "https://docuverify.local/schemas/v1/health.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "$ref": "#/$defs/CapabilityStatus"
+    },
+    "current_time": {
+      "format": "date-time",
+      "title": "Current Time",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "degraded"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "version",
+    "current_time",
+    "capabilities"
+  ],
+  "title": "HealthResponse",
+  "type": "object"
+}

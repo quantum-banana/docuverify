@@ -1,0 +1,56 @@
+{
+  "$id": "https://docuverify.local/schemas/v1/diagnostics.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "backend_ready": {
+      "title": "Backend Ready",
+      "type": "boolean"
+    },
+    "gpu_detected": {
+      "title": "Gpu Detected",
+      "type": "boolean"
+    },
+    "numpy_version": {
+      "title": "Numpy Version",
+      "type": "string"
+    },
+    "ocr_device": {
+      "title": "Ocr Device",
+      "type": "string"
+    },
+    "ocr_provider": {
+      "title": "Ocr Provider",
+      "type": "string"
+    },
+    "opencv_version": {
+      "title": "Opencv Version",
+      "type": "string"
+    },
+    "pymupdf_version": {
+      "title": "Pymupdf Version",
+      "type": "string"
+    },
+    "python_version": {
+      "title": "Python Version",
+      "type": "string"
+    },
+    "runtime_writable": {
+      "title": "Runtime Writable",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "python_version",
+    "ocr_provider",
+    "ocr_device",
+    "opencv_version",
+    "pymupdf_version",
+    "numpy_version",
+    "gpu_detected",
+    "backend_ready",
+    "runtime_writable"
+  ],
+  "title": "DiagnosticsResponse",
+  "type": "object"
+}

@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "StageId": {
+      "enum": [
+        "queued",
+        "validating_uploads",
+        "rendering_documents",
+        "normalizing_pages",
+        "aligning_reference",
+        "extracting_text",
+        "comparing_structure",
+        "localizing_differences",
+        "scoring_evidence",
+        "preparing_result",
+        "complete",
+        "failed"
+      ],
+      "title": "StageId",
+      "type": "string"
+    }
+  },
+  "$id": "https://docuverify.local/schemas/v1/progress-event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_page_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Page Url"
+    },
+    "event_id": {
+      "minimum": 1,
+      "title": "Event Id",
+      "type": "integer"
+    },
+    "finding_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Finding Count",
+      "type": "integer"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    },
+    "page_number": {
+      "const": 1,
+      "default": 1,
+      "title": "Page Number",
+      "type": "integer"
+    },
+    "progress": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Progress",
+      "type": "integer"
+    },
+    "stage_id": {
+      "$ref": "#/$defs/StageId"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "total_pages": {
+      "const": 1,
+      "default": 1,
+      "title": "Total Pages",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "event_id",
+    "job_id",
+    "stage_id",
+    "message",
+    "progress",
+    "timestamp"
+  ],
+  "title": "ProgressEvent",
+  "type": "object"
+}
