@@ -7,6 +7,18 @@
       "title": "Backend Ready",
       "type": "boolean"
     },
+    "docuvault_invalid_profile_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Docuvault Invalid Profile Count",
+      "type": "integer"
+    },
+    "docuvault_profile_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Docuvault Profile Count",
+      "type": "integer"
+    },
     "gpu_detected": {
       "title": "Gpu Detected",
       "type": "boolean"
@@ -25,6 +37,16 @@
     },
     "opencv_version": {
       "title": "Opencv Version",
+      "type": "string"
+    },
+    "pdf_signature_provider": {
+      "default": "unavailable",
+      "title": "Pdf Signature Provider",
+      "type": "string"
+    },
+    "pdf_trust_store_mode": {
+      "default": "explicit_local_store",
+      "title": "Pdf Trust Store Mode",
       "type": "string"
     },
     "pymupdf_version": {

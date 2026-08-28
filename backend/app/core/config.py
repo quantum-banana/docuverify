@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = BACKEND_DIR.parent
 
 
 def _runtime_dir() -> Path:
@@ -41,6 +42,13 @@ def _env_choice(name: str, default: str, choices: set[str]) -> str:
         allowed = ", ".join(sorted(choices))
         raise ValueError(f"{name} must be one of: {allowed}")
     return value
+
+
+def _optional_path(name: str) -> Path | None:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return None
+    return Path(raw).expanduser().resolve()
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +87,13 @@ class Settings:
             "DOCUVERIFY_OCR_DEVICE", "cpu", {"cpu", "gpu"}
         )
     )
+    docuvault_path: Path | None = field(default_factory=lambda: _optional_path("DOCUVAULT_PATH"))
+    trust_store_path: Path = field(
+        default_factory=lambda: (
+            _optional_path("DOCUVERIFY_TRUST_STORE")
+            or (BACKEND_DIR / "docuvault" / "trust-store").resolve()
+        )
+    )
 
     def __post_init__(self) -> None:
         if self.ocr_device == "gpu":
@@ -94,3 +109,15 @@ class Settings:
     @property
     def database_path(self) -> Path:
         return self.runtime_dir / "jobs.sqlite3"
+
+    @property
+    def profile_index_path(self) -> Path:
+        return self.runtime_dir / "docuvault-index.sqlite3"
+
+    @property
+    def bundled_profiles_path(self) -> Path:
+        return BACKEND_DIR / "docuvault" / "profiles"
+
+    @property
+    def profile_schema_path(self) -> Path:
+        return BACKEND_DIR / "docuvault" / "schemas" / "profile.v1.schema.json"

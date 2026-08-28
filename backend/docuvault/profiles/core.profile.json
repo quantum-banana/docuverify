@@ -1,0 +1,6431 @@
+[
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.cbse.class10.generic.v1",
+    "issuer": {
+      "id": "in.cbse",
+      "name": "Central Board of Secondary Education",
+      "aliases": [
+        "CBSE"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.cbse_class_10_documents",
+    "subtype": "class_10_marksheet",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Central Board of Secondary Education",
+      "Secondary School Examination",
+      "Statement of Marks"
+    ],
+    "stable_labels": [
+      "roll number",
+      "name",
+      "school",
+      "marks"
+    ],
+    "keywords": [
+      "cbse",
+      "class 10",
+      "secondary school",
+      "marksheet"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "total",
+        "labels": [
+          "total",
+          "total marks",
+          "total earned points"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "maximum",
+        "labels": [
+          "maximum marks",
+          "max marks"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "percentage",
+        "labels": [
+          "percentage"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?%?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "cgpa",
+        "labels": [
+          "cgpa",
+          "sgpa"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "result",
+        "labels": [
+          "result",
+          "status"
+        ],
+        "format": "^(?:pass|fail|qualified|withheld)$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Central Board of Secondary Education",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Secondary School Examination",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Central Board of Secondary Education",
+            "Secondary School Examination"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      },
+      {
+        "rule_id": "percentage-from-total",
+        "version": "1.0.0",
+        "type": "percentage_matches",
+        "fields": [
+          "total",
+          "maximum",
+          "percentage"
+        ],
+        "parameters": {
+          "tolerance": 0.2
+        },
+        "minimum_ocr_confidence": 65,
+        "explanation": "Displayed percentage should agree with total and maximum marks."
+      },
+      {
+        "rule_id": "cgpa-range",
+        "version": "1.0.0",
+        "type": "numeric_range",
+        "fields": [
+          "cgpa"
+        ],
+        "parameters": {
+          "minimum": 0,
+          "maximum": 10
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "CGPA or SGPA should lie within the configured ten-point range."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "CBSE"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.cbse.repository.class10.class12",
+      "authoritative_url": "https://cbse.digitallocker.gov.in/",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 82,
+    "completeness": 72,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.cbse.class12.generic.v1",
+    "issuer": {
+      "id": "in.cbse",
+      "name": "Central Board of Secondary Education",
+      "aliases": [
+        "CBSE"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.cbse_class_12_documents",
+    "subtype": "class_12_marksheet",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Central Board of Secondary Education",
+      "Senior School Certificate Examination",
+      "Statement of Marks"
+    ],
+    "stable_labels": [
+      "roll number",
+      "name",
+      "school",
+      "marks"
+    ],
+    "keywords": [
+      "cbse",
+      "class 12",
+      "senior school",
+      "marksheet"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "total",
+        "labels": [
+          "total",
+          "total marks",
+          "total earned points"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "maximum",
+        "labels": [
+          "maximum marks",
+          "max marks"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "percentage",
+        "labels": [
+          "percentage"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?%?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "cgpa",
+        "labels": [
+          "cgpa",
+          "sgpa"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "result",
+        "labels": [
+          "result",
+          "status"
+        ],
+        "format": "^(?:pass|fail|qualified|withheld)$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Central Board of Secondary Education",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Senior School Certificate Examination",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Central Board of Secondary Education",
+            "Senior School Certificate Examination"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      },
+      {
+        "rule_id": "percentage-from-total",
+        "version": "1.0.0",
+        "type": "percentage_matches",
+        "fields": [
+          "total",
+          "maximum",
+          "percentage"
+        ],
+        "parameters": {
+          "tolerance": 0.2
+        },
+        "minimum_ocr_confidence": 65,
+        "explanation": "Displayed percentage should agree with total and maximum marks."
+      },
+      {
+        "rule_id": "cgpa-range",
+        "version": "1.0.0",
+        "type": "numeric_range",
+        "fields": [
+          "cgpa"
+        ],
+        "parameters": {
+          "minimum": 0,
+          "maximum": 10
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "CGPA or SGPA should lie within the configured ten-point range."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "CBSE"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.cbse.class12.signature.notice",
+      "authoritative_url": "https://www.cbse.gov.in/cbsenew/documents/Authenticity_Marksheet_Passing_Certificate_02092022.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 82,
+    "completeness": 72,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.university.grade-cgpa.v1",
+    "issuer": {
+      "id": "generic.university",
+      "name": "University or College",
+      "aliases": [
+        "university",
+        "college"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.grade_or_cgpa_certificate",
+    "subtype": "grade_card",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Statement of Grades",
+      "Grade Card",
+      "CGPA"
+    ],
+    "stable_labels": [
+      "name",
+      "registration number",
+      "programme",
+      "semester",
+      "credits",
+      "grade"
+    ],
+    "keywords": [
+      "grade card",
+      "cgpa",
+      "semester",
+      "credits"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "total",
+        "labels": [
+          "total",
+          "total marks",
+          "total earned points"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "maximum",
+        "labels": [
+          "maximum marks",
+          "max marks"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "percentage",
+        "labels": [
+          "percentage"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?%?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "cgpa",
+        "labels": [
+          "cgpa",
+          "sgpa"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "result",
+        "labels": [
+          "result",
+          "status"
+        ],
+        "format": "^(?:pass|fail|qualified|withheld)$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Statement of Grades",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Grade Card",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Statement of Grades",
+            "Grade Card"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      },
+      {
+        "rule_id": "percentage-from-total",
+        "version": "1.0.0",
+        "type": "percentage_matches",
+        "fields": [
+          "total",
+          "maximum",
+          "percentage"
+        ],
+        "parameters": {
+          "tolerance": 0.2
+        },
+        "minimum_ocr_confidence": 65,
+        "explanation": "Displayed percentage should agree with total and maximum marks."
+      },
+      {
+        "rule_id": "cgpa-range",
+        "version": "1.0.0",
+        "type": "numeric_range",
+        "fields": [
+          "cgpa"
+        ],
+        "parameters": {
+          "minimum": 0,
+          "maximum": 10
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "CGPA or SGPA should lie within the configured ten-point range."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "university",
+        "college"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.ignou.grade.card.portal",
+      "authoritative_url": "https://gradecard.ignou.ac.in/",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 70,
+    "completeness": 64,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.university.degree.v1",
+    "issuer": {
+      "id": "generic.university",
+      "name": "University or College",
+      "aliases": [
+        "university",
+        "college"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.degree_certificate",
+    "subtype": "degree_certificate",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Degree Certificate",
+      "University",
+      "Conferred"
+    ],
+    "stable_labels": [
+      "name",
+      "degree",
+      "programme",
+      "date"
+    ],
+    "keywords": [
+      "degree",
+      "conferred",
+      "university",
+      "graduation"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Degree Certificate",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "University",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Degree Certificate",
+            "University"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "university",
+        "college"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.nad.faq.academic.awards",
+      "authoritative_url": "https://nad.digilocker.gov.in/faq",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 68,
+    "completeness": 58,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.uidai.aadhaar-style.v1",
+    "issuer": {
+      "id": "in.uidai",
+      "name": "Unique Identification Authority of India",
+      "aliases": [
+        "UIDAI",
+        "Aadhaar"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "government.aadhaar_card",
+    "subtype": "aadhaar_style_identity",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Government of India",
+      "Aadhaar"
+    ],
+    "stable_labels": [
+      "name",
+      "date of birth",
+      "gender",
+      "address"
+    ],
+    "keywords": [
+      "aadhaar",
+      "government of india",
+      "uidai",
+      "date of birth"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Government of India",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Aadhaar",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Government of India",
+            "Aadhaar"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "required",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "UIDAI",
+        "Aadhaar"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.uidai.aadhaar-handbook-2021-v2",
+      "authoritative_url": "https://www.uidai.gov.in/images/LR_Aadhaar_Handbook_2026.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 76,
+    "completeness": 65,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.eci.voter-card.v1",
+    "issuer": {
+      "id": "in.eci",
+      "name": "Election Commission of India",
+      "aliases": [
+        "ECI",
+        "EPIC"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "government.voter_id_epic",
+    "subtype": "voter_identity_card",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Election Commission of India",
+      "Elector Photo Identity Card"
+    ],
+    "stable_labels": [
+      "name",
+      "elector number",
+      "date of birth"
+    ],
+    "keywords": [
+      "election commission",
+      "epic",
+      "elector",
+      "voter"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Election Commission of India",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Elector Photo Identity Card",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Election Commission of India",
+            "Elector Photo Identity Card"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "ECI",
+        "EPIC"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.eci.electoral-roll-manual-2023",
+      "authoritative_url": "https://www.eci.gov.in/",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 72,
+    "completeness": 60,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.nfsa.ration-card.generic.v1",
+    "issuer": {
+      "id": "in.dfpd.nfsa",
+      "name": "National Food Security Portal",
+      "aliases": [
+        "NFSA",
+        "Food and Civil Supplies"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "government.ration_card",
+    "subtype": "state_ration_card",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Ration Card",
+      "Food and Civil Supplies"
+    ],
+    "stable_labels": [
+      "ration card number",
+      "head of family",
+      "address"
+    ],
+    "keywords": [
+      "ration card",
+      "food and civil supplies",
+      "household"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Ration Card",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Food and Civil Supplies",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Ration Card",
+            "Food and Civil Supplies"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "NFSA",
+        "Food and Civil Supplies"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.dfpd.nfsa-state-ration-portals",
+      "authoritative_url": "https://nfsa.gov.in/portal/ration_card_state_portals",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 62,
+    "completeness": 50,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.university.student-id.v1",
+    "issuer": {
+      "id": "generic.university",
+      "name": "University or College",
+      "aliases": [
+        "university",
+        "college"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.university_or_college_identity_card",
+    "subtype": "student_identity_card",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Identity Card",
+      "Student ID"
+    ],
+    "stable_labels": [
+      "name",
+      "registration number",
+      "programme",
+      "valid until"
+    ],
+    "keywords": [
+      "student id",
+      "identity card",
+      "registration",
+      "programme"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Identity Card",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Student ID",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Identity Card",
+            "Student ID"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "university",
+        "college"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.ignou.ssr.id.fee",
+      "authoritative_url": "https://www.ignou.ac.in/viewFile/ciqa/NAAC/SSRFinal.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 65,
+    "completeness": 55,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.morth.driving-licence.generic.v1",
+    "issuer": {
+      "id": "in.morth",
+      "name": "Ministry of Road Transport and Highways",
+      "aliases": [
+        "MoRTH",
+        "Parivahan"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "government.driving_licence",
+    "subtype": "driving_licence",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Driving Licence",
+      "Transport"
+    ],
+    "stable_labels": [
+      "licence number",
+      "name",
+      "date of birth",
+      "validity"
+    ],
+    "keywords": [
+      "driving licence",
+      "transport",
+      "valid till",
+      "vehicle class"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Driving Licence",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Transport",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Driving Licence",
+            "Transport"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "required",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "MoRTH",
+        "Parivahan"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.morth.mparivahan-advisory-2018",
+      "authoritative_url": "https://mparivahan.parivahan.gov.in/docs/Advisory5-17-12-18.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 71,
+    "completeness": 58,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.mea.passport.generic.v1",
+    "issuer": {
+      "id": "in.mea.passport-seva",
+      "name": "Passport Seva, Ministry of External Affairs",
+      "aliases": [
+        "Passport Seva",
+        "MEA"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "government.passport",
+    "subtype": "passport",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Republic of India",
+      "Passport"
+    ],
+    "stable_labels": [
+      "passport number",
+      "surname",
+      "given names",
+      "nationality",
+      "date of birth"
+    ],
+    "keywords": [
+      "passport",
+      "republic of india",
+      "nationality",
+      "place of issue"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Republic of India",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Passport",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Republic of India",
+            "Passport"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "Passport Seva",
+        "MEA"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.mea.epassport-faq",
+      "authoritative_url": "https://services1.passportindia.gov.in/psp/FaqEPassport",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 74,
+    "completeness": 62,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.itd.pan-card.v1",
+    "issuer": {
+      "id": "in.cbdt.itd",
+      "name": "Income Tax Department",
+      "aliases": [
+        "Income Tax",
+        "PAN"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "government.pan_card",
+    "subtype": "pan_card",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 2,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Income Tax Department",
+      "Permanent Account Number"
+    ],
+    "stable_labels": [
+      "name",
+      "father's name",
+      "date of birth",
+      "permanent account number"
+    ],
+    "keywords": [
+      "income tax",
+      "permanent account number",
+      "pan"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [
+        {
+          "region_id": "photo",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.26,
+            "width": 0.25,
+            "height": 0.38
+          },
+          "label": "Portrait photograph"
+        }
+      ],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Income Tax Department",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Permanent Account Number",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Income Tax Department",
+            "Permanent Account Number"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "Income Tax",
+        "PAN"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.itd.pan-verify-help",
+      "authoritative_url": "https://www.incometax.gov.in/iec/foportal/help/how-to-verify-pan?mobile-app=1",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 76,
+    "completeness": 64,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.education.fee-receipt.v1",
+    "issuer": {
+      "id": "generic.education",
+      "name": "Educational Institution",
+      "aliases": [
+        "university",
+        "college",
+        "school"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.fee_receipt",
+    "subtype": "fee_receipt",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Fee Receipt",
+      "Receipt"
+    ],
+    "stable_labels": [
+      "receipt number",
+      "student name",
+      "amount",
+      "date"
+    ],
+    "keywords": [
+      "fee receipt",
+      "amount paid",
+      "receipt number",
+      "student"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [],
+      "signature": [],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Fee Receipt",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Receipt",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Fee Receipt",
+            "Receipt"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "university",
+        "college"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.ignou.ssr.id.fee",
+      "authoritative_url": "https://www.ignou.ac.in/viewFile/ciqa/NAAC/SSRFinal.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 61,
+    "completeness": 52,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.education.internship-certificate.v1",
+    "issuer": {
+      "id": "generic.education",
+      "name": "Educational or Training Institution",
+      "aliases": [
+        "institution",
+        "employer"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.internship_certificate",
+    "subtype": "internship_certificate",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Internship Certificate",
+      "This is to certify"
+    ],
+    "stable_labels": [
+      "name",
+      "organisation",
+      "duration",
+      "issue date"
+    ],
+    "keywords": [
+      "internship",
+      "certificate",
+      "duration",
+      "successfully completed"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Internship Certificate",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "This is to certify",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Internship Certificate",
+            "This is to certify"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "not_expected",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "institution",
+        "employer"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.maharashtra.internship.policy",
+      "authoritative_url": "https://internship.aicte-india.org/dashboard/state/maharashtra/extra-images/5-29-feb-Government-Internship-GR-and-Policy.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 59,
+    "completeness": 49,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.education.bonafide-certificate.v1",
+    "issuer": {
+      "id": "generic.education",
+      "name": "Educational Institution",
+      "aliases": [
+        "university",
+        "college",
+        "school"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.bonafide_certificate",
+    "subtype": "bonafide_certificate",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Bonafide Certificate",
+      "This is to certify"
+    ],
+    "stable_labels": [
+      "name",
+      "registration number",
+      "programme",
+      "academic year"
+    ],
+    "keywords": [
+      "bonafide",
+      "student",
+      "academic year",
+      "institution"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Bonafide Certificate",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "This is to certify",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Bonafide Certificate",
+            "This is to certify"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "not_expected",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "university",
+        "college"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.nitkkr.student.forms",
+      "authoritative_url": "https://nitkkr.ac.in/student-forms/",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 61,
+    "completeness": 52,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.education.noc-certificate.v1",
+    "issuer": {
+      "id": "generic.education",
+      "name": "Educational Institution",
+      "aliases": [
+        "university",
+        "college"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.no_objection_certificate",
+    "subtype": "no_objection_certificate",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "No Objection Certificate",
+      "To Whom It May Concern"
+    ],
+    "stable_labels": [
+      "name",
+      "registration number",
+      "purpose",
+      "issue date"
+    ],
+    "keywords": [
+      "no objection",
+      "noc",
+      "purpose",
+      "institution"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "No Objection Certificate",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "To Whom It May Concern",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "No Objection Certificate",
+            "To Whom It May Concern"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "not_expected",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "university",
+        "college"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "academic.iiitdm.academic.forms.noc",
+      "authoritative_url": "https://www.iiitdm.ac.in/students/existing-students/academic-forms",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 64,
+    "completeness": 54,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.civil.birth-certificate.generic.v1",
+    "issuer": {
+      "id": "in.civil.registration",
+      "name": "Civil Registration Authority",
+      "aliases": [
+        "Registrar of Births and Deaths"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "civil.birth_certificate",
+    "subtype": "birth_certificate",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Birth Certificate",
+      "Registrar of Births and Deaths"
+    ],
+    "stable_labels": [
+      "registration number",
+      "name",
+      "date of birth",
+      "place of birth"
+    ],
+    "keywords": [
+      "birth certificate",
+      "registration",
+      "date of birth",
+      "registrar"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Birth Certificate",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Registrar of Births and Deaths",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Birth Certificate",
+            "Registrar of Births and Deaths"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "Registrar of Births and Deaths"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.wb.jmt.certificate-verifier",
+      "authoritative_url": "https://janma-mrityutathya.wb.gov.in/verifycertificate",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 66,
+    "completeness": 55,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.civil.death-certificate.generic.v1",
+    "issuer": {
+      "id": "in.civil.registration",
+      "name": "Civil Registration Authority",
+      "aliases": [
+        "Registrar of Births and Deaths"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "civil.death_certificate",
+    "subtype": "death_certificate",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Death Certificate",
+      "Registrar of Births and Deaths"
+    ],
+    "stable_labels": [
+      "registration number",
+      "name",
+      "date of death",
+      "place of death"
+    ],
+    "keywords": [
+      "death certificate",
+      "registration",
+      "date of death",
+      "registrar"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Death Certificate",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Registrar of Births and Deaths",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Death Certificate",
+            "Registrar of Births and Deaths"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "Registrar of Births and Deaths"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.wb.jmt.certificate-verifier",
+      "authoritative_url": "https://janma-mrityutathya.wb.gov.in/verifycertificate",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 66,
+    "completeness": 55,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "generic.civil.proof-of-address.v1",
+    "issuer": {
+      "id": "generic.civil",
+      "name": "Recognised Issuing Authority",
+      "aliases": [
+        "issuer"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "civil.proof_of_address",
+    "subtype": "proof_of_address",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Proof of Address",
+      "Address"
+    ],
+    "stable_labels": [
+      "name",
+      "address",
+      "document number",
+      "issue date"
+    ],
+    "keywords": [
+      "proof of address",
+      "address",
+      "issued"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [],
+      "signature": [],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Proof of Address",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Address",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Proof of Address",
+            "Address"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "unknown",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "issuer"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.uidai.aadhaar-acceptable-documents-2026",
+      "authoritative_url": "https://uidai.gov.in/images/commdoc/List_of_Supporting_Document_for_Aadhaar_Enrolment_and_Update.pdf",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 52,
+    "completeness": 43,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "in.mha.visa-document.v1",
+    "issuer": {
+      "id": "in.mha.boi",
+      "name": "Bureau of Immigration, Ministry of Home Affairs",
+      "aliases": [
+        "Indian Visa Online",
+        "BOI"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "civil.visa_document",
+    "subtype": "visa",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Visa",
+      "Government of India"
+    ],
+    "stable_labels": [
+      "visa number",
+      "passport number",
+      "nationality",
+      "valid until"
+    ],
+    "keywords": [
+      "visa",
+      "government of india",
+      "passport number",
+      "valid until"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [
+        {
+          "region_id": "seal",
+          "page": 1,
+          "box": {
+            "x": 0.35,
+            "y": 0.66,
+            "width": 0.28,
+            "height": 0.23
+          },
+          "label": "Issuer seal area"
+        }
+      ],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [
+        {
+          "region_id": "handwriting",
+          "page": 1,
+          "box": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.76,
+            "height": 0.2
+          },
+          "label": "Handwritten endorsement area"
+        }
+      ],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Visa",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Government of India",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Visa",
+            "Government of India"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "Indian Visa Online",
+        "BOI"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": "src.mha.indian-visa-online",
+      "authoritative_url": "https://indianvisaonline.gov.in/visa/index.html?lng=eng",
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "metadata",
+      "redistribution_status": "unclear",
+      "licence": null
+    },
+    "provenance": {
+      "kind": "authoritative_metadata",
+      "assurance": "P2",
+      "description": "Derived conservatively from official-source metadata in the detached DocuVault R1 export; no official document bytes are bundled."
+    },
+    "profile_confidence": 70,
+    "completeness": 58,
+    "known_limitations": [
+      "No official document bytes or universal visual template are bundled.",
+      "Regional, year, language and delivery-channel variants may differ.",
+      "A profile match cannot verify personal field values or issuance."
+    ],
+    "visual_reference": null,
+    "enabled": true
+  },
+  {
+    "schema_version": "1.0.0",
+    "profile_id": "synthetic.lumen-grove.achievement-record.v1",
+    "issuer": {
+      "id": "synthetic.lumen-grove",
+      "name": "Lumen Grove Synthetic Record",
+      "aliases": [
+        "Lumen Grove",
+        "DV fictional fixture"
+      ]
+    },
+    "jurisdiction": {
+      "country": "IN",
+      "state": null
+    },
+    "document_family": "academic.grade_or_cgpa_certificate",
+    "subtype": "achievement_record",
+    "version": "generic-v1",
+    "validity": {
+      "from_year": null,
+      "to_year": null,
+      "notes": "Issuer, state, year and delivery-channel variants require runtime applicability review."
+    },
+    "languages": [
+      "en"
+    ],
+    "scripts": [
+      "Latn"
+    ],
+    "supported_formats": [
+      "pdf",
+      "png",
+      "jpeg"
+    ],
+    "expected_pages": {
+      "minimum": 1,
+      "maximum": 10,
+      "orientation": "portrait",
+      "dimensions": []
+    },
+    "stable_headings": [
+      "Lumen Grove Synthetic Record",
+      "Achievement Record",
+      "Fictional Template-Comparison Fixture",
+      "Template Rule"
+    ],
+    "stable_labels": [
+      "name",
+      "identifier",
+      "issue date",
+      "result",
+      "template rule"
+    ],
+    "keywords": [
+      "lumen grove",
+      "achievement record",
+      "fictional template-comparison fixture",
+      "template rule"
+    ],
+    "regions": {
+      "fixed": [
+        {
+          "region_id": "fixed-header",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.03,
+            "width": 0.92,
+            "height": 0.2
+          },
+          "label": "Issuer and document heading"
+        }
+      ],
+      "variable": [
+        {
+          "region_id": "variable-content",
+          "page": 1,
+          "box": {
+            "x": 0.05,
+            "y": 0.2,
+            "width": 0.9,
+            "height": 0.64
+          },
+          "label": "Document-specific values"
+        }
+      ],
+      "unknown": []
+    },
+    "fields": [
+      {
+        "field_id": "name",
+        "labels": [
+          "name",
+          "student name",
+          "candidate name"
+        ],
+        "format": "^[A-Za-z][A-Za-z .'-]{1,119}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "document_number",
+        "labels": [
+          "document number",
+          "registration number",
+          "registration no",
+          "roll number",
+          "receipt number",
+          "licence number",
+          "passport number",
+          "visa number",
+          "elector number"
+        ],
+        "format": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "issue_date",
+        "labels": [
+          "issue date",
+          "date of issue",
+          "issued on"
+        ],
+        "format": "^(?:[0-3]?\\d[-/.][01]?\\d[-/.](?:19|20)\\d{2}|(?:19|20)\\d{2}[-/.][01]?\\d[-/.][0-3]?\\d)$",
+        "page": 1,
+        "sensitive": true,
+        "required": false
+      },
+      {
+        "field_id": "total",
+        "labels": [
+          "total",
+          "total marks",
+          "total earned points"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "maximum",
+        "labels": [
+          "maximum marks",
+          "max marks"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "percentage",
+        "labels": [
+          "percentage"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?%?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "cgpa",
+        "labels": [
+          "cgpa",
+          "sgpa"
+        ],
+        "format": "^\\d+(?:\\.\\d+)?$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      },
+      {
+        "field_id": "result",
+        "labels": [
+          "result",
+          "status"
+        ],
+        "format": "^(?:pass|fail|qualified|withheld)$",
+        "page": 1,
+        "sensitive": false,
+        "required": false
+      }
+    ],
+    "security_regions": {
+      "logo": [
+        {
+          "region_id": "logo",
+          "page": 1,
+          "box": {
+            "x": 0.04,
+            "y": 0.04,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "label": "Issuer logo area"
+        }
+      ],
+      "seal": [],
+      "photo": [],
+      "signature": [
+        {
+          "region_id": "signature",
+          "page": 1,
+          "box": {
+            "x": 0.55,
+            "y": 0.78,
+            "width": 0.36,
+            "height": 0.12
+          },
+          "label": "Signature area"
+        }
+      ],
+      "handwriting": [],
+      "qr": [
+        {
+          "region_id": "qr",
+          "page": 1,
+          "box": {
+            "x": 0.72,
+            "y": 0.68,
+            "width": 0.2,
+            "height": 0.22
+          },
+          "label": "QR area"
+        }
+      ],
+      "barcode": []
+    },
+    "layout_anchors": [
+      {
+        "anchor_id": "heading-1",
+        "text": "Lumen Grove Synthetic Record",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.05,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      },
+      {
+        "anchor_id": "heading-2",
+        "text": "Achievement Record",
+        "page": 1,
+        "box": {
+          "x": 0.08,
+          "y": 0.13,
+          "width": 0.84,
+          "height": 0.07
+        },
+        "tolerance": 0.16
+      }
+    ],
+    "typography": {
+      "weight": "mixed",
+      "case": "mixed",
+      "alignment": "mixed",
+      "appearance_descriptors": [
+        "Stable headings should retain consistent stroke weight and spacing.",
+        "Variable values may change but their local typography and background integrity remain testable."
+      ]
+    },
+    "logical_rules": [
+      {
+        "rule_id": "fixed-heading-present",
+        "version": "1.0.0",
+        "type": "fixed_text_present",
+        "fields": [],
+        "parameters": {
+          "texts": [
+            "Lumen Grove Synthetic Record",
+            "Achievement Record"
+          ]
+        },
+        "minimum_ocr_confidence": 45,
+        "explanation": "Expected stable issuer or document-family text should be present."
+      },
+      {
+        "rule_id": "document-number-format",
+        "version": "1.0.0",
+        "type": "regex",
+        "fields": [
+          "document_number"
+        ],
+        "parameters": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9/ ._-]{2,63}$"
+        },
+        "minimum_ocr_confidence": 55,
+        "explanation": "The visible document number should match the profile format."
+      },
+      {
+        "rule_id": "issue-before-expiry",
+        "version": "1.0.0",
+        "type": "date_order",
+        "fields": [
+          "issue_date",
+          "expiry_date"
+        ],
+        "parameters": {
+          "allow_equal": false
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "An expiry date, when present, must follow the issue date."
+      },
+      {
+        "rule_id": "percentage-from-total",
+        "version": "1.0.0",
+        "type": "percentage_matches",
+        "fields": [
+          "total",
+          "maximum",
+          "percentage"
+        ],
+        "parameters": {
+          "tolerance": 0.2
+        },
+        "minimum_ocr_confidence": 65,
+        "explanation": "Displayed percentage should agree with total and maximum marks."
+      },
+      {
+        "rule_id": "cgpa-range",
+        "version": "1.0.0",
+        "type": "numeric_range",
+        "fields": [
+          "cgpa"
+        ],
+        "parameters": {
+          "minimum": 0,
+          "maximum": 10
+        },
+        "minimum_ocr_confidence": 60,
+        "explanation": "CGPA or SGPA should lie within the configured ten-point range."
+      }
+    ],
+    "digital_signature": {
+      "expectation": "optional",
+      "trusted_issuer_ids": [],
+      "allowed_formats": [
+        "adbe.pkcs7.detached",
+        "ETSI.CAdES.detached"
+      ]
+    },
+    "codes": {
+      "qr_expectation": "optional",
+      "barcode_expectation": "unknown",
+      "payload_format": "issuer_specific",
+      "required_keys": [],
+      "issuer_prefixes": [
+        "Lumen Grove",
+        "DV fictional fixture"
+      ],
+      "cryptographic_specification": null
+    },
+    "source": {
+      "record_id": null,
+      "authoritative_url": null,
+      "retrieved_at": "2026-08-28",
+      "sha256": null,
+      "format": "synthetic",
+      "redistribution_status": "permitted",
+      "licence": "Fictional project fixture; no real person or issuer."
+    },
+    "provenance": {
+      "kind": "synthetic_showcase",
+      "assurance": "P0",
+      "description": "Fictional showcase profile generated within DocuVerify."
+    },
+    "profile_confidence": 96,
+    "completeness": 94,
+    "known_limitations": [
+      "Synthetic profile demonstrates matching and forensic controls but is not an official reference.",
+      "Similarity does not establish issuance or identity."
+    ],
+    "visual_reference": {
+      "relative_path": "samples/synthetic/template_reference.pdf",
+      "sha256": "c5cccf620048657d7e3e0515d154bad2d0f92719375473ff7441a7fcdef2a5e9",
+      "format": "pdf",
+      "provenance": "synthetic_showcase"
+    },
+    "enabled": true
+  }
+]

@@ -7,12 +7,32 @@
           "title": "Alignment",
           "type": "boolean"
         },
+        "docuvault_profiles": {
+          "default": false,
+          "title": "Docuvault Profiles",
+          "type": "boolean"
+        },
         "embedded_pdf_text": {
           "title": "Embedded Pdf Text",
           "type": "boolean"
         },
+        "handwriting_comparison": {
+          "default": false,
+          "title": "Handwriting Comparison",
+          "type": "boolean"
+        },
         "image_rendering": {
           "title": "Image Rendering",
+          "type": "boolean"
+        },
+        "logical_rules": {
+          "default": false,
+          "title": "Logical Rules",
+          "type": "boolean"
+        },
+        "metadata_forensics": {
+          "default": false,
+          "title": "Metadata Forensics",
           "type": "boolean"
         },
         "multi_page": {
@@ -24,8 +44,23 @@
           "title": "Pdf Rendering",
           "type": "boolean"
         },
+        "pdf_signature_validation": {
+          "default": false,
+          "title": "Pdf Signature Validation",
+          "type": "boolean"
+        },
+        "qr_decoding": {
+          "default": false,
+          "title": "Qr Decoding",
+          "type": "boolean"
+        },
         "raster_ocr": {
           "title": "Raster Ocr",
+          "type": "boolean"
+        },
+        "signature_comparison": {
+          "default": false,
+          "title": "Signature Comparison",
           "type": "boolean"
         },
         "sse": {

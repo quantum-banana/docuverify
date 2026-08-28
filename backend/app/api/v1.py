@@ -22,9 +22,14 @@ from backend.app.models.contracts import (
     ErrorDetail,
     ErrorResponse,
     HealthResponse,
+    ProfileCatalogResponse,
+    ProfileMatchSummary,
+    ProfileStateRequest,
 )
-from backend.app.services.documents import DocumentValidationError, validate_upload
+from backend.app.docuvault.repository import DocumentProfile
+from backend.app.services.documents import DocumentValidationError, ValidatedUpload, validate_upload
 from backend.app.services.ocr import raster_ocr_capability
+from backend.app.services.pipeline import AnalysisOptions
 
 
 router = APIRouter(prefix="/api/v1")
@@ -42,6 +47,7 @@ class APIProblem(Exception):
 def health(request: Request) -> HealthResponse:
     runtime_writable = request.app.state.store.runtime_writable()
     raster_ocr, _, _ = _raster_ocr_capability(request)
+    profile_stats = request.app.state.profiles.stats()
     return HealthResponse(
         status="ok" if runtime_writable else "degraded",
         version=__version__,
@@ -57,6 +63,13 @@ def health(request: Request) -> HealthResponse:
             sse=True,
             multi_page=True,
             template_comparison=True,
+            docuvault_profiles=profile_stats["enabled"] > 0,
+            qr_decoding=True,
+            pdf_signature_validation=True,
+            metadata_forensics=True,
+            logical_rules=True,
+            handwriting_comparison=True,
+            signature_comparison=True,
         ),
     )
 
@@ -89,6 +102,13 @@ def diagnostics(request: Request) -> DiagnosticsResponse:
             gpu_detected = False
     runtime_writable = request.app.state.store.runtime_writable()
     _, ocr_provider, ocr_device = _raster_ocr_capability(request)
+    profile_stats = request.app.state.profiles.stats()
+    try:
+        import pyhanko
+
+        signature_provider = f"pyHanko {getattr(pyhanko, '__version__', '0.36.2')}"
+    except ImportError:
+        signature_provider = "unavailable"
     return DiagnosticsResponse(
         python_version=platform.python_version(),
         ocr_provider=ocr_provider,
@@ -99,7 +119,56 @@ def diagnostics(request: Request) -> DiagnosticsResponse:
         gpu_detected=gpu_detected,
         backend_ready=runtime_writable,
         runtime_writable=runtime_writable,
+        docuvault_profile_count=profile_stats["enabled"],
+        docuvault_invalid_profile_count=profile_stats["invalid"],
+        pdf_signature_provider=signature_provider,
+        pdf_trust_store_mode="explicit_local_store",
     )
+
+
+@router.get("/profiles", response_model=ProfileCatalogResponse, tags=["profiles"])
+def list_profiles(
+    request: Request,
+    issuer: Annotated[str | None, Query(max_length=160)] = None,
+    document_family: Annotated[str | None, Query(max_length=160)] = None,
+    year: Annotated[int | None, Query(ge=1900, le=2200)] = None,
+    language: Annotated[str | None, Query(max_length=32)] = None,
+) -> ProfileCatalogResponse:
+    repository = request.app.state.profiles
+    profiles = repository.search(
+        issuer=issuer,
+        document_family=document_family,
+        year=year,
+        language=language,
+    )
+    stats = repository.stats()
+    return ProfileCatalogResponse(
+        profiles=[_catalog_profile_summary(profile) for profile in profiles],
+        profile_count=stats["profiles"],
+        enabled_count=stats["enabled"],
+        invalid_count=stats["invalid"],
+    )
+
+
+@router.patch(
+    "/profiles/{profile_id}/state",
+    response_model=ProfileMatchSummary,
+    responses={404: {"model": ErrorResponse}},
+    tags=["profiles"],
+)
+def set_profile_state(
+    profile_id: str,
+    state: ProfileStateRequest,
+    request: Request,
+) -> ProfileMatchSummary:
+    try:
+        profile = request.app.state.profiles.set_enabled(profile_id, state.enabled)
+    except KeyError as exc:
+        raise APIProblem(
+            404,
+            ErrorDetail(code="profile_not_found", message="The requested local profile was not found."),
+        ) from exc
+    return _catalog_profile_summary(profile)
 
 
 @router.post(
@@ -114,6 +183,8 @@ async def create_reference_analysis(
     reference: Annotated[UploadFile, File(description="Trusted 1-10 page reference")],
     candidate: Annotated[UploadFile, File(description="Questioned 1-10 page document")],
     comparison_mode: Annotated[str, Form()] = "exact",
+    handwriting_exemplars: Annotated[list[UploadFile] | None, File()] = None,
+    signature_exemplars: Annotated[list[UploadFile] | None, File()] = None,
 ) -> CreateAnalysisResponse:
     try:
         mode = ComparisonMode(comparison_mode)
@@ -161,6 +232,20 @@ async def create_reference_analysis(
                         "max_pages": settings.max_pages,
                     },
                 )
+        validated_handwriting = await _validate_exemplars(
+            handwriting_exemplars or [],
+            field="handwriting_exemplars",
+            request=request,
+            minimum=1,
+            maximum=5,
+        )
+        validated_signatures = await _validate_exemplars(
+            signature_exemplars or [],
+            field="signature_exemplars",
+            request=request,
+            minimum=2,
+            maximum=5,
+        )
     except DocumentValidationError as exc:
         status = 413 if exc.code == "file_too_large" else 422
         raise APIProblem(
@@ -175,8 +260,90 @@ async def create_reference_analysis(
     finally:
         await reference.close()
         await candidate.close()
+        for upload in [*(handwriting_exemplars or []), *(signature_exemplars or [])]:
+            await upload.close()
     return request.app.state.manager.submit(
-        validated_reference, validated_candidate, comparison_mode=mode
+        validated_reference,
+        validated_candidate,
+        comparison_mode=mode,
+        options=AnalysisOptions(
+            handwriting_exemplars=validated_handwriting,
+            signature_exemplars=validated_signatures,
+        ),
+    )
+
+
+@router.post(
+    "/analyses/automatic",
+    response_model=CreateAnalysisResponse,
+    status_code=202,
+    responses={400: {"model": ErrorResponse}, 413: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    tags=["analysis"],
+)
+async def create_automatic_analysis(
+    request: Request,
+    candidate: Annotated[UploadFile, File(description="Questioned 1-10 page document")],
+    profile_override: Annotated[str | None, Form(max_length=160)] = None,
+    handwriting_exemplars: Annotated[list[UploadFile] | None, File()] = None,
+    signature_exemplars: Annotated[list[UploadFile] | None, File()] = None,
+) -> CreateAnalysisResponse:
+    settings = request.app.state.settings
+    try:
+        candidate_data = await candidate.read(settings.max_upload_bytes + 1)
+        validated_candidate = validate_upload(
+            field="candidate",
+            filename=candidate.filename,
+            content_type=candidate.content_type,
+            data=candidate_data,
+            max_bytes=settings.max_upload_bytes,
+        )
+        if validated_candidate.page_count > settings.max_pages:
+            raise DocumentValidationError(
+                "page_limit_exceeded",
+                f"The candidate PDF exceeds the configured {settings.max_pages}-page limit.",
+                field="candidate",
+                details={
+                    "page_count": validated_candidate.page_count,
+                    "max_pages": settings.max_pages,
+                },
+            )
+        if profile_override and request.app.state.profiles.get(profile_override) is None:
+            raise DocumentValidationError(
+                "profile_not_found",
+                "The selected local profile is unavailable or disabled.",
+                field="profile_override",
+            )
+        validated_handwriting = await _validate_exemplars(
+            handwriting_exemplars or [],
+            field="handwriting_exemplars",
+            request=request,
+            minimum=1,
+            maximum=5,
+        )
+        validated_signatures = await _validate_exemplars(
+            signature_exemplars or [],
+            field="signature_exemplars",
+            request=request,
+            minimum=2,
+            maximum=5,
+        )
+    except DocumentValidationError as exc:
+        status = 413 if exc.code == "file_too_large" else 422
+        raise APIProblem(
+            status,
+            ErrorDetail(code=exc.code, message=exc.message, field=exc.field, details=exc.details),
+        ) from exc
+    finally:
+        await candidate.close()
+        for upload in [*(handwriting_exemplars or []), *(signature_exemplars or [])]:
+            await upload.close()
+    return request.app.state.manager.submit_automatic(
+        validated_candidate,
+        options=AnalysisOptions(
+            profile_override=profile_override,
+            handwriting_exemplars=validated_handwriting,
+            signature_exemplars=validated_signatures,
+        ),
     )
 
 
@@ -224,6 +391,45 @@ def create_demo_analysis(request: Request) -> CreateAnalysisResponse:
     return request.app.state.manager.submit(
         reference, candidate, comparison_mode=ComparisonMode.EXACT
     )
+
+
+async def _validate_exemplars(
+    uploads: list[UploadFile],
+    *,
+    field: str,
+    request: Request,
+    minimum: int,
+    maximum: int,
+) -> tuple[ValidatedUpload, ...]:
+    if not uploads:
+        return ()
+    if not minimum <= len(uploads) <= maximum:
+        raise DocumentValidationError(
+            "invalid_exemplar_count",
+            f"{field} must contain between {minimum} and {maximum} files when provided.",
+            field=field,
+            details={"count": len(uploads), "minimum": minimum, "maximum": maximum},
+        )
+    settings = request.app.state.settings
+    validated: list[ValidatedUpload] = []
+    for index, upload in enumerate(uploads, start=1):
+        data = await upload.read(settings.max_upload_bytes + 1)
+        exemplar = validate_upload(
+            field=f"{field}[{index}]",
+            filename=upload.filename,
+            content_type=upload.content_type,
+            data=data,
+            max_bytes=settings.max_upload_bytes,
+        )
+        if exemplar.page_count > settings.max_pages:
+            raise DocumentValidationError(
+                "page_limit_exceeded",
+                f"Exemplar {index} exceeds the configured page limit.",
+                field=f"{field}[{index}]",
+                details={"page_count": exemplar.page_count, "max_pages": settings.max_pages},
+            )
+        validated.append(exemplar)
+    return tuple(validated)
 
 
 @router.get(
@@ -369,3 +575,24 @@ def _raster_ocr_capability(request: Request) -> tuple[bool, str, str]:
     except TypeError:
         # Compatibility while upgrading an existing Phase 1 environment.
         return raster_ocr_capability()
+
+
+def _catalog_profile_summary(profile: DocumentProfile) -> ProfileMatchSummary:
+    manifest = profile.manifest
+    source = manifest["source"]
+    return ProfileMatchSummary(
+        profile_id=profile.profile_id,
+        issuer=profile.issuer,
+        document_family=profile.family,
+        subtype=str(manifest["subtype"]),
+        provenance_kind=str(manifest["provenance"]["kind"]),
+        provenance_assurance=str(manifest["provenance"]["assurance"]),
+        score=0.0,
+        component_scores={},
+        reference_strength="Profile available for local matching",
+        explanation=str(manifest["provenance"]["description"]),
+        completeness=float(manifest["completeness"]),
+        authoritative_source_url=source.get("authoritative_url"),
+        visual_reference_available=profile.visual_reference_path is not None,
+        limitations=[str(item) for item in manifest["known_limitations"]],
+    )

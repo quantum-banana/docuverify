@@ -32,6 +32,7 @@ class JobState(StrEnum):
 class ComparisonMode(StrEnum):
     EXACT = "exact"
     TEMPLATE = "template"
+    DOCUVAULT = "docuvault"
 
 
 class PageStatus(StrEnum):
@@ -65,6 +66,16 @@ class StageId(StrEnum):
     COMPARING_STRUCTURE = "comparing_structure"
     LOCALIZING_DIFFERENCES = "localizing_differences"
     SCORING_EVIDENCE = "scoring_evidence"
+    IDENTIFYING_DOCUMENT_FAMILY = "identifying_document_family"
+    SEARCHING_TRUSTED_PROFILES = "searching_trusted_profiles"
+    MATCHING_ISSUER_LAYOUT = "matching_issuer_layout"
+    DECODING_CODES = "decoding_codes"
+    CHECKING_DIGITAL_SIGNATURES = "checking_digital_signatures"
+    INSPECTING_METADATA = "inspecting_metadata"
+    VALIDATING_FIELD_CONSISTENCY = "validating_field_consistency"
+    COMPARING_HANDWRITING = "comparing_handwriting"
+    COMPARING_SIGNATURES = "comparing_signatures"
+    AGGREGATING_EVIDENCE = "aggregating_evidence"
     PREPARING_RESULT = "preparing_result"
     COMPLETE = "complete"
     FAILED = "failed"
@@ -83,6 +94,24 @@ class Severity(StrEnum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
+
+class CheckStatus(StrEnum):
+    PASSED = "passed"
+    FAILED = "failed"
+    WARNING = "warning"
+    SKIPPED = "skipped"
+    UNSUPPORTED = "unsupported"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class PdfSignatureStatus(StrEnum):
+    VALID_TRUSTED = "cryptographically_valid_and_locally_trusted"
+    VALID_UNKNOWN_TRUST = "cryptographically_valid_but_signer_trust_unknown"
+    INVALID = "cryptographically_invalid"
+    MODIFIED = "signed_content_modified"
+    UNSIGNED = "unsigned"
+    UNSUPPORTED = "unsupported_signature_format"
 
 
 class ErrorDetail(ContractModel):
@@ -259,6 +288,166 @@ class DocumentAggregate(ContractModel):
     reordered_page_count: Annotated[int, Field(ge=0)]
 
 
+class ProfileMatchSummary(ContractModel):
+    profile_id: str
+    issuer: str
+    document_family: str
+    subtype: str
+    provenance_kind: str
+    provenance_assurance: str
+    score: Score
+    component_scores: dict[str, Score]
+    reference_strength: str
+    explanation: str
+    completeness: Score
+    authoritative_source_url: str | None = None
+    visual_reference_available: bool = False
+    selected_by_override: bool = False
+    limitations: list[str] = Field(default_factory=list)
+
+
+class ReferenceProfileAssessment(ContractModel):
+    selected_profile: ProfileMatchSummary | None = None
+    top_matches: list[ProfileMatchSummary] = Field(default_factory=list, max_length=3)
+    closest_fallback_used: bool = False
+    inferred_family: str | None = None
+    inferred_issuer: str | None = None
+    reference_strength: str = "User-supplied unverified reference"
+    explanation: str = (
+        "A user-supplied reference supports comparison but has no independent issuer proof."
+    )
+
+
+class CertificateSummary(ContractModel):
+    subject: str | None = None
+    issuer: str | None = None
+    serial_number: str | None = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
+
+
+class PdfSignatureCheck(ContractModel):
+    signature_index: Annotated[int, Field(ge=1)]
+    field_name: str | None = None
+    status: PdfSignatureStatus
+    cryptographically_intact: bool | None = None
+    signer_locally_trusted: bool | None = None
+    signed_content_modified: bool | None = None
+    incremental_updates: Annotated[int, Field(ge=0)] = 0
+    signing_time: datetime | None = None
+    certificate: CertificateSummary | None = None
+    explanation: str
+
+
+class DigitalSignatureAssessment(ContractModel):
+    status: PdfSignatureStatus = PdfSignatureStatus.UNSIGNED
+    signature_count: Annotated[int, Field(ge=0)] = 0
+    trust_store: str = "explicit_local_store"
+    checks: list[PdfSignatureCheck] = Field(default_factory=list)
+    explanation: str = "No embedded PDF signature was found."
+    limitations: list[str] = Field(default_factory=list)
+
+
+class CodeCheckResult(ContractModel):
+    code_index: Annotated[int, Field(ge=1)]
+    page_number: Annotated[int, Field(ge=1, le=10)]
+    symbology: str
+    bounding_box: BoundingBox | None = None
+    detected: bool
+    decoded: bool
+    decoder: str
+    confidence_score: Score
+    payload_summary: str | None = None
+    payload_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    structure_valid: bool | None = None
+    visible_fields_consistent: bool | None = None
+    cryptographic_verification_available: bool = False
+    cryptographic_verification_result: CheckStatus = CheckStatus.UNSUPPORTED
+    structural_tampering_indicators: list[str] = Field(default_factory=list)
+    explanation: str
+
+
+class CodeAssessment(ContractModel):
+    status: CheckStatus = CheckStatus.NOT_APPLICABLE
+    expected: str = "unknown"
+    detected_count: Annotated[int, Field(ge=0)] = 0
+    decoded_count: Annotated[int, Field(ge=0)] = 0
+    results: list[CodeCheckResult] = Field(default_factory=list)
+    explanation: str = "No QR or supported barcode expectation was available."
+
+
+class MetadataIndicator(ContractModel):
+    category: str
+    status: CheckStatus
+    severity: Severity
+    confidence_score: Score
+    explanation: str
+    supporting_measurements: dict[str, MeasurementValue] = Field(default_factory=dict)
+
+
+class MetadataAssessment(ContractModel):
+    status: CheckStatus = CheckStatus.NOT_APPLICABLE
+    indicators: list[MetadataIndicator] = Field(default_factory=list)
+    available_fields: list[str] = Field(default_factory=list)
+    explanation: str = "Metadata was unavailable or did not support a reliable inference."
+    limitations: list[str] = Field(default_factory=list)
+
+
+class LogicalRuleResult(ContractModel):
+    rule_id: str
+    rule_version: str
+    status: CheckStatus
+    confidence_score: Score
+    fields_used: dict[str, str | None] = Field(default_factory=dict)
+    explanation: str
+
+
+class LogicalConsistencyAssessment(ContractModel):
+    status: CheckStatus = CheckStatus.NOT_APPLICABLE
+    passed_count: Annotated[int, Field(ge=0)] = 0
+    failed_count: Annotated[int, Field(ge=0)] = 0
+    skipped_count: Annotated[int, Field(ge=0)] = 0
+    results: list[LogicalRuleResult] = Field(default_factory=list)
+    explanation: str = "No applicable profile-driven logical rules were evaluated."
+
+
+class SimilarityRegionEvidence(ContractModel):
+    page_number: Annotated[int, Field(ge=1, le=10)]
+    bounding_box: BoundingBox
+    similarity_score: Score
+    confidence_score: Score
+    measurements: dict[str, MeasurementValue] = Field(default_factory=dict)
+    explanation: str
+
+
+class SimilarityAssessment(ContractModel):
+    status: CheckStatus = CheckStatus.NOT_APPLICABLE
+    similarity_score: Score | None = None
+    confidence_score: Score = 0.0
+    coverage_score: Score = 0.0
+    closest_exemplar: str | None = None
+    region_evidence: list[SimilarityRegionEvidence] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    compositing_score: Score | None = None
+    explanation: str
+    limitations: list[str] = Field(default_factory=list)
+
+
+class AssessmentDimension(ContractModel):
+    dimension: str
+    status: str
+    score: Score | None = None
+    evidence_count: Annotated[int, Field(ge=0)] = 0
+    explanation: str
+
+
+class InvestigativeAssessment(ContractModel):
+    status: str
+    summary: str
+    dimensions: list[AssessmentDimension]
+    limitations: list[str] = Field(default_factory=list)
+
+
 class DocumentResult(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     job_id: str
@@ -294,6 +483,14 @@ class DocumentResult(ContractModel):
     finding_count: Annotated[int, Field(ge=0)]
     processing_duration_ms: Annotated[int, Field(ge=0)]
     text_extraction: TextExtractionSummary
+    reference_profile: ReferenceProfileAssessment | None = None
+    digital_signature: DigitalSignatureAssessment | None = None
+    codes: CodeAssessment | None = None
+    metadata_assessment: MetadataAssessment | None = None
+    logical_consistency: LogicalConsistencyAssessment | None = None
+    handwriting: SimilarityAssessment | None = None
+    signature_similarity: SimilarityAssessment | None = None
+    investigative_assessment: InvestigativeAssessment | None = None
     generated_at: datetime
 
     @model_validator(mode="before")
@@ -372,6 +569,13 @@ class CapabilityStatus(ContractModel):
     sse: bool
     multi_page: bool = True
     template_comparison: bool = True
+    docuvault_profiles: bool = False
+    qr_decoding: bool = False
+    pdf_signature_validation: bool = False
+    metadata_forensics: bool = False
+    logical_rules: bool = False
+    handwriting_comparison: bool = False
+    signature_comparison: bool = False
 
 
 class HealthResponse(ContractModel):
@@ -391,6 +595,21 @@ class DiagnosticsResponse(ContractModel):
     gpu_detected: bool
     backend_ready: bool
     runtime_writable: bool
+    docuvault_profile_count: Annotated[int, Field(ge=0)] = 0
+    docuvault_invalid_profile_count: Annotated[int, Field(ge=0)] = 0
+    pdf_signature_provider: str = "unavailable"
+    pdf_trust_store_mode: str = "explicit_local_store"
+
+
+class ProfileCatalogResponse(ContractModel):
+    profiles: list[ProfileMatchSummary]
+    profile_count: Annotated[int, Field(ge=0)]
+    enabled_count: Annotated[int, Field(ge=0)]
+    invalid_count: Annotated[int, Field(ge=0)]
+
+
+class ProfileStateRequest(ContractModel):
+    enabled: bool
 
 
 def _field_value(value: Any, field: str, default: int) -> int:

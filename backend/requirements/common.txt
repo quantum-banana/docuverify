@@ -9,3 +9,10 @@ numpy==2.5.1
 opencv-python==5.0.0.93
 PyMuPDF==1.28.0
 Pillow==12.3.0
+
+# Strict DocuVault profile validation (MIT, Python 3.12 compatible)
+jsonschema==4.26.0
+
+# Local PDF signature validation (MIT, Python 3.12 compatible). The application
+# supplies an explicit local trust store and never falls back to OS TLS roots.
+pyHanko==0.36.2

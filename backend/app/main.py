@@ -16,6 +16,7 @@ from backend.app import __version__
 from backend.app.api.v1 import APIProblem, api_problem_response, router
 from backend.app.core.config import Settings
 from backend.app.core.storage import JobStore
+from backend.app.docuvault import ProfileRepository
 from backend.app.models.contracts import ErrorDetail, ErrorResponse
 from backend.app.services.pipeline import AnalysisManager
 
@@ -23,7 +24,14 @@ from backend.app.services.pipeline import AnalysisManager
 def create_app(settings: Settings | None = None) -> FastAPI:
     active_settings = settings or Settings()
     store = JobStore(active_settings.runtime_dir, active_settings.database_path)
-    manager = AnalysisManager(active_settings, store)
+    profiles = ProfileRepository(
+        bundled_root=active_settings.bundled_profiles_path,
+        schema_path=active_settings.profile_schema_path,
+        index_path=active_settings.profile_index_path,
+        project_root=active_settings.bundled_profiles_path.parents[2],
+        external_root=active_settings.docuvault_path,
+    )
+    manager = AnalysisManager(active_settings, store, profiles=profiles)
 
     async def cleanup_expired_jobs() -> None:
         while True:
@@ -36,6 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         store.startup()
         store.cleanup_expired(active_settings.retention_hours)
+        profiles.startup()
         cleanup_task = asyncio.create_task(cleanup_expired_jobs())
         try:
             yield
@@ -57,11 +66,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.settings = active_settings
     application.state.store = store
     application.state.manager = manager
+    application.state.profiles = profiles
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(active_settings.cors_origins),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["Content-Type", "Last-Event-ID"],
     )
 

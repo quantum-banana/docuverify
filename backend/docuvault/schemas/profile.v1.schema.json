@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docuverify.local/schemas/docuvault/profile.v1.schema.json",
+  "title": "DocuVerify trusted document profile 1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "profile_id", "issuer", "jurisdiction", "document_family",
+    "subtype", "version", "validity", "languages", "scripts", "supported_formats",
+    "expected_pages", "stable_headings", "stable_labels", "keywords", "regions",
+    "fields", "security_regions", "layout_anchors", "typography", "logical_rules",
+    "digital_signature", "codes", "source", "provenance", "profile_confidence",
+    "completeness", "known_limitations", "visual_reference", "enabled"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "profile_id": { "$ref": "#/$defs/id" },
+    "issuer": {
+      "type": "object", "additionalProperties": false, "required": ["id", "name", "aliases"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "aliases": { "$ref": "#/$defs/textArray" }
+      }
+    },
+    "jurisdiction": {
+      "type": "object", "additionalProperties": false, "required": ["country", "state"],
+      "properties": {
+        "country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+        "state": { "type": ["string", "null"], "minLength": 1, "maxLength": 120 }
+      }
+    },
+    "document_family": { "$ref": "#/$defs/id" },
+    "subtype": { "$ref": "#/$defs/id" },
+    "version": { "$ref": "#/$defs/text" },
+    "validity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["from_year", "to_year", "notes"],
+      "properties": {
+        "from_year": { "type": ["integer", "null"], "minimum": 1900, "maximum": 2200 },
+        "to_year": { "type": ["integer", "null"], "minimum": 1900, "maximum": 2200 },
+        "notes": { "type": ["string", "null"], "maxLength": 1000 }
+      }
+    },
+    "languages": { "$ref": "#/$defs/textArrayNonEmpty" },
+    "scripts": { "$ref": "#/$defs/textArrayNonEmpty" },
+    "supported_formats": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "enum": ["pdf", "png", "jpeg"] }
+    },
+    "expected_pages": {
+      "type": "object", "additionalProperties": false,
+      "required": ["minimum", "maximum", "orientation", "dimensions"],
+      "properties": {
+        "minimum": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "maximum": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "orientation": { "enum": ["portrait", "landscape", "either"] },
+        "dimensions": {
+          "type": "array", "maxItems": 10,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["width", "height", "unit", "tolerance"],
+            "properties": {
+              "width": { "type": "number", "exclusiveMinimum": 0 },
+              "height": { "type": "number", "exclusiveMinimum": 0 },
+              "unit": { "enum": ["points", "pixels", "millimetres"] },
+              "tolerance": { "type": "number", "minimum": 0, "maximum": 0.5 }
+            }
+          }
+        }
+      }
+    },
+    "stable_headings": { "$ref": "#/$defs/textArray" },
+    "stable_labels": { "$ref": "#/$defs/textArray" },
+    "keywords": { "$ref": "#/$defs/textArrayNonEmpty" },
+    "regions": {
+      "type": "object", "additionalProperties": false, "required": ["fixed", "variable", "unknown"],
+      "properties": {
+        "fixed": { "$ref": "#/$defs/regions" },
+        "variable": { "$ref": "#/$defs/regions" },
+        "unknown": { "$ref": "#/$defs/regions" }
+      }
+    },
+    "fields": {
+      "type": "array", "maxItems": 80,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["field_id", "labels", "format", "page", "sensitive", "required"],
+        "properties": {
+          "field_id": { "$ref": "#/$defs/id" },
+          "labels": { "$ref": "#/$defs/textArrayNonEmpty" },
+          "format": { "type": ["string", "null"], "maxLength": 500 },
+          "page": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+          "sensitive": { "type": "boolean" },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "security_regions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["logo", "seal", "photo", "signature", "handwriting", "qr", "barcode"],
+      "properties": {
+        "logo": { "$ref": "#/$defs/regions" },
+        "seal": { "$ref": "#/$defs/regions" },
+        "photo": { "$ref": "#/$defs/regions" },
+        "signature": { "$ref": "#/$defs/regions" },
+        "handwriting": { "$ref": "#/$defs/regions" },
+        "qr": { "$ref": "#/$defs/regions" },
+        "barcode": { "$ref": "#/$defs/regions" }
+      }
+    },
+    "layout_anchors": {
+      "type": "array", "maxItems": 60,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["anchor_id", "text", "page", "box", "tolerance"],
+        "properties": {
+          "anchor_id": { "$ref": "#/$defs/id" },
+          "text": { "$ref": "#/$defs/text" },
+          "page": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "box": { "$ref": "#/$defs/box" },
+          "tolerance": { "type": "number", "minimum": 0, "maximum": 0.5 }
+        }
+      }
+    },
+    "typography": {
+      "type": "object", "additionalProperties": false,
+      "required": ["weight", "case", "alignment", "appearance_descriptors"],
+      "properties": {
+        "weight": { "enum": ["light", "regular", "medium", "bold", "mixed", "unknown"] },
+        "case": { "enum": ["upper", "lower", "title", "mixed", "unknown"] },
+        "alignment": { "enum": ["left", "center", "right", "mixed", "unknown"] },
+        "appearance_descriptors": { "$ref": "#/$defs/textArray" }
+      }
+    },
+    "logical_rules": {
+      "type": "array", "maxItems": 80,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["rule_id", "version", "type", "fields", "parameters", "minimum_ocr_confidence", "explanation"],
+        "properties": {
+          "rule_id": { "$ref": "#/$defs/id" },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+          "type": {
+            "enum": ["sum_equals", "percentage_matches", "grade_range", "numeric_range", "status_consistency", "date_order", "age_consistency", "cross_page_equal", "regex", "qr_equals", "fixed_text_present"]
+          },
+          "fields": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+          "parameters": { "type": "object", "maxProperties": 30 },
+          "minimum_ocr_confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+          "explanation": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "digital_signature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["expectation", "trusted_issuer_ids", "allowed_formats"],
+      "properties": {
+        "expectation": { "enum": ["required", "optional", "not_expected", "unknown"] },
+        "trusted_issuer_ids": { "$ref": "#/$defs/textArray" },
+        "allowed_formats": { "$ref": "#/$defs/textArray" }
+      }
+    },
+    "codes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["qr_expectation", "barcode_expectation", "payload_format", "required_keys", "issuer_prefixes", "cryptographic_specification"],
+      "properties": {
+        "qr_expectation": { "enum": ["required", "optional", "not_expected", "unknown"] },
+        "barcode_expectation": { "enum": ["required", "optional", "not_expected", "unknown"] },
+        "payload_format": { "enum": ["json", "query", "xml", "text", "issuer_specific", "unknown"] },
+        "required_keys": { "$ref": "#/$defs/textArray" },
+        "issuer_prefixes": { "$ref": "#/$defs/textArray" },
+        "cryptographic_specification": { "type": ["string", "null"], "format": "uri", "maxLength": 2000 }
+      }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["record_id", "authoritative_url", "retrieved_at", "sha256", "format", "redistribution_status", "licence"],
+      "properties": {
+        "record_id": { "type": ["string", "null"], "maxLength": 200 },
+        "authoritative_url": { "type": ["string", "null"], "format": "uri", "maxLength": 4000 },
+        "retrieved_at": { "type": "string", "format": "date" },
+        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "format": { "enum": ["metadata", "pdf", "png", "jpeg", "synthetic"] },
+        "redistribution_status": { "enum": ["permitted", "not_permitted", "unclear", "not_applicable"] },
+        "licence": { "type": ["string", "null"], "maxLength": 500 }
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "assurance", "description"],
+      "properties": {
+        "kind": { "enum": ["authoritative", "authoritative_metadata", "structurally_derived_authoritative", "synthetic_showcase", "generic_family"] },
+        "assurance": { "enum": ["P0", "P1", "P2", "P3", "P4"] },
+        "description": { "$ref": "#/$defs/text" }
+      }
+    },
+    "profile_confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+    "completeness": { "type": "number", "minimum": 0, "maximum": 100 },
+    "known_limitations": { "$ref": "#/$defs/textArrayNonEmpty" },
+    "visual_reference": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["relative_path", "sha256", "format", "provenance"],
+          "properties": {
+            "relative_path": { "type": "string", "pattern": "^(samples/synthetic|backend/docuvault/references)/[A-Za-z0-9._/-]+$" },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "format": { "enum": ["pdf", "png", "jpeg"] },
+            "provenance": { "enum": ["authoritative", "synthetic_showcase"] }
+          }
+        }
+      ]
+    },
+    "enabled": { "type": "boolean" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,159}$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 2000, "pattern": ".*\\S.*" },
+    "textArray": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/text" } },
+    "textArrayNonEmpty": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/text" } },
+    "box": {
+      "type": "object", "additionalProperties": false, "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    },
+    "region": {
+      "type": "object", "additionalProperties": false,
+      "required": ["region_id", "page", "box", "label"],
+      "properties": {
+        "region_id": { "$ref": "#/$defs/id" },
+        "page": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "box": { "$ref": "#/$defs/box" },
+        "label": { "$ref": "#/$defs/text" }
+      }
+    },
+    "regions": { "type": "array", "maxItems": 80, "items": { "$ref": "#/$defs/region" } }
+  }
+}

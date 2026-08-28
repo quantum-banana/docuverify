@@ -20,6 +20,8 @@ import numpy as np
 
 from backend.app.core.config import Settings
 from backend.app.core.storage import JobStore
+from backend.app.docuvault.repository import ProfileRepository
+from backend.app.docuvault.matching import ProfileMatcher, ProfileSearchResult
 from backend.app.forensics.alignment import AlignmentResult, align_reference
 from backend.app.forensics.differences import DifferenceRegion, DifferenceResult, localize_differences
 from backend.app.forensics.scoring import finding_scores, overall_score, risk_label, severity
@@ -42,6 +44,8 @@ from backend.app.models.contracts import (
     PageOrderAnomaly,
     PageResult,
     PageStatus,
+    ProfileMatchSummary,
+    ReferenceProfileAssessment,
     RegionRole,
     RegionSuggestion,
     StageId,
@@ -105,10 +109,23 @@ class _VariableTextIntegrity:
     compression_noise: float = 0.0
 
 
+@dataclass(frozen=True, slots=True)
+class AnalysisOptions:
+    profile_override: str | None = None
+    handwriting_exemplars: tuple[ValidatedUpload, ...] = ()
+    signature_exemplars: tuple[ValidatedUpload, ...] = ()
+
+
 class AnalysisManager:
-    def __init__(self, settings: Settings, store: JobStore) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        store: JobStore,
+        profiles: ProfileRepository | None = None,
+    ) -> None:
         self.settings = settings
         self.store = store
+        self.profiles = profiles
         self.executor = ThreadPoolExecutor(
             max_workers=settings.worker_count, thread_name_prefix="docuverify-analysis"
         )
@@ -120,17 +137,23 @@ class AnalysisManager:
         reference: ValidatedUpload,
         candidate: ValidatedUpload,
         comparison_mode: ComparisonMode | str = ComparisonMode.EXACT,
+        options: AnalysisOptions | None = None,
     ) -> CreateAnalysisResponse:
         mode = ComparisonMode(comparison_mode)
+        active_options = options or AnalysisOptions()
         job_id = str(uuid.uuid4())
         self.store.cleanup_expired(self.settings.retention_hours)
         job_dir = self.store.job_directory(job_id)
         documents.save_upload(reference, job_dir, "reference")
         documents.save_upload(candidate, job_dir, "candidate")
+        for index, exemplar in enumerate(active_options.handwriting_exemplars, start=1):
+            documents.save_upload(exemplar, job_dir, f"handwriting-{index:02d}")
+        for index, exemplar in enumerate(active_options.signature_exemplars, start=1):
+            documents.save_upload(exemplar, job_dir, f"signature-{index:02d}")
         total_pages = max(int(reference.page_count), int(candidate.page_count))
         self.store.create_job(job_id, total_pages=total_pages)
         future = self.executor.submit(
-            self._run_guarded, job_id, reference, candidate, mode
+            self._run_guarded, job_id, reference, candidate, mode, active_options
         )
         with self._futures_lock:
             self._futures[job_id] = future
@@ -146,6 +169,36 @@ class AnalysisManager:
             events_url=f"{API_PREFIX}/analyses/{job_id}/events",
         )
 
+    def submit_automatic(
+        self,
+        candidate: ValidatedUpload,
+        *,
+        options: AnalysisOptions | None = None,
+    ) -> CreateAnalysisResponse:
+        """Submit candidate-only analysis using a non-authoritative self proxy.
+
+        The proxy only lets the existing bounded page lifecycle render and retain
+        candidate pages. It is never represented as a trusted issued reference;
+        the result's reference-profile assessment carries the actual evidence tier.
+        """
+
+        proxy = ValidatedUpload(
+            field="reference",
+            filename="docuvault-profile-proxy" + candidate.extension,
+            content_type=candidate.content_type,
+            extension=candidate.extension,
+            kind=candidate.kind,
+            data=candidate.data,
+            sha256=candidate.sha256,
+            page_count=candidate.page_count,
+        )
+        return self.submit(
+            proxy,
+            candidate,
+            comparison_mode=ComparisonMode.DOCUVAULT,
+            options=options,
+        )
+
     def _forget_future(self, job_id: str, completed: Future[None]) -> None:
         with self._futures_lock:
             if self._futures.get(job_id) is completed:
@@ -157,10 +210,11 @@ class AnalysisManager:
         reference: ValidatedUpload,
         candidate: ValidatedUpload,
         comparison_mode: ComparisonMode,
+        options: AnalysisOptions,
     ) -> None:
         total_pages = max(int(reference.page_count), int(candidate.page_count))
         try:
-            self._run(job_id, reference, candidate, comparison_mode)
+            self._run(job_id, reference, candidate, comparison_mode, options)
         except Exception:
             LOGGER.exception("Analysis job %s failed", job_id)
             current = self.store.get_job(job_id)
@@ -242,6 +296,7 @@ class AnalysisManager:
         reference: ValidatedUpload,
         candidate: ValidatedUpload,
         comparison_mode: ComparisonMode,
+        options: AnalysisOptions,
     ) -> None:
         started = time.perf_counter()
         job_dir = self.store.job_directory(job_id)
@@ -360,6 +415,68 @@ class AnalysisManager:
                 candidate_pages.append(candidate_page)
             del rendered_reference, rendered_candidate
 
+        profile_search: ProfileSearchResult | None = None
+        if comparison_mode is ComparisonMode.DOCUVAULT:
+            if self.profiles is None:
+                raise RuntimeError("DocuVault profile repository is unavailable")
+            self._stage(
+                job_id,
+                StageId.IDENTIFYING_DOCUMENT_FAMILY,
+                "Identifying document family from local OCR and layout",
+                31,
+                total_pages=total_pages,
+                ocr_provider=_aggregate_provider(candidate_pages),
+            )
+            self._stage(
+                job_id,
+                StageId.SEARCHING_TRUSTED_PROFILES,
+                "Searching the validated local DocuVault index",
+                33,
+                total_pages=total_pages,
+                ocr_provider=_aggregate_provider(candidate_pages),
+            )
+            profile_search = ProfileMatcher(self.profiles).match(
+                candidate_pages,
+                profile_override=options.profile_override,
+            )
+            self._stage(
+                job_id,
+                StageId.MATCHING_ISSUER_LAYOUT,
+                "Ranking issuer, headings, page geometry and fixed layout",
+                35,
+                total_pages=total_pages,
+                ocr_provider=_aggregate_provider(candidate_pages),
+            )
+            if (
+                profile_search.selected is not None
+                and profile_search.selected.profile.visual_reference_path is not None
+            ):
+                reference = _validated_profile_reference(
+                    profile_search.selected.profile.visual_reference_path,
+                    self.settings.max_upload_bytes,
+                )
+                reference_count = int(reference.page_count)
+                total_pages = max(reference_count, candidate_count)
+                reference_pages = []
+                for page_index in range(reference_count):
+                    rendered = _render_document_page(
+                        reference, page_index, self.settings.max_render_dimension
+                    )
+                    page = self._prepare_page(
+                        job_id, assets_dir, "reference", page_index, rendered
+                    )
+                    self._set_page_text(
+                        page,
+                        _extract_page_text(
+                            reference,
+                            rendered,
+                            page_index,
+                            self.settings.ocr_provider_preference,
+                        ),
+                    )
+                    reference_pages.append(page)
+                    del rendered
+
         matches = _estimate_page_correspondence(reference_pages, candidate_pages)
         anomalies = _page_anomalies(matches, reference_pages, candidate_pages)
         metadata_changes = (
@@ -435,10 +552,15 @@ class AnalysisManager:
             alignment = align_reference(reference_image, candidate_image)
 
             provider = _provider_name(candidate_page.text)
+            forensic_mode = (
+                ComparisonMode.TEMPLATE
+                if comparison_mode is ComparisonMode.DOCUVAULT
+                else comparison_mode
+            )
             text_comparison = compare_text(
                 reference_page.text,
                 candidate_page.text,
-                comparison_mode=comparison_mode.value,
+                comparison_mode=forensic_mode.value,
             )
             if text_comparison.similarity is not None:
                 similarities.append(text_comparison.similarity)
@@ -485,7 +607,7 @@ class AnalysisManager:
                 differences,
                 reference_page.text,
                 candidate_page.text,
-                comparison_mode,
+                forensic_mode,
                 single_page=(total_pages == 1),
                 reference_size=(reference_image.shape[1], reference_image.shape[0]),
             )
@@ -608,6 +730,7 @@ class AnalysisManager:
             aggregate=aggregate,
             similarities=similarities,
             duration_ms=round((time.perf_counter() - started) * 1000),
+            profile_search=profile_search,
         )
         (job_dir / "analysis-metadata.json").write_text(
             json.dumps(
@@ -1165,6 +1288,7 @@ class AnalysisManager:
         aggregate: DocumentAggregate,
         similarities: list[float],
         duration_ms: int,
+        profile_search: ProfileSearchResult | None = None,
     ) -> DocumentResult:
         reference_first, candidate_first = reference_pages[0], candidate_pages[0]
         reference_descriptor = DocumentDescriptor(
@@ -1237,6 +1361,9 @@ class AnalysisManager:
                     else None
                 ),
             ),
+            reference_profile=_reference_profile_assessment(
+                comparison_mode, profile_search
+            ),
             generated_at=datetime.now(UTC),
         )
 
@@ -1282,6 +1409,77 @@ def aggregate_page_results(
             anomaly.anomaly_type is PageAnomalyType.REORDERED_PAGE
             for anomaly in anomalies
         ),
+    )
+
+
+def _validated_profile_reference(path: Path, max_bytes: int) -> ValidatedUpload:
+    data = path.read_bytes()
+    suffix = path.suffix.casefold()
+    content_type = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+    }.get(suffix, "application/octet-stream")
+    return documents.validate_upload(
+        field="profile_reference",
+        filename=path.name,
+        content_type=content_type,
+        data=data,
+        max_bytes=max(max_bytes, len(data)),
+    )
+
+
+def _profile_match_summary(match: Any) -> ProfileMatchSummary:
+    manifest = match.profile.manifest
+    return ProfileMatchSummary(
+        profile_id=match.profile.profile_id,
+        issuer=match.profile.issuer,
+        document_family=match.profile.family,
+        subtype=str(manifest["subtype"]),
+        provenance_kind=str(manifest["provenance"]["kind"]),
+        provenance_assurance=str(manifest["provenance"]["assurance"]),
+        score=match.score,
+        component_scores=match.component_scores,
+        reference_strength=match.strength.tier,
+        explanation=match.explanation,
+        completeness=float(manifest["completeness"]),
+        authoritative_source_url=manifest["source"].get("authoritative_url"),
+        visual_reference_available=match.profile.visual_reference_path is not None,
+        selected_by_override=match.selected_by_override,
+        limitations=[str(item) for item in manifest["known_limitations"]],
+    )
+
+
+def _reference_profile_assessment(
+    comparison_mode: ComparisonMode,
+    search: ProfileSearchResult | None,
+) -> ReferenceProfileAssessment:
+    if comparison_mode is not ComparisonMode.DOCUVAULT:
+        mode = "issued-original" if comparison_mode is ComparisonMode.EXACT else "template"
+        return ReferenceProfileAssessment(
+            reference_strength="User-supplied unverified reference",
+            explanation=(
+                f"The {mode} reference was supplied at runtime. Comparison can show "
+                "differences, but the reference has no independent issuer proof."
+            ),
+        )
+    if search is None or search.selected is None:
+        return ReferenceProfileAssessment(
+            closest_fallback_used=True,
+            reference_strength="Closest available profile",
+            explanation="No enabled local profile could provide a stronger reference.",
+        )
+    summaries = [_profile_match_summary(match) for match in search.matches]
+    selected = _profile_match_summary(search.selected)
+    return ReferenceProfileAssessment(
+        selected_profile=selected,
+        top_matches=summaries,
+        closest_fallback_used=search.closest_fallback_used,
+        inferred_family=search.inferred_family,
+        inferred_issuer=search.inferred_issuer,
+        reference_strength=search.selected.strength.tier,
+        explanation=search.selected.strength.rationale,
     )
 
 
