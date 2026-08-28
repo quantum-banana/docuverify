@@ -1625,6 +1625,20 @@ svg {
   vector-effect: non-scaling-stroke;
 }
 
+.suggestion-marker__pin {
+  fill: var(--ink-soft);
+  stroke: #fff;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.suggestion-marker__number {
+  fill: #fff;
+  font-size: 0.019px;
+  font-weight: 750;
+  pointer-events: none;
+}
+
 .finding-overlay {
   z-index: 3;
   overflow: visible;
@@ -1712,12 +1726,15 @@ svg {
   font-size: 12px;
 }
 
-.finding-list {
-  display: grid;
+.findings-panel__content {
   max-height: calc(100vh - 270px);
   overflow-y: auto;
   scrollbar-color: var(--border-strong) transparent;
   scrollbar-width: thin;
+}
+
+.finding-list {
+  display: grid;
 }
 
 .finding-card {
@@ -1833,6 +1850,101 @@ svg {
 .empty-findings p {
   margin: 0;
   font-size: 12px;
+}
+
+.allowed-changes {
+  border-top: 1px solid var(--border);
+  background: #fbfbf8;
+}
+
+.allowed-changes__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.allowed-changes__heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.allowed-changes__heading strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.allowed-changes__heading span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.allowed-changes__heading > span {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.allowed-changes ul {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.allowed-changes li {
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr);
+  gap: 3px 9px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.allowed-changes li:last-child {
+  border-bottom: 0;
+}
+
+.allowed-changes li > i {
+  width: 11px;
+  height: 11px;
+  margin-top: 3px;
+  border: 1px dashed var(--ink-soft);
+  background: transparent;
+}
+
+.allowed-changes li > span {
+  display: grid;
+  gap: 3px;
+}
+
+.allowed-changes li strong {
+  color: var(--ink);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.allowed-changes li small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.allowed-changes li em {
+  grid-column: 2;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-style: normal;
+  text-transform: uppercase;
 }
 
 .result-integrity-note {

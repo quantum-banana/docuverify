@@ -136,9 +136,9 @@ export function DocumentViewer({
               className="suggestion-overlay"
               viewBox="0 0 1 1"
               preserveAspectRatio="none"
-              aria-label={`${regionSuggestions.length} suggested variable ${regionSuggestions.length === 1 ? 'region' : 'regions'}`}
+              aria-label={`${regionSuggestions.length} detected Template value ${regionSuggestions.length === 1 ? 'change' : 'changes'}`}
             >
-              {regionSuggestions.map((suggestion) => {
+              {regionSuggestions.map((suggestion, index) => {
                 const { x, y, width: boxWidth, height: boxHeight } = suggestion.bounding_box
                 return (
                   <g key={suggestion.suggestion_id} className={`suggestion-marker suggestion-marker--${suggestion.role}`}>
@@ -146,6 +146,16 @@ export function DocumentViewer({
                       {suggestion.label || `${suggestion.role} region`}: {suggestion.reason}
                     </title>
                     <rect x={x} y={y} width={boxWidth} height={boxHeight} rx="0.004" />
+                    <circle className="suggestion-marker__pin" cx={x + boxWidth} cy={y} r="0.019" />
+                    <text
+                      className="suggestion-marker__number"
+                      x={x + boxWidth}
+                      y={y + 0.004}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      {index + 1}
+                    </text>
                   </g>
                 )
               })}

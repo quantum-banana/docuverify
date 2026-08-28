@@ -28,6 +28,7 @@ import type {
   ConnectionState,
   DocumentResult,
   Finding,
+  NormalizedBoundingBox,
   PageOrderAnomaly,
   PageResult,
   ProgressEvent,
@@ -88,6 +89,20 @@ const errorFromUnknown = (value: unknown): AnalysisError => {
 const formatDuration = (milliseconds: number): string => {
   if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`
   return `${(milliseconds / 1000).toFixed(milliseconds < 10_000 ? 1 : 0)} s`
+}
+
+const boxesOverlap = (first: NormalizedBoundingBox, second: NormalizedBoundingBox): boolean => {
+  const overlapWidth = Math.max(
+    0,
+    Math.min(first.x + first.width, second.x + second.width) - Math.max(first.x, second.x),
+  )
+  const overlapHeight = Math.max(
+    0,
+    Math.min(first.y + first.height, second.y + second.height) - Math.max(first.y, second.y),
+  )
+  const overlapArea = overlapWidth * overlapHeight
+  const smallerArea = Math.min(first.width * first.height, second.width * second.height)
+  return smallerArea > 0 && overlapArea / smallerArea >= 0.15
 }
 
 const riskTone = (risk: number): 'low' | 'moderate' | 'high' | 'critical' => {
@@ -485,10 +500,23 @@ function ResultScreen({
   const currentPageFindings = selectedPage?.findings.length
     ? selectedPage.findings
     : allFindings.filter((finding) => finding.page_number === selectedPage?.page_number)
-  const suggestions = (result.region_suggestions?.length
+  const allSuggestions = (result.region_suggestions?.length
     ? result.region_suggestions
     : pages.flatMap((page) => page.region_suggestions ?? []))
-    .filter((suggestion) => suggestion.page_number === selectedPage?.page_number)
+  const suggestions = allSuggestions
+    .filter((suggestion) => (
+      suggestion.page_number === selectedPage?.page_number
+      && suggestion.role === 'variable'
+    ))
+  const allowedTemplateChanges = result.comparison_mode === 'template'
+    ? allSuggestions.filter((suggestion) => (
+      suggestion.role === 'variable'
+      && !allFindings.some((finding) => (
+        finding.page_number === suggestion.page_number
+        && boxesOverlap(finding.bounding_box, suggestion.bounding_box)
+      ))
+    ))
+    : []
   const anomalies = result.page_order_anomalies ?? []
   const totalPages = result.total_page_count ?? pages.length
   const referencePages = result.reference_page_count ?? result.reference?.page_count ?? pages.length
@@ -627,7 +655,7 @@ function ResultScreen({
         <span className={`risk-chip risk-chip--${selectedTone}`}>Risk {Math.round(selectedRisk)}</span>
         <span>{currentPageFindings.length} {currentPageFindings.length === 1 ? 'finding' : 'findings'}</span>
         <span>{statusTitle(selectedPage?.status ?? 'matched')}</span>
-        {suggestions.length > 0 && <span className="variable-region-key"><i /> {suggestions.length} suggested variable {suggestions.length === 1 ? 'region' : 'regions'}</span>}
+        {suggestions.length > 0 && <span className="variable-region-key"><i /> {suggestions.length} detected Template value {suggestions.length === 1 ? 'change' : 'changes'}</span>}
       </div>
 
       <div className="result-grid">
@@ -663,40 +691,67 @@ function ResultScreen({
         <aside className="findings-panel">
           <div className="findings-panel__heading">
             <h2>Findings</h2>
-            <span>{result.finding_count} total</span>
+            <span>{result.finding_count} suspicious</span>
           </div>
-          {allFindings.length ? (
-            <div className="finding-list">
-              {allFindings.map((finding, index) => (
-                <button
-                  type="button"
-                  key={finding.finding_id}
-                  className={`finding-card${selectedFinding?.finding_id === finding.finding_id ? ' is-selected' : ''}${finding.page_number === selectedPage?.page_number ? ' is-on-page' : ''}`}
-                  aria-label={`View evidence on page ${finding.page_number}: ${finding.title}`}
-                  onClick={() => selectFinding(finding)}
-                >
-                  <span className="finding-card__index">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="finding-card__copy">
-                    <span>{finding.title}</span>
-                    <small>{finding.explanation}</small>
-                    <span className="finding-card__meta">
-                      <i className={`severity severity--${finding.severity.toLowerCase()}`}>{finding.severity}</i>
-                      <i>Page {finding.page_number}</i>
-                      <i>{Math.round(finding.confidence_score)}% confidence</i>
+          <div className="findings-panel__content">
+            {allFindings.length ? (
+              <div className="finding-list">
+                {allFindings.map((finding, index) => (
+                  <button
+                    type="button"
+                    key={finding.finding_id}
+                    className={`finding-card${selectedFinding?.finding_id === finding.finding_id ? ' is-selected' : ''}${finding.page_number === selectedPage?.page_number ? ' is-on-page' : ''}`}
+                    aria-label={`View evidence on page ${finding.page_number}: ${finding.title}`}
+                    onClick={() => selectFinding(finding)}
+                  >
+                    <span className="finding-card__index">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="finding-card__copy">
+                      <span>{finding.title}</span>
+                      <small>{finding.explanation}</small>
+                      <span className="finding-card__meta">
+                        <i className={`severity severity--${finding.severity.toLowerCase()}`}>{finding.severity}</i>
+                        <i>Page {finding.page_number}</i>
+                        <i>{Math.round(finding.confidence_score)}% confidence</i>
+                      </span>
+                      <span className="finding-card__action">View evidence</span>
                     </span>
-                    <span className="finding-card__action">View evidence</span>
-                  </span>
-                  <ChevronIcon className="finding-card__chevron" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-findings">
-              <CheckIcon />
-              <strong>No findings</strong>
-              <p>No reportable differences found.</p>
-            </div>
-          )}
+                    <ChevronIcon className="finding-card__chevron" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-findings">
+                <CheckIcon />
+                <strong>No suspicious findings</strong>
+                <p>{allowedTemplateChanges.length
+                  ? `${allowedTemplateChanges.length} allowed Template ${allowedTemplateChanges.length === 1 ? 'change was' : 'changes were'} detected below.`
+                  : 'No reportable differences found.'}</p>
+              </div>
+            )}
+            {allowedTemplateChanges.length > 0 && (
+              <section className="allowed-changes" aria-label="Allowed Template changes">
+                <div className="allowed-changes__heading">
+                  <div>
+                    <strong>Allowed Template changes</strong>
+                    <span>Detected value differences with consistent forensic integrity</span>
+                  </div>
+                  <span>{allowedTemplateChanges.length} detected</span>
+                </div>
+                <ul>
+                  {allowedTemplateChanges.map((suggestion) => (
+                    <li key={suggestion.suggestion_id}>
+                      <i aria-hidden="true" />
+                      <span>
+                        <strong>{suggestion.label || 'Variable field'}</strong>
+                        <small>{suggestion.reason}</small>
+                      </span>
+                      <em>Page {suggestion.page_number} - Allowed</em>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
           <div className="result-integrity-note">
             <ShieldIcon />
             <p>Investigative indicator—not proof of authenticity</p>

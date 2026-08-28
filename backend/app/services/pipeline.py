@@ -56,6 +56,7 @@ LOGGER = logging.getLogger(__name__)
 API_PREFIX = "/api/v1"
 PAGE_CORRESPONDENCE_MIN_SCORE = 0.82
 PAGE_CORRESPONDENCE_MIN_HEADING = 0.72
+MAX_PRESENTED_FINDINGS_PER_PAGE = 5
 
 
 @dataclass(slots=True)
@@ -83,6 +84,25 @@ class _PageMatch:
     heading_similarity: float | None
     perceptual_similarity: float | None
     dimension_similarity: float | None
+
+
+@dataclass(slots=True)
+class _ScoredFinding:
+    finding: Finding
+    region_index: int
+    evidence_strength: float
+    asset_ids: tuple[str, str, str]
+    images: tuple[np.ndarray, np.ndarray, np.ndarray]
+
+
+@dataclass(frozen=True, slots=True)
+class _VariableTextIntegrity:
+    background: float = 0.0
+    typography: float = 0.0
+    line_spacing: float = 0.0
+    residual_text: float = 0.0
+    halo_erasure: float = 0.0
+    compression_noise: float = 0.0
 
 
 class AnalysisManager:
@@ -467,6 +487,7 @@ class AnalysisManager:
                 candidate_page.text,
                 comparison_mode,
                 single_page=(total_pages == 1),
+                reference_size=(reference_image.shape[1], reference_image.shape[0]),
             )
             findings.extend(
                 self._build_match_anomaly_findings(
@@ -691,12 +712,17 @@ class AnalysisManager:
         comparison_mode: ComparisonMode,
         *,
         single_page: bool,
+        reference_size: tuple[int, int] | None = None,
     ) -> tuple[list[Finding], list[RegionSuggestion]]:
         height, width = candidate_image.shape[:2]
+        reference_width, reference_height = reference_size or (
+            alignment.aligned_reference.shape[1],
+            alignment.aligned_reference.shape[0],
+        )
         page_area = width * height
-        findings: list[Finding] = []
+        scored_findings: list[_ScoredFinding] = []
         suggestions: list[RegionSuggestion] = []
-        for index, region in enumerate(differences.regions[:5], start=1):
+        for index, region in enumerate(differences.regions, start=1):
             finding_id = (
                 f"finding-{index:03d}"
                 if single_page
@@ -717,6 +743,12 @@ class AnalysisManager:
             if comparison_mode is ComparisonMode.TEMPLATE and (
                 region.text_changes or role is RegionRole.VARIABLE
             ):
+                suggestion_reason = reason
+                if region.text_changes:
+                    suggestion_reason = (
+                        f'Detected text difference. Reference: "{before or "(missing)"}". '
+                        f'Candidate: "{after or "(missing)"}". {reason}'
+                    )
                 suggestions.append(
                     RegionSuggestion(
                         suggestion_id=f"suggestion-{page_number:02d}-{index:03d}",
@@ -724,19 +756,47 @@ class AnalysisManager:
                         bounding_box=bounding_box,
                         role=role,
                         confidence_score=role_confidence,
-                        reason=reason,
+                        reason=suggestion_reason,
                         label=label,
                     )
                 )
 
-            if (
+            conservative_template_region = (
                 comparison_mode is ComparisonMode.TEMPLATE
-                and role is RegionRole.VARIABLE
-                and not region.text_changes
-            ):
-                # A portrait or QR payload naturally changes most of its pixels.
-                # Pixel content alone is therefore not a compositing signal.
-                background_score, typography_score = 0.0, 0.0
+                and role in {RegionRole.VARIABLE, RegionRole.UNKNOWN}
+            )
+            media_geometry_score = 0.0
+            line_spacing_score = 0.0
+            residual_text_score = 0.0
+            halo_erasure_score = 0.0
+            compression_noise_score = 0.0
+            if conservative_template_region and region.text_changes:
+                integrity = _variable_text_integrity_indicators(
+                    region,
+                    alignment.aligned_reference,
+                    candidate_image,
+                    reference_text,
+                    candidate_text,
+                    alignment_matrix=alignment.matrix,
+                    reference_size=(reference_width, reference_height),
+                    alignment_quality=alignment.quality,
+                )
+                background_score = integrity.background
+                typography_score = integrity.typography
+                line_spacing_score = integrity.line_spacing
+                residual_text_score = integrity.residual_text
+                halo_erasure_score = integrity.halo_erasure
+                compression_noise_score = integrity.compression_noise
+            elif conservative_template_region:
+                background_score, media_geometry_score = (
+                    _variable_media_integrity_indicators(
+                        region,
+                        alignment.aligned_reference,
+                        candidate_image,
+                        alignment_quality=alignment.quality,
+                    )
+                )
+                typography_score = 0.0
             else:
                 background_score, typography_score = _manipulation_indicators(
                     region,
@@ -751,35 +811,48 @@ class AnalysisManager:
                 candidate_text,
                 width,
                 height,
+                reference_to_candidate_matrix=alignment.matrix,
+                reference_size=(reference_width, reference_height),
             )
-            if comparison_mode is ComparisonMode.TEMPLATE and role is RegionRole.VARIABLE:
+            if conservative_template_region and region.text_changes:
                 layout_displacement = max(
                     layout_displacement,
-                    _changed_text_displacement_score(region),
+                    _changed_text_displacement_score(
+                        region,
+                        alignment.matrix,
+                        (reference_width, reference_height),
+                        (width, height),
+                    ),
                 )
-            logo_seal_displacement = (
-                0.0
-                if layout_displacement > 0.0
-                else _logo_seal_displacement_score(
-                    region,
-                    alignment.aligned_reference,
-                    candidate_image,
-                    reference_text,
-                    candidate_text,
+            if conservative_template_region and not region.text_changes:
+                logo_seal_displacement = media_geometry_score
+            else:
+                logo_seal_displacement = (
+                    0.0
+                    if layout_displacement > 0.0
+                    else _logo_seal_displacement_score(
+                        region,
+                        alignment.aligned_reference,
+                        candidate_image,
+                        reference_text,
+                        candidate_text,
+                    )
                 )
-            )
             if (
-                comparison_mode is ComparisonMode.TEMPLATE
-                and role is RegionRole.VARIABLE
+                conservative_template_region
                 and not _template_variable_has_forensic_signal(
                     background_score,
                     typography_score,
                     layout_displacement,
                     logo_seal_displacement,
+                    line_spacing_score,
+                    residual_text_score,
+                    halo_erasure_score,
+                    compression_noise_score,
                 )
             ):
-                # Allowed values remain review suggestions/metadata.  They do
-                # not create findings, evidence markers, or forensic crops.
+                # Semantic content changes remain suggestions/metadata, while
+                # integrity descriptors above still run for every region.
                 continue
 
             candidate_crop = candidate_image[
@@ -794,13 +867,6 @@ class AnalysisManager:
                 f"{finding_id}-reference",
                 f"{finding_id}-overlay",
             )
-            for asset_id, image in zip(
-                asset_ids, (candidate_crop, reference_crop, overlay), strict=True
-            ):
-                path = assets_dir / f"{asset_id}.png"
-                documents.write_png(path, image)
-                self.store.register_asset(job_id, asset_id, path)
-
             base_risk, confidence = finding_scores(
                 changed_pixels=region.changed_pixels,
                 region_area=region_area,
@@ -811,12 +877,16 @@ class AnalysisManager:
                 comparison_mode=comparison_mode.value,
                 region_role=role.value,
                 typography_inconsistency=(
-                    typography_score
+                    max(typography_score, line_spacing_score, residual_text_score)
                     if comparison_mode is ComparisonMode.TEMPLATE
                     else 0.0
                 ),
                 background_compositing=(
-                    background_score
+                    max(
+                        background_score,
+                        halo_erasure_score,
+                        compression_noise_score * 0.8,
+                    )
                     if comparison_mode is ComparisonMode.TEMPLATE
                     else 0.0
                 ),
@@ -830,11 +900,14 @@ class AnalysisManager:
                 base_risk=base_risk,
                 background_score=background_score,
                 typography_score=typography_score,
+                line_spacing_score=line_spacing_score,
+                residual_text_score=residual_text_score,
+                halo_erasure_score=halo_erasure_score,
+                compression_noise_score=compression_noise_score,
                 layout_displacement=layout_displacement,
                 logo_seal_displacement=logo_seal_displacement,
             )
-            findings.append(
-                Finding(
+            finding = Finding(
                     finding_id=finding_id,
                     page_number=page_number,
                     category=category,
@@ -867,11 +940,47 @@ class AnalysisManager:
                         "region_role_confidence": role_confidence,
                         "background_compositing_score": background_score,
                         "typography_inconsistency_score": typography_score,
+                        "line_spacing_inconsistency_score": line_spacing_score,
+                        "residual_text_overlap_score": residual_text_score,
+                        "halo_erasure_score": halo_erasure_score,
+                        "compression_noise_inconsistency_score": compression_noise_score,
                         "layout_displacement_normalized": layout_displacement,
                         "logo_seal_displacement_score": logo_seal_displacement,
                     },
                 )
+            scored_findings.append(
+                _ScoredFinding(
+                    finding=finding,
+                    region_index=index,
+                    evidence_strength=max(
+                        background_score,
+                        typography_score,
+                        line_spacing_score,
+                        residual_text_score,
+                        halo_erasure_score,
+                        compression_noise_score,
+                        layout_displacement,
+                        logo_seal_displacement,
+                    ),
+                    asset_ids=asset_ids,
+                    images=(candidate_crop, reference_crop, overlay),
+                )
             )
+        scored_findings.sort(
+            key=lambda item: (
+                -item.finding.risk_score,
+                -item.evidence_strength,
+                -item.finding.confidence_score,
+                item.region_index,
+            )
+        )
+        selected = scored_findings[:MAX_PRESENTED_FINDINGS_PER_PAGE]
+        for item in selected:
+            for asset_id, image in zip(item.asset_ids, item.images, strict=True):
+                path = assets_dir / f"{asset_id}.png"
+                documents.write_png(path, image)
+                self.store.register_asset(job_id, asset_id, path)
+        findings = [item.finding for item in selected]
         return findings, suggestions
 
     def _build_unmatched_page(
@@ -1646,12 +1755,60 @@ def _ocr_uncertainty_finding(
     )
 
 
+def _map_reference_bbox_to_candidate(
+    bbox: tuple[float, float, float, float],
+    reference_to_candidate_matrix: np.ndarray | None,
+    reference_size: tuple[int, int],
+    candidate_size: tuple[int, int],
+) -> tuple[float, float, float, float] | None:
+    """Map a normalized reference box into normalized candidate coordinates.
+
+    Alignment builds the homography from reference keypoints (source) to
+    candidate keypoints (target) and passes that same matrix to warpPerspective.
+    Therefore reference OCR pixels must be transformed forward by the matrix
+    before sampling the aligned reference image.
+    """
+
+    reference_width, reference_height = reference_size
+    candidate_width, candidate_height = candidate_size
+    if min(reference_width, reference_height, candidate_width, candidate_height) <= 0:
+        return None
+    matrix = (
+        np.eye(3, dtype=np.float64)
+        if reference_to_candidate_matrix is None
+        else np.asarray(reference_to_candidate_matrix, dtype=np.float64)
+    )
+    if matrix.shape != (3, 3) or not np.isfinite(matrix).all():
+        return None
+    corners = np.float32(
+        [
+            [bbox[0] * reference_width, bbox[1] * reference_height],
+            [bbox[2] * reference_width, bbox[1] * reference_height],
+            [bbox[2] * reference_width, bbox[3] * reference_height],
+            [bbox[0] * reference_width, bbox[3] * reference_height],
+        ]
+    ).reshape(-1, 1, 2)
+    mapped = cv2.perspectiveTransform(corners, matrix).reshape(-1, 2)
+    if not np.isfinite(mapped).all():
+        return None
+    x0 = float(np.clip(mapped[:, 0].min() / candidate_width, 0.0, 1.0))
+    y0 = float(np.clip(mapped[:, 1].min() / candidate_height, 0.0, 1.0))
+    x1 = float(np.clip(mapped[:, 0].max() / candidate_width, 0.0, 1.0))
+    y1 = float(np.clip(mapped[:, 1].max() / candidate_height, 0.0, 1.0))
+    if x1 <= x0 or y1 <= y0:
+        return None
+    return x0, y0, x1, y1
+
+
 def _layout_displacement_score(
     region: DifferenceRegion,
     reference_text: TextExtraction,
     candidate_text: TextExtraction,
     page_width: int,
     page_height: int,
+    *,
+    reference_to_candidate_matrix: np.ndarray | None = None,
+    reference_size: tuple[int, int] | None = None,
 ) -> float:
     """Return measured movement for stable, uniquely matched text.
 
@@ -1673,6 +1830,8 @@ def _layout_displacement_score(
 
     reference_words = unique_words(reference_text)
     candidate_words = unique_words(candidate_text)
+    source_size = reference_size or (page_width, page_height)
+    target_size = (page_width, page_height)
     region_box = (
         region.x0 / max(page_width, 1),
         region.y0 / max(page_height, 1),
@@ -1681,8 +1840,15 @@ def _layout_displacement_score(
     )
     displacements: list[float] = []
     for token in sorted(reference_words.keys() & candidate_words.keys()):
-        reference_box = reference_words[token].bbox
+        reference_box = _map_reference_bbox_to_candidate(
+            reference_words[token].bbox,
+            reference_to_candidate_matrix,
+            source_size,
+            target_size,
+        )
         candidate_box = candidate_words[token].bbox
+        if reference_box is None:
+            continue
         union = (
             min(reference_box[0], candidate_box[0]),
             min(reference_box[1], candidate_box[1]),
@@ -1720,7 +1886,12 @@ def _layout_displacement_score(
     return round(max(displacements), 4) if displacements else 0.0
 
 
-def _changed_text_displacement_score(region: DifferenceRegion) -> float:
+def _changed_text_displacement_score(
+    region: DifferenceRegion,
+    reference_to_candidate_matrix: np.ndarray | None = None,
+    reference_size: tuple[int, int] | None = None,
+    candidate_size: tuple[int, int] | None = None,
+) -> float:
     """Measure material value movement from paired OCR boxes.
 
     Template values are allowed to differ in content, so the stable-token layout
@@ -1734,6 +1905,15 @@ def _changed_text_displacement_score(region: DifferenceRegion) -> float:
         candidate_box = change.candidate_bbox
         if reference_box is None or candidate_box is None:
             continue
+        if reference_size is not None and candidate_size is not None:
+            reference_box = _map_reference_bbox_to_candidate(
+                reference_box,
+                reference_to_candidate_matrix,
+                reference_size,
+                candidate_size,
+            )
+            if reference_box is None:
+                continue
         reference_height = max(1e-6, reference_box[3] - reference_box[1])
         candidate_height = max(1e-6, candidate_box[3] - candidate_box[1])
         # A legitimate field may be left-, right-, or centre-aligned.  Treat the
@@ -1767,12 +1947,20 @@ def _template_variable_has_forensic_signal(
     typography_score: float,
     layout_displacement: float,
     visual_displacement: float,
+    line_spacing_score: float = 0.0,
+    residual_text_score: float = 0.0,
+    halo_erasure_score: float = 0.0,
+    compression_noise_score: float = 0.0,
 ) -> bool:
     return (
         background_score >= 0.08
         or typography_score >= 0.35
         or layout_displacement > 0.0
         or visual_displacement > 0.0
+        or line_spacing_score >= 0.35
+        or residual_text_score >= 0.35
+        or halo_erasure_score >= 0.18
+        or compression_noise_score >= 0.35
     )
 
 
@@ -1892,10 +2080,75 @@ def _describe_finding(
     base_risk: float,
     background_score: float,
     typography_score: float,
+    line_spacing_score: float = 0.0,
+    residual_text_score: float = 0.0,
+    halo_erasure_score: float = 0.0,
+    compression_noise_score: float = 0.0,
     layout_displacement: float = 0.0,
     logo_seal_displacement: float = 0.0,
 ) -> tuple[str, str, str, float]:
     if comparison_mode is ComparisonMode.TEMPLATE and role is RegionRole.VARIABLE:
+        if background_score >= 0.25:
+            return (
+                "background_compositing",
+                "Background compositing indicator",
+                (
+                    "The variable value changed, but a coherent background disturbance "
+                    "around the field is inconsistent with a clean template fill."
+                ),
+                round(max(78.0, base_risk), 1),
+            )
+        if residual_text_score >= 0.35 and residual_text_score >= max(
+            background_score, halo_erasure_score, compression_noise_score
+        ):
+            return (
+                "residual_or_overlapping_text",
+                "Residual or overlapping text indicator",
+                (
+                    "The replacement value is allowed to differ, but unexpected residual "
+                    "foreground strokes remain behind or beside the current text."
+                ),
+                round(max(76.0, base_risk), 1),
+            )
+        if max(typography_score, line_spacing_score) >= 0.35 and max(
+            typography_score, line_spacing_score
+        ) >= max(
+            background_score,
+            halo_erasure_score,
+            compression_noise_score,
+        ):
+            return (
+                "typography_inconsistency",
+                "Typography inconsistency",
+                (
+                    "The variable value changed and its text weight, foreground colour, "
+                    "size, baseline, character spacing, or line spacing differs materially "
+                    "from the trusted field."
+                ),
+                round(max(72.0, base_risk), 1),
+            )
+        if halo_erasure_score >= 0.18 and halo_erasure_score >= max(
+            background_score, compression_noise_score
+        ):
+            return (
+                "halo_or_erasure_indicator",
+                "Halo or erasure indicator",
+                (
+                    "The variable value changed and the local perimeter contains a "
+                    "brightness or texture halo consistent with erasure or overlay work."
+                ),
+                round(max(76.0, base_risk), 1),
+            )
+        if compression_noise_score >= 0.35 and compression_noise_score >= background_score:
+            return (
+                "local_compression_noise_inconsistency",
+                "Local compression or noise inconsistency",
+                (
+                    "The variable value changed and its local residual texture differs "
+                    "materially from both the trusted field and its surrounding background."
+                ),
+                round(max(72.0, base_risk), 1),
+            )
         if background_score >= 0.08:
             return (
                 "background_compositing",
@@ -1906,13 +2159,14 @@ def _describe_finding(
                 ),
                 round(max(78.0, base_risk), 1),
             )
-        if typography_score >= 0.35:
+        if max(typography_score, line_spacing_score) >= 0.35:
             return (
                 "typography_inconsistency",
                 "Typography inconsistency",
                 (
-                    "The variable value changed and its character size, baseline, or "
-                    "spacing differs materially from the trusted field geometry."
+                    "The variable value changed and its text weight, foreground colour, "
+                    "size, baseline, character spacing, or line spacing differs materially "
+                    "from the trusted field."
                 ),
                 round(max(72.0, base_risk), 1),
             )
@@ -1960,7 +2214,28 @@ def _describe_finding(
             round(max(76.0, base_risk), 1),
         )
     if comparison_mode is ComparisonMode.TEMPLATE and role is RegionRole.UNKNOWN:
-        if has_text_change and background_score >= 0.08:
+        if residual_text_score >= 0.35:
+            return (
+                "residual_or_overlapping_text",
+                "Residual or overlapping text indicator",
+                "The field role is uncertain, but unexpected foreground strokes remain around the current text.",
+                round(max(76.0, base_risk), 1),
+            )
+        if halo_erasure_score >= 0.18:
+            return (
+                "halo_or_erasure_indicator",
+                "Halo or erasure indicator",
+                "The field role is uncertain, but the local perimeter contains an abnormal brightness or texture halo.",
+                round(max(76.0, base_risk), 1),
+            )
+        if compression_noise_score >= 0.35:
+            return (
+                "local_compression_noise_inconsistency",
+                "Local compression or noise inconsistency",
+                "The field role is uncertain, but its local residual texture differs materially from its surroundings.",
+                round(max(72.0, base_risk), 1),
+            )
+        if background_score >= 0.08:
             return (
                 "background_compositing",
                 "Background compositing indicator",
@@ -1970,7 +2245,7 @@ def _describe_finding(
                 ),
                 round(max(78.0, base_risk), 1),
             )
-        if has_text_change and typography_score >= 0.35:
+        if max(typography_score, line_spacing_score) >= 0.35:
             return (
                 "typography_inconsistency",
                 "Typography inconsistency",
@@ -2209,6 +2484,744 @@ def _combined_change_bbox(region: DifferenceRegion) -> tuple[float, float, float
         max(change.bbox[2] for change in region.text_changes),
         max(change.bbox[3] for change in region.text_changes),
     )
+
+
+def _variable_text_integrity_indicators(
+    region: DifferenceRegion,
+    aligned_reference: np.ndarray,
+    candidate: np.ndarray,
+    reference_text: TextExtraction,
+    candidate_text: TextExtraction,
+    *,
+    alignment_matrix: np.ndarray | None,
+    reference_size: tuple[int, int],
+    alignment_quality: float,
+) -> _VariableTextIntegrity:
+    """Compare variable-field integrity without comparing character identity."""
+
+    reference_crop = aligned_reference[region.y0 : region.y1, region.x0 : region.x1]
+    candidate_crop = candidate[region.y0 : region.y1, region.x0 : region.x1]
+    if reference_crop.size == 0 or candidate_crop.size == 0:
+        return _VariableTextIntegrity()
+
+    reference_gray = cv2.cvtColor(reference_crop, cv2.COLOR_BGR2GRAY)
+    candidate_gray = cv2.cvtColor(candidate_crop, cv2.COLOR_BGR2GRAY)
+    reference_foreground = _text_foreground_mask(reference_gray)
+    candidate_foreground = _text_foreground_mask(candidate_gray)
+    exclusion = cv2.bitwise_or(reference_foreground, candidate_foreground)
+    dilation_size = max(3, int(round(min(reference_gray.shape) * 0.08)) | 1)
+    exclusion = cv2.dilate(
+        exclusion,
+        np.ones((dilation_size, dilation_size), dtype=np.uint8),
+    )
+    background = exclusion == 0
+    available = int(np.count_nonzero(background))
+    background_score = 0.0
+    if available:
+        threshold = 18 + int(round((1.0 - alignment_quality) * 24.0))
+        delta = cv2.absdiff(reference_gray, candidate_gray)
+        changed_background = (delta >= threshold) & background
+        changed_ratio = np.count_nonzero(changed_background) / available
+
+        reference_texture = np.abs(cv2.Laplacian(reference_gray, cv2.CV_32F))
+        candidate_texture = np.abs(cv2.Laplacian(candidate_gray, cv2.CV_32F))
+        texture_delta = np.abs(reference_texture - candidate_texture)
+        texture_ratio = (
+            np.count_nonzero((texture_delta >= threshold * 1.5) & background)
+            / available
+        )
+        background_score = max(changed_ratio, texture_ratio * 0.65)
+
+    typography_score = _variable_typography_score(
+        region,
+        reference_crop,
+        candidate_crop,
+        reference_foreground,
+        candidate_foreground,
+        reference_text,
+        candidate_text,
+        aligned_reference=aligned_reference,
+        candidate_page=candidate,
+        alignment_matrix=alignment_matrix,
+        reference_size=reference_size,
+        alignment_quality=alignment_quality,
+    )
+    candidate_size = (candidate.shape[1], candidate.shape[0])
+    line_spacing_score = _line_spacing_inconsistency_score(
+        region,
+        reference_text,
+        candidate_text,
+        alignment_matrix,
+        reference_size,
+        candidate_size,
+    )
+    residual_text_score = _residual_text_score(
+        region,
+        aligned_reference,
+        candidate,
+        alignment_matrix,
+        reference_size,
+    )
+    halo_erasure_score = _halo_erasure_score(
+        region,
+        reference_crop,
+        candidate_crop,
+        alignment_matrix,
+        reference_size,
+        candidate_size,
+    )
+    compression_noise_score = _compression_noise_inconsistency_score(
+        reference_gray,
+        candidate_gray,
+        background,
+    )
+    return _VariableTextIntegrity(
+        background=round(min(1.0, background_score), 4),
+        typography=round(typography_score, 4),
+        line_spacing=round(line_spacing_score, 4),
+        residual_text=round(residual_text_score, 4),
+        halo_erasure=round(halo_erasure_score, 4),
+        compression_noise=round(compression_noise_score, 4),
+    )
+
+
+def _text_foreground_mask(gray: np.ndarray) -> np.ndarray:
+    """Return text-like foreground while excluding broad pasted backgrounds."""
+
+    if gray.size == 0 or int(gray.max()) - int(gray.min()) < 8:
+        return np.zeros(gray.shape, dtype=np.uint8)
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, thresholded = cv2.threshold(
+        blurred,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU,
+    )
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(thresholded, 8)
+    text_mask = np.zeros_like(thresholded)
+    crop_area = max(1, gray.shape[0] * gray.shape[1])
+    for component in range(1, count):
+        area = int(stats[component, cv2.CC_STAT_AREA])
+        height = int(stats[component, cv2.CC_STAT_HEIGHT])
+        if 1 <= area <= crop_area * 0.24 and height <= gray.shape[0] * 0.9:
+            text_mask[labels == component] = 255
+    return text_mask
+
+
+def _line_spacing_inconsistency_score(
+    region: DifferenceRegion,
+    reference_text: TextExtraction,
+    candidate_text: TextExtraction,
+    alignment_matrix: np.ndarray | None,
+    reference_size: tuple[int, int],
+    candidate_size: tuple[int, int],
+) -> float:
+    reference_boxes: list[tuple[float, float, float, float]] = []
+    candidate_boxes: list[tuple[float, float, float, float]] = []
+    for change in region.text_changes:
+        if change.reference_bbox is not None:
+            mapped = _map_reference_bbox_to_candidate(
+                change.reference_bbox,
+                alignment_matrix,
+                reference_size,
+                candidate_size,
+            )
+            if mapped is not None:
+                reference_boxes.append(mapped)
+        if change.candidate_bbox is not None:
+            candidate_boxes.append(change.candidate_bbox)
+    if not reference_boxes or not candidate_boxes:
+        return 0.0
+
+    reference_region = _union_normalized_boxes(reference_boxes)
+    candidate_region = _union_normalized_boxes(candidate_boxes)
+    mapped_reference_words = [
+        mapped
+        for word in reference_text.words
+        if (
+            mapped := _map_reference_bbox_to_candidate(
+                word.bbox,
+                alignment_matrix,
+                reference_size,
+                candidate_size,
+            )
+        )
+        is not None
+        and _boxes_overlap(mapped, reference_region, padding=0.006)
+    ]
+    candidate_words = [
+        word.bbox
+        for word in candidate_text.words
+        if _boxes_overlap(word.bbox, candidate_region, padding=0.006)
+    ]
+    reference_lines = _normalized_line_baselines(mapped_reference_words)
+    candidate_lines = _normalized_line_baselines(candidate_words)
+    if len(reference_lines) < 2 or len(reference_lines) != len(candidate_lines):
+        return 0.0
+    deltas = [
+        abs(reference_gap - candidate_gap)
+        for reference_gap, candidate_gap in zip(
+            np.diff(reference_lines), np.diff(candidate_lines), strict=True
+        )
+    ]
+    return _bounded_score((max(deltas, default=0.0) - 0.35) / 0.9)
+
+
+def _normalized_line_baselines(
+    boxes: list[tuple[float, float, float, float]],
+) -> list[float]:
+    if not boxes:
+        return []
+    median_height = float(np.median([box[3] - box[1] for box in boxes]))
+    if median_height <= 0.0:
+        return []
+    ordered = sorted(boxes, key=lambda box: ((box[1] + box[3]) / 2.0, box[0]))
+    lines: list[list[tuple[float, float, float, float]]] = []
+    for box in ordered:
+        center = (box[1] + box[3]) / 2.0
+        if not lines:
+            lines.append([box])
+            continue
+        line_center = float(
+            np.mean([(item[1] + item[3]) / 2.0 for item in lines[-1]])
+        )
+        if abs(center - line_center) <= max(0.004, median_height * 0.55):
+            lines[-1].append(box)
+        else:
+            lines.append([box])
+    baselines = [max(box[3] for box in line) / median_height for line in lines]
+    return baselines
+
+
+def _union_normalized_boxes(
+    boxes: list[tuple[float, float, float, float]],
+) -> tuple[float, float, float, float]:
+    return (
+        min(box[0] for box in boxes),
+        min(box[1] for box in boxes),
+        max(box[2] for box in boxes),
+        max(box[3] for box in boxes),
+    )
+
+
+def _residual_text_score(
+    region: DifferenceRegion,
+    aligned_reference: np.ndarray,
+    candidate: np.ndarray,
+    alignment_matrix: np.ndarray | None,
+    reference_size: tuple[int, int],
+) -> float:
+    candidate_size = (candidate.shape[1], candidate.shape[0])
+    scores: list[float] = []
+    for change in region.text_changes:
+        if change.reference_bbox is None or change.candidate_bbox is None:
+            continue
+        reference_box = _map_reference_bbox_to_candidate(
+            change.reference_bbox,
+            alignment_matrix,
+            reference_size,
+            candidate_size,
+        )
+        if reference_box is None:
+            continue
+        candidate_box = change.candidate_bbox
+        union = _union_normalized_boxes([reference_box, candidate_box])
+        crop, origin = _normalized_crop_with_origin(candidate, union, padding_ratio=0.012)
+        if crop.size == 0:
+            continue
+        mask = _text_foreground_mask(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY))
+        allowed = np.zeros(mask.shape, dtype=np.uint8)
+        _fill_normalized_box(allowed, candidate_box, origin, candidate_size, value=255)
+        allowed = cv2.dilate(allowed, np.ones((5, 5), dtype=np.uint8))
+        trusted_extent = np.zeros(mask.shape, dtype=np.uint8)
+        _fill_normalized_box(trusted_extent, reference_box, origin, candidate_size, value=255)
+        unexpected = (mask > 0) & (allowed == 0) & (trusted_extent > 0)
+        unexpected_pixels = int(np.count_nonzero(unexpected))
+        candidate_ink = int(np.count_nonzero(mask & allowed))
+        margin_score = _bounded_score(
+            (unexpected_pixels - 5.0) / max(12.0, candidate_ink * 0.20)
+        )
+
+        reference_crop = _normalized_text_crop(aligned_reference, reference_box)
+        candidate_crop = _normalized_text_crop(candidate, candidate_box)
+        reference_density = _ink_density_per_character(reference_crop, change.before)
+        candidate_density = _ink_density_per_character(candidate_crop, change.after)
+        density_score = 0.0
+        if reference_density > 0.0 and candidate_density > 0.0:
+            ratio = candidate_density / reference_density
+            density_score = _bounded_score((ratio - 2.2) / 1.6)
+        scores.append(max(margin_score, density_score))
+    return max(scores, default=0.0)
+
+
+def _ink_density_per_character(image: np.ndarray, text: str) -> float:
+    characters = max(1, len(re.sub(r"\W+", "", text)))
+    if image.size == 0:
+        return 0.0
+    mask = _text_foreground_mask(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    return float(np.count_nonzero(mask) / max(1, image.shape[0] ** 2) / characters)
+
+
+def _normalized_crop_with_origin(
+    image: np.ndarray,
+    bbox: tuple[float, float, float, float],
+    *,
+    padding_ratio: float,
+) -> tuple[np.ndarray, tuple[int, int]]:
+    height, width = image.shape[:2]
+    x0 = max(0, int(np.floor((bbox[0] - padding_ratio) * width)))
+    y0 = max(0, int(np.floor((bbox[1] - padding_ratio) * height)))
+    x1 = min(width, int(np.ceil((bbox[2] + padding_ratio) * width)))
+    y1 = min(height, int(np.ceil((bbox[3] + padding_ratio) * height)))
+    if x1 <= x0 or y1 <= y0:
+        return np.empty((0, 0, 3), dtype=image.dtype), (x0, y0)
+    return image[y0:y1, x0:x1], (x0, y0)
+
+
+def _fill_normalized_box(
+    mask: np.ndarray,
+    bbox: tuple[float, float, float, float],
+    origin: tuple[int, int],
+    page_size: tuple[int, int],
+    *,
+    value: int,
+) -> None:
+    page_width, page_height = page_size
+    x0 = int(np.floor(bbox[0] * page_width)) - origin[0]
+    y0 = int(np.floor(bbox[1] * page_height)) - origin[1]
+    x1 = int(np.ceil(bbox[2] * page_width)) - origin[0]
+    y1 = int(np.ceil(bbox[3] * page_height)) - origin[1]
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(mask.shape[1], x1), min(mask.shape[0], y1)
+    if x1 > x0 and y1 > y0:
+        mask[y0:y1, x0:x1] = value
+
+
+def _halo_erasure_score(
+    region: DifferenceRegion,
+    reference_crop: np.ndarray,
+    candidate_crop: np.ndarray,
+    alignment_matrix: np.ndarray | None,
+    reference_size: tuple[int, int],
+    candidate_size: tuple[int, int],
+) -> float:
+    box_mask = np.zeros(reference_crop.shape[:2], dtype=np.uint8)
+    for change in region.text_changes:
+        boxes: list[tuple[float, float, float, float]] = []
+        if change.reference_bbox is not None:
+            mapped = _map_reference_bbox_to_candidate(
+                change.reference_bbox,
+                alignment_matrix,
+                reference_size,
+                candidate_size,
+            )
+            if mapped is not None:
+                boxes.append(mapped)
+        if change.candidate_bbox is not None:
+            boxes.append(change.candidate_bbox)
+        for box in boxes:
+            _fill_normalized_box(
+                box_mask,
+                box,
+                (region.x0, region.y0),
+                candidate_size,
+                value=255,
+            )
+    if not np.any(box_mask):
+        return 0.0
+    inner = cv2.dilate(box_mask, np.ones((5, 5), dtype=np.uint8))
+    outer = cv2.dilate(box_mask, np.ones((15, 15), dtype=np.uint8))
+    ring = (outer > 0) & (inner == 0)
+    available = int(np.count_nonzero(ring))
+    if available < 16:
+        return 0.0
+    reference_gray = cv2.cvtColor(reference_crop, cv2.COLOR_BGR2GRAY)
+    candidate_gray = cv2.cvtColor(candidate_crop, cv2.COLOR_BGR2GRAY)
+    delta = cv2.absdiff(reference_gray, candidate_gray)
+    changed_ratio = np.count_nonzero((delta >= 14) & ring) / available
+    texture_delta = np.abs(
+        cv2.Laplacian(reference_gray, cv2.CV_32F)
+        - cv2.Laplacian(candidate_gray, cv2.CV_32F)
+    )
+    texture_ratio = np.count_nonzero((texture_delta >= 28) & ring) / available
+    return _bounded_score((max(changed_ratio, texture_ratio) - 0.10) / 0.55)
+
+
+def _compression_noise_inconsistency_score(
+    reference_gray: np.ndarray,
+    candidate_gray: np.ndarray,
+    background: np.ndarray,
+) -> float:
+    if min(reference_gray.shape) < 12 or np.count_nonzero(background) < 40:
+        return 0.0
+
+    def signature(gray: np.ndarray) -> tuple[float, float, float]:
+        residual = np.abs(
+            gray.astype(np.float32)
+            - cv2.GaussianBlur(gray, (5, 5), 0).astype(np.float32)
+        )
+        height, width = gray.shape
+        border = max(2, int(round(min(height, width) * 0.16)))
+        core = np.zeros(gray.shape, dtype=bool)
+        if height > border * 2 and width > border * 2:
+            core[border:-border, border:-border] = True
+        core_values = residual[background & core]
+        surround_values = residual[background & ~core]
+        return (
+            float(np.std(core_values)) if core_values.size >= 12 else 0.0,
+            float(np.std(surround_values)) if surround_values.size >= 12 else 0.0,
+            float(np.std(residual[background])),
+        )
+
+    reference_core, reference_surround, reference_overall = signature(reference_gray)
+    candidate_core, candidate_surround, candidate_overall = signature(candidate_gray)
+    local_excess = (candidate_core - candidate_surround) - (
+        reference_core - reference_surround
+    )
+    trusted_excess = candidate_overall - reference_overall
+    return _bounded_score((max(local_excess, trusted_excess) - 1.5) / 6.0)
+
+
+def _variable_typography_score(
+    region: DifferenceRegion,
+    reference_crop: np.ndarray,
+    candidate_crop: np.ndarray,
+    reference_foreground: np.ndarray,
+    candidate_foreground: np.ndarray,
+    reference_text: TextExtraction,
+    candidate_text: TextExtraction,
+    *,
+    aligned_reference: np.ndarray,
+    candidate_page: np.ndarray,
+    alignment_matrix: np.ndarray | None,
+    reference_size: tuple[int, int],
+    alignment_quality: float,
+) -> float:
+    scores: list[float] = []
+    for change in region.text_changes:
+        reference_box = change.reference_bbox
+        candidate_box = change.candidate_bbox
+        if reference_box is None or candidate_box is None:
+            continue
+        reference_box = _map_reference_bbox_to_candidate(
+            reference_box,
+            alignment_matrix,
+            reference_size,
+            (candidate_page.shape[1], candidate_page.shape[0]),
+        )
+        if reference_box is None:
+            continue
+        reference_height = max(1e-6, reference_box[3] - reference_box[1])
+        candidate_height = max(1e-6, candidate_box[3] - candidate_box[1])
+        height_ratio = max(reference_height, candidate_height) / min(
+            reference_height, candidate_height
+        )
+        scores.append(_bounded_score((height_ratio - 1.0) / 0.65))
+
+        baseline_tolerance = max(0.012, 0.4 * max(reference_height, candidate_height))
+        scores.append(
+            _bounded_score(
+                abs(reference_box[3] - candidate_box[3]) / baseline_tolerance
+            )
+        )
+
+        reference_characters = len(re.sub(r"\W+", "", change.before))
+        candidate_characters = len(re.sub(r"\W+", "", change.after))
+        if reference_characters and candidate_characters:
+            reference_advance = (
+                (reference_box[2] - reference_box[0])
+                / reference_characters
+                / reference_height
+            )
+            candidate_advance = (
+                (candidate_box[2] - candidate_box[0])
+                / candidate_characters
+                / candidate_height
+            )
+            if reference_advance > 0 and candidate_advance > 0:
+                advance_ratio = max(reference_advance, candidate_advance) / min(
+                    reference_advance, candidate_advance
+                )
+                scores.append(_bounded_score((advance_ratio - 1.45) / 1.1))
+
+        # Region-wide masks also contain labels, borders, and neighbouring
+        # fields. Measure each changed OCR run independently so a clear
+        # weight/ink mismatch cannot be diluted by unchanged surrounding text.
+        scores.append(
+            _variable_word_style_score(
+                aligned_reference,
+                candidate_page,
+                reference_box,
+                candidate_box,
+            )
+        )
+
+    reference_words = _words_overlapping(reference_text, _combined_change_bbox(region))
+    candidate_words = _words_overlapping(candidate_text, _combined_change_bbox(region))
+    if reference_words and candidate_words:
+        reference_height = float(
+            np.median([word.bbox[3] - word.bbox[1] for word in reference_words])
+        )
+        candidate_height = float(
+            np.median([word.bbox[3] - word.bbox[1] for word in candidate_words])
+        )
+        if reference_height > 0 and candidate_height > 0:
+            height_ratio = max(reference_height, candidate_height) / min(
+                reference_height, candidate_height
+            )
+            scores.append(_bounded_score((height_ratio - 1.0) / 0.65))
+
+    reference_stroke = _normalized_stroke_width(reference_foreground)
+    candidate_stroke = _normalized_stroke_width(candidate_foreground)
+    if reference_stroke > 0 and candidate_stroke > 0:
+        stroke_ratio = max(reference_stroke, candidate_stroke) / min(
+            reference_stroke, candidate_stroke
+        )
+        scores.append(_bounded_score((stroke_ratio - 1.25) / 1.4))
+
+    reference_colour = _foreground_colour(reference_crop, reference_foreground)
+    candidate_colour = _foreground_colour(candidate_crop, candidate_foreground)
+    if reference_colour is not None and candidate_colour is not None:
+        colour_distance = float(np.linalg.norm(reference_colour - candidate_colour))
+        scores.append(_bounded_score((colour_distance - 35.0) / 100.0))
+
+    reference_sharpness = _foreground_sharpness(reference_crop, reference_foreground)
+    candidate_sharpness = _foreground_sharpness(candidate_crop, candidate_foreground)
+    if reference_sharpness > 0 and candidate_sharpness > 0:
+        sharpness_ratio = max(reference_sharpness, candidate_sharpness) / min(
+            reference_sharpness, candidate_sharpness
+        )
+        scores.append(_bounded_score((sharpness_ratio - 1.5) / 2.0))
+
+    quality_scale = max(0.45, min(1.0, alignment_quality))
+    return min(1.0, max(scores, default=0.0) * quality_scale)
+
+
+def _variable_word_style_score(
+    aligned_reference: np.ndarray,
+    candidate: np.ndarray,
+    reference_box: tuple[float, float, float, float],
+    candidate_box: tuple[float, float, float, float],
+) -> float:
+    """Compare content-neutral weight, colour, and sharpness per OCR run."""
+
+    reference_crop = _normalized_text_crop(aligned_reference, reference_box)
+    candidate_crop = _normalized_text_crop(candidate, candidate_box)
+    if reference_crop.size == 0 or candidate_crop.size == 0:
+        return 0.0
+
+    reference_mask = _text_foreground_mask(
+        cv2.cvtColor(reference_crop, cv2.COLOR_BGR2GRAY)
+    )
+    candidate_mask = _text_foreground_mask(
+        cv2.cvtColor(candidate_crop, cv2.COLOR_BGR2GRAY)
+    )
+    if np.count_nonzero(reference_mask) < 6 or np.count_nonzero(candidate_mask) < 6:
+        return 0.0
+
+    scores: list[float] = []
+    reference_stroke = _normalized_stroke_width(reference_mask)
+    candidate_stroke = _normalized_stroke_width(candidate_mask)
+    if reference_stroke > 0 and candidate_stroke > 0:
+        stroke_ratio = max(reference_stroke, candidate_stroke) / min(
+            reference_stroke, candidate_stroke
+        )
+        scores.append(_bounded_score((stroke_ratio - 1.15) / 0.9))
+
+    reference_colour = _foreground_colour(reference_crop, reference_mask)
+    candidate_colour = _foreground_colour(candidate_crop, candidate_mask)
+    if reference_colour is not None and candidate_colour is not None:
+        colour_distance = float(np.linalg.norm(reference_colour - candidate_colour))
+        scores.append(_bounded_score((colour_distance - 30.0) / 100.0))
+
+    reference_sharpness = _foreground_sharpness(reference_crop, reference_mask)
+    candidate_sharpness = _foreground_sharpness(candidate_crop, candidate_mask)
+    if reference_sharpness > 0 and candidate_sharpness > 0:
+        sharpness_ratio = max(reference_sharpness, candidate_sharpness) / min(
+            reference_sharpness, candidate_sharpness
+        )
+        scores.append(_bounded_score((sharpness_ratio - 1.4) / 1.8))
+    return max(scores, default=0.0)
+
+
+def _normalized_text_crop(
+    image: np.ndarray,
+    bbox: tuple[float, float, float, float],
+) -> np.ndarray:
+    height, width = image.shape[:2]
+    x0 = int(np.floor(bbox[0] * width))
+    y0 = int(np.floor(bbox[1] * height))
+    x1 = int(np.ceil(bbox[2] * width))
+    y1 = int(np.ceil(bbox[3] * height))
+    padding = max(2, int(round(max(1, y1 - y0) * 0.16)))
+    x0, y0 = max(0, x0 - padding), max(0, y0 - padding)
+    x1, y1 = min(width, x1 + padding), min(height, y1 + padding)
+    if x1 <= x0 or y1 <= y0:
+        return np.empty((0, 0, 3), dtype=image.dtype)
+    return image[y0:y1, x0:x1]
+
+
+def _normalized_stroke_width(mask: np.ndarray) -> float:
+    if np.count_nonzero(mask) < 6:
+        return 0.0
+    distance = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
+    values = distance[mask > 0]
+    return float(np.median(values) / max(mask.shape[0], 1))
+
+
+def _foreground_colour(image: np.ndarray, mask: np.ndarray) -> np.ndarray | None:
+    pixels = image[mask > 0]
+    if len(pixels) < 6:
+        return None
+    return np.median(pixels.astype(np.float32), axis=0)
+
+
+def _foreground_sharpness(image: np.ndarray, mask: np.ndarray) -> float:
+    if np.count_nonzero(mask) < 6:
+        return 0.0
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    laplacian = np.abs(cv2.Laplacian(gray, cv2.CV_32F))
+    return float(np.mean(laplacian[mask > 0]))
+
+
+def _variable_media_integrity_indicators(
+    region: DifferenceRegion,
+    aligned_reference: np.ndarray,
+    candidate: np.ndarray,
+    *,
+    alignment_quality: float,
+) -> tuple[float, float]:
+    """Inspect media geometry and its perimeter without comparing payload identity."""
+
+    page_height, page_width = candidate.shape[:2]
+    pad = max(4, min(24, int(round(min(region.width, region.height) * 0.08))))
+    x0 = max(0, region.x0 - pad)
+    y0 = max(0, region.y0 - pad)
+    x1 = min(page_width, region.x1 + pad)
+    y1 = min(page_height, region.y1 + pad)
+    reference_patch = aligned_reference[y0:y1, x0:x1]
+    candidate_patch = candidate[y0:y1, x0:x1]
+    if reference_patch.size == 0 or candidate_patch.size == 0:
+        return 0.0, 0.0
+
+    core = (region.x0 - x0, region.y0 - y0, region.x1 - x0, region.y1 - y0)
+    ring = np.ones(reference_patch.shape[:2], dtype=bool)
+    ring[core[1] : core[3], core[0] : core[2]] = False
+    ring_pixels = int(np.count_nonzero(ring))
+    ring_score = 0.0
+    if ring_pixels:
+        reference_gray = cv2.cvtColor(reference_patch, cv2.COLOR_BGR2GRAY)
+        candidate_gray = cv2.cvtColor(candidate_patch, cv2.COLOR_BGR2GRAY)
+        threshold = 18 + int(round((1.0 - alignment_quality) * 24.0))
+        ring_delta = cv2.absdiff(reference_gray, candidate_gray)
+        ring_score = np.count_nonzero((ring_delta >= threshold) & ring) / ring_pixels
+
+    reference_box = _rectangular_structure_box(reference_patch)
+    candidate_box = _rectangular_structure_box(candidate_patch)
+    background_score = ring_score
+    geometry_score = 0.0
+    if reference_box is None and candidate_box is not None:
+        background_score = max(background_score, 0.72)
+    elif reference_box is not None and candidate_box is None:
+        background_score = max(background_score, 0.72)
+    elif reference_box is not None and candidate_box is not None:
+        geometry_score = _rectangle_geometry_change(
+            reference_box,
+            candidate_box,
+            page_width,
+            page_height,
+        )
+
+    boundary_excess = max(
+        0.0,
+        _perimeter_edge_score(candidate_patch, core)
+        - _perimeter_edge_score(reference_patch, core)
+        - 0.12,
+    )
+    background_score = max(background_score, boundary_excess / 0.45)
+    return (
+        round(min(1.0, background_score), 4),
+        round(min(1.0, geometry_score), 4),
+    )
+
+
+def _rectangular_structure_box(
+    image: np.ndarray,
+) -> tuple[float, float, float, float] | None:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 140)
+    contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    patch_area = max(1, gray.shape[0] * gray.shape[1])
+    candidates: list[tuple[int, tuple[float, float, float, float]]] = []
+    for contour in contours:
+        x, y, width, height = cv2.boundingRect(contour)
+        box_area = width * height
+        if (
+            width < 16
+            or height < 16
+            or box_area < patch_area * 0.08
+            or box_area > patch_area * 0.96
+        ):
+            continue
+        perimeter = cv2.arcLength(contour, True)
+        approximation = cv2.approxPolyDP(contour, 0.035 * perimeter, True)
+        rectangularity = cv2.contourArea(contour) / max(box_area, 1)
+        if len(approximation) == 4 and rectangularity >= 0.5:
+            candidates.append((box_area, (float(x), float(y), float(width), float(height))))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def _rectangle_geometry_change(
+    reference_box: tuple[float, float, float, float],
+    candidate_box: tuple[float, float, float, float],
+    page_width: int,
+    page_height: int,
+) -> float:
+    ref_x, ref_y, ref_width, ref_height = reference_box
+    cand_x, cand_y, cand_width, cand_height = candidate_box
+    center_shift = float(
+        np.hypot(
+            ((cand_x + cand_width / 2.0) - (ref_x + ref_width / 2.0))
+            / max(page_width, 1),
+            ((cand_y + cand_height / 2.0) - (ref_y + ref_height / 2.0))
+            / max(page_height, 1),
+        )
+    )
+    size_shift = max(
+        abs(cand_width - ref_width) / max(page_width, 1),
+        abs(cand_height - ref_height) / max(page_height, 1),
+    )
+    jitter = max(3.0 / max(page_width, 1), 3.0 / max(page_height, 1))
+    measured = max(center_shift, size_shift)
+    return measured if measured >= jitter else 0.0
+
+
+def _perimeter_edge_score(
+    image: np.ndarray, core: tuple[int, int, int, int]
+) -> float:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gradient_x = np.abs(cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3))
+    gradient_y = np.abs(cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3))
+    x0, y0, x1, y1 = core
+    band = max(2, int(round(min(x1 - x0, y1 - y0) * 0.025)))
+    samples = (
+        gradient_y[max(0, y0 - band) : min(gray.shape[0], y0 + band), x0:x1],
+        gradient_y[max(0, y1 - band) : min(gray.shape[0], y1 + band), x0:x1],
+        gradient_x[y0:y1, max(0, x0 - band) : min(gray.shape[1], x0 + band)],
+        gradient_x[y0:y1, max(0, x1 - band) : min(gray.shape[1], x1 + band)],
+    )
+    occupancies = [
+        float(np.count_nonzero(sample >= 55) / sample.size)
+        for sample in samples
+        if sample.size
+    ]
+    return float(np.mean(occupancies)) if occupancies else 0.0
+
+
+def _bounded_score(value: float) -> float:
+    return float(max(0.0, min(1.0, value)))
 
 
 def _manipulation_indicators(

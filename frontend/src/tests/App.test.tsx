@@ -448,7 +448,9 @@ const templateSuggestions: RegionSuggestion[] = ['Name', 'Date', 'Identifier', '
   page_number: 1,
   role: 'variable',
   confidence_score: 93,
-  reason: `${label} is a legitimate variable field.`,
+  reason: index === 0
+    ? 'Detected text difference. Reference: "KAVYA SRINIVASAN". Candidate: "ARJUN MENON". The value follows the stable Name label.'
+    : `Detected text difference. Reference: "reference ${label}". Candidate: "candidate ${label}". The value follows a stable ${label} label.`,
   label,
   bounding_box: { x: 0.1, y: 0.18 + index * 0.14, width: 0.3, height: 0.06 },
 }))
@@ -799,7 +801,7 @@ describe('DocuVerify Phase 1 experience', () => {
     const pageTwoOverlay = screen.getByLabelText('1 evidence marker')
     expect(within(pageTwoOverlay).getByRole('button', { name: /typography inconsistency/i })).toBeInTheDocument()
     expect(within(pageTwoOverlay).queryByRole('button', { name: /header shifted/i })).not.toBeInTheDocument()
-    expect(screen.getByLabelText('1 suggested variable region')).toBeInTheDocument()
+    expect(screen.getByLabelText('1 detected Template value change')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /next page/i }))
     expect(screen.getByText(/candidate page missing/i)).toBeInTheDocument()
@@ -981,7 +983,16 @@ describe('DocuVerify Phase 1 experience', () => {
     const referenceViewer = screen.getByRole('region', { name: /trusted reference · page 1 viewer/i })
     expect(within(candidateViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-legitimate-candidate')
     expect(within(referenceViewer).getByRole('img')).toHaveAttribute('src', '/assets/template-reference')
-    expect(within(candidateViewer).getByLabelText('4 suggested variable regions')).toBeInTheDocument()
+    expect(within(candidateViewer).getByLabelText('4 detected Template value changes')).toBeInTheDocument()
+    expect(within(referenceViewer).queryByLabelText('4 detected Template value changes')).not.toBeInTheDocument()
+    expect(screen.getByText('No suspicious findings')).toBeInTheDocument()
+    const allowedChanges = screen.getByRole('region', { name: /allowed template changes/i })
+    expect(within(allowedChanges).getByText('4 detected')).toBeInTheDocument()
+    expect(within(allowedChanges).getByText('Name')).toBeInTheDocument()
+    expect(within(allowedChanges).getByText(/reference: "kavya srinivasan".*candidate: "arjun menon"/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/4 detected template value changes/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/page 1 - allowed/i)).toHaveLength(4)
+    expect(document.body.textContent).not.toMatch(/[\u00c2\u00c3]/i)
     expect(screen.queryByText(/candidate page missing|reference page missing/i)).not.toBeInTheDocument()
   })
 
